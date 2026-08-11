@@ -1,0 +1,16 @@
+name = "roviq-site"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+kv_namespaces = [
+  { binding = "CONTENT", id = "735c76702fab44f1bd401bdf83367ee2" }
+]
+
+# Static assets (diagram PNGs, future photos) served alongside the Worker —
+# a single deployable unit, no separate Pages project needed.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# Set with: wrangler secret put ADMIN_PASSWORD
+# Set with: wrangler secret put SESSION_SECRET
