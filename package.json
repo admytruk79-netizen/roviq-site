@@ -1,5 +1,5 @@
 {
-  "name": "roviq-site",
+  "name": "roviq-station-site",
   "version": "1.0.0",
   "private": true,
   "description": "Roviq + Roviq Station marketing/investor site (Cloudflare Worker + KV)",
