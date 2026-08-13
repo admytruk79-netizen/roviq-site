@@ -1,7 +1,7 @@
 import { execSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 
-const NAMESPACE_ID = "0a3a91e8fa63462eae8cf3f2e77e8a22";
+const NAMESPACE_ID = "735c76702fab44f1bd401bdf83367ee2";
 const WRANGLER = "npx wrangler@3.114.17";
 
 console.log("Listing KV keys...");
