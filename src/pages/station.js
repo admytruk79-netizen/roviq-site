@@ -15,6 +15,9 @@ const MODULES = [
   { title: "Vehicle Relay", body: "station.expansion_vehicle_relay_body", image: "relay-station", label: "Mobility concept" }
 ];
 
+const FORECOURT_IMAGE = "/images/1000053336.png";
+const CAFE_IMAGE = "/images/1000053815(1).png";
+
 export function stationPage(c) {
   return `
 <style>
@@ -46,15 +49,15 @@ export function stationPage(c) {
   @media(max-width:520px){.station-service-grid{grid-template-columns:1fr}.station-visual--pair{grid-template-columns:1fr}.station-module-copy{padding:1.5rem}}
 </style>
 
-<section class="hero section--tight"><div class="container"><div class="station-hero-grid"><div class="station-hero-copy"><span class="eyebrow">${escapeHtml(c["station.hero_eyebrow"])}</span><h1>${escapeHtml(c["station.hero_heading"])}</h1><p class="lead" style="font-family:'Cinzel',serif;color:var(--gold-light);font-size:1.2rem;">${escapeHtml(c["station.tagline"])}</p><p class="lead">${escapeHtml(c["station.hero_sub"])}</p></div>${mediaFull(STATION_IMAGES["hero-forecourt"].file, STATION_IMAGES["hero-forecourt"].alt)}</div></div></section>
+<section class="hero section--tight"><div class="container"><div class="station-hero-grid"><div class="station-hero-copy"><span class="eyebrow">${escapeHtml(c["station.hero_eyebrow"])}</span><h1>${escapeHtml(c["station.hero_heading"])}</h1><p class="lead" style="font-family:'Cinzel',serif;color:var(--gold-light);font-size:1.2rem;">${escapeHtml(c["station.tagline"])}</p><p class="lead">${escapeHtml(c["station.hero_sub"])}</p></div>${mediaFull(FORECOURT_IMAGE,"Roviq Station forecourt concept")}</div></div></section>
 
-<section class="section"><div class="container"><div class="station-feature-grid"><div class="station-feature-copy"><span class="eyebrow">The concept</span><h2>${escapeHtml(c["station.concept_heading"])}</h2>${richText(c["station.concept_body"])}</div>${mediaFull(STATION_IMAGES["forecourt-secondary"].file, STATION_IMAGES["forecourt-secondary"].alt)}</div></div></section>
+<section class="section"><div class="container"><div class="station-feature-grid"><div class="station-feature-copy"><span class="eyebrow">The concept</span><h2>${escapeHtml(c["station.concept_heading"])}</h2>${richText(c["station.concept_body"])}</div>${mediaFull(FORECOURT_IMAGE,"Roviq Station forecourt concept")}</div></div></section>
 
 <section class="section section--navy station-network-band"><div class="container"><span class="eyebrow">A physical node in the Roviq network</span><h2>More than a stop: a coordinated automotive service hub</h2><p class="lead">Roviq Station is envisioned as a premium travel-center format combining fuel, EV charging, café and market retail, vehicle care, and selected Roviq-enabled service handoffs in one recognizable location.</p></div></section>
 
-<section class="section section--cream-alt"><div class="container"><span class="eyebrow">Product &amp; service mix</span><h2>Multiple needs, one visit</h2><div class="station-service-grid">${SERVICES.map((s)=>`<div class="card card--accent-${s.accent}"><h3>${s.title}</h3><p>${escapeHtml(c[`station.service_${s.key}_body`])}</p></div>`).join("\n")}</div><div class="station-visual station-visual--pair">${mediaFull(STATION_IMAGES["forecourt-secondary"].file,"Roviq Station fuel and forecourt detail")}${mediaFull(STATION_IMAGES["ev-charging"].file,STATION_IMAGES["ev-charging"].alt)}</div></div></section>
+<section class="section section--cream-alt"><div class="container"><span class="eyebrow">Product &amp; service mix</span><h2>Multiple needs, one visit</h2><div class="station-service-grid">${SERVICES.map((s)=>`<div class="card card--accent-${s.accent}"><h3>${s.title}</h3><p>${escapeHtml(c[`station.service_${s.key}_body`])}</p></div>`).join("\n")}</div><div class="station-visual station-visual--pair">${mediaFull(FORECOURT_IMAGE,"Roviq Station forecourt concept")}${mediaFull(STATION_IMAGES["ev-charging"].file,STATION_IMAGES["ev-charging"].alt)}</div></div></section>
 
-<section class="section"><div class="container"><div class="station-feature-grid station-feature-grid--reverse"><div>${mediaFull("/images/cafe.png","Roviq Station café and market interior")}</div><div class="station-feature-copy"><span class="eyebrow">Customer experience</span><h2>${escapeHtml(c["station.layout_heading"])}</h2>${richText(c["station.layout_body"])}<p class="diagram-caption" style="text-align:left;margin-top:1rem;">Quick-stop convenience and café dwell time are designed as distinct flows inside one clearly recognizable travel-center environment.</p></div></div></div></section>
+<section class="section"><div class="container"><div class="station-feature-grid station-feature-grid--reverse"><div>${mediaFull(CAFE_IMAGE,"Roviq Café concept inside Roviq Station")}</div><div class="station-feature-copy"><span class="eyebrow">Roviq Café concept</span><h2>${escapeHtml(c["station.layout_heading"])}</h2>${richText(c["station.layout_body"])}<p class="diagram-caption" style="text-align:left;margin-top:1rem;">Quick-stop convenience and café dwell time are designed as distinct flows inside one clearly recognizable travel-center environment.</p></div></div></div></section>
 
 <section class="section section--navy"><div class="container"><div class="station-feature-grid"><div class="station-feature-copy"><span class="eyebrow">Market entry</span><h2>${escapeHtml(c["station.portland_heading"])}</h2>${richText(c["station.portland_body"])}</div><div class="station-market-visual">${mediaFull("/images/Oregon.png","Oregon Roviq Station design concept")}<p class="station-market-note">Illustrative Roviq Station concept adapted for the Oregon market.</p></div></div></div></section>
 
