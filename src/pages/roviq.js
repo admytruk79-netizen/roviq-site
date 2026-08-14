@@ -1,4 +1,4 @@
-import { richText, renderList, renderBullets, renderStats, mediaFull, escapeHtml } from "../layout.js";
+import { richText, renderBullets, mediaFull, escapeHtml } from "../layout.js";
 
 const FRONT_ENDS = [
   { key: "customer", title: "Customer App", accent: "navy" },
@@ -16,207 +16,50 @@ const PARTNER_TYPES = [
   { key: "mobility", title: "Mobility Providers", accent: "teal", cta: "Explore Mobility Partnerships" }
 ];
 
+const PLATFORM_IMAGES = [
+  ["/images/Roviq AI Auto Service Dashboard.png", "Roviq automotive service dashboard concept"],
+  ["/images/1.png", "Roviq platform concept 1"],
+  ["/images/2.png", "Roviq platform concept 2"],
+  ["/images/3.png", "Roviq platform concept 3"],
+  ["/images/4.png", "Roviq platform concept 4"],
+  ["/images/5.png", "Roviq platform concept 5"],
+  ["/images/6.png", "Roviq platform concept 6"],
+  ["/images/8.png", "Roviq platform concept 8"],
+  ["/images/1000053337.png", "Roviq platform concept"],
+  ["/images/1000053923.png", "Roviq platform concept"],
+  ["/images/1000053938.png", "Roviq platform concept"]
+];
+
 export function roviqPage(c) {
   return `
-<section class="hero section--tight">
-  <div class="container">
-    <div class="grid grid--2" style="align-items:center;">
-      <div>
-        <span class="eyebrow">${escapeHtml(c["roviq.hero_eyebrow"])}</span>
-        <h1>${escapeHtml(c["roviq.hero_heading"])}</h1>
-        <p class="lead">${escapeHtml(c["roviq.hero_sub"])}</p>
-      </div>
-      <div style="text-align:center;">
-        <img src="/brand/roviq-lockup.png" alt="Roviq — Stations, Fleet, Parts, People." style="max-width:280px; width:100%; margin:0 auto; border-radius:12px;">
-      </div>
-    </div>
-  </div>
-</section>
+<style>
+  .roviq-visual .media-full{height:auto!important;overflow:visible!important;box-shadow:0 12px 34px rgba(11,37,69,.12)}
+  .roviq-visual .media-full img{display:block!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;aspect-ratio:auto!important;object-fit:contain!important;object-position:center!important}
+  .roviq-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.25rem;margin-top:2rem;align-items:start}
+  .roviq-gallery-item{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 8px 24px rgba(11,37,69,.07)}
+  .roviq-gallery-item .media-full{border:0;border-radius:0;background:#f7f4ec}
+  @media(max-width:760px){.roviq-gallery{grid-template-columns:1fr}}
+</style>
 
-<section class="section section--cream-alt">
-  <div class="container">
-    <span class="eyebrow">Get started</span>
-    <h2>${escapeHtml(c["roviq.howitworks_heading"])}</h2>
-    ${renderBullets(c["roviq.howitworks_steps"])}
-  </div>
-</section>
+<section class="hero section--tight"><div class="container"><div class="grid grid--2" style="align-items:center;"><div><span class="eyebrow">${escapeHtml(c["roviq.hero_eyebrow"])}</span><h1>${escapeHtml(c["roviq.hero_heading"])}</h1><p class="lead">${escapeHtml(c["roviq.hero_sub"])}</p></div><div style="text-align:center;"><img src="/brand/roviq-lockup.png" alt="Roviq — Stations, Fleet, Parts, People." style="max-width:280px;width:100%;margin:0 auto;border-radius:12px;"></div></div></div></section>
 
-<section class="section">
-  <div class="container">
-    <h2>${escapeHtml(c["roviq.core_heading"])}</h2>
-    ${richText(c["roviq.core_body"])}
-    <p class="pullquote" style="font-size:1rem;">${escapeHtml(c["roviq.core_flow"])}</p>
-  </div>
-</section>
+<section class="section section--cream-alt"><div class="container"><span class="eyebrow">How it works</span><h2>${escapeHtml(c["roviq.howitworks_heading"])}</h2>${renderBullets(c["roviq.howitworks_steps"])}</div></section>
 
-<section class="section section--cream-alt">
-  <div class="container">
-    <span class="eyebrow">Under the hood</span>
-    <h2>${escapeHtml(c["roviq.dispatch_heading"])}</h2>
-    <div class="grid grid--2" style="align-items:start;">
-      <div>
-        ${richText(c["roviq.dispatch_body"])}
-        ${renderList(c["roviq.dispatch_steps"])}
-      </div>
-      ${mediaFull(c["roviq.dispatch_image"], "Roviq dispatch flow")}
-    </div>
-  </div>
-</section>
+<section class="section"><div class="container"><div class="grid grid--2" style="align-items:center;gap:2.5rem;"><div><span class="eyebrow">One coordination layer</span><h2>${escapeHtml(c["roviq.core_heading"])}</h2>${richText(c["roviq.core_body"])}<p class="pullquote" style="font-size:1rem;">${escapeHtml(c["roviq.core_flow"])}</p></div><div class="roviq-visual">${mediaFull("/images/Roviq AI Auto Service Dashboard.png","Roviq automotive service dashboard concept")}</div></div></div></section>
 
-<section class="section">
-  <div class="container">
-    <span class="eyebrow">One backend, five doors in</span>
-    <h2>Role-based front ends</h2>
-    <div class="grid grid--3">
-      ${FRONT_ENDS.map(
-        (f) => `<div class="card card--accent-${f.accent}">
-          <h3>${f.title}</h3>
-          <p>${escapeHtml(c[`roviq.frontend_${f.key}_body`])}</p>
-        </div>`
-      ).join("\n")}
-    </div>
-  </div>
-</section>
+<section class="section section--navy"><div class="container"><span class="eyebrow">Multiple front ends. One coordinated backend.</span><h2>Built around each participant in the service journey</h2><p class="lead" style="max-width:860px;">Roviq presents the right interface to each participant while keeping the service journey connected behind the scenes. Public materials describe the experience and network value without exposing proprietary matching, scoring, routing, or decision logic.</p></div></section>
 
-<section class="section section--navy">
-  <div class="container">
-    <span class="eyebrow">${escapeHtml(c["roviq.assetlight_heading"])}</span>
-    <h2>The same shape as Uber — without owning the fleet</h2>
-    ${renderBullets(c["roviq.assetlight_body"])}
-    <p class="pullquote">&ldquo;${escapeHtml(c["roviq.pullquote"])}&rdquo;</p>
-  </div>
-</section>
+<section class="section"><div class="container"><span class="eyebrow">Role-based experiences</span><h2>Different doors into the same coordinated system</h2><div class="grid grid--3">${FRONT_ENDS.map((f)=>`<div class="card card--accent-${f.accent}"><h3>${f.title}</h3><p>${escapeHtml(c[`roviq.frontend_${f.key}_body`])}</p></div>`).join("\n")}</div></div></section>
 
-<section class="section section--cream-alt">
-  <div class="container">
-    <span class="eyebrow">How Roviq makes money</span>
-    <h2>${escapeHtml(c["roviq.revenue_heading"])}</h2>
-    ${renderStats(c["roviq.revenue_stats"])}
-    ${richText(c["roviq.revenue_body"])}
-  </div>
-</section>
+<section class="section section--cream-alt"><div class="container"><span class="eyebrow">Platform concepts</span><h2>ROVIQ interfaces and service coordination in practice</h2><p class="lead" style="max-width:820px;">The current ROVIQ visual library shows how the platform can present different role-based experiences while remaining part of one coordinated system.</p><div class="roviq-gallery roviq-visual">${PLATFORM_IMAGES.map(([src,alt])=>`<div class="roviq-gallery-item">${mediaFull(src,alt)}</div>`).join("\n")}</div></div></section>
 
-<section class="section">
-  <div class="container">
-    <span class="eyebrow">The opportunity</span>
-    <h2>${escapeHtml(c["roviq.market_heading"])}</h2>
-    ${renderStats(c["roviq.market_stats"])}
-    ${richText(c["roviq.market_body"])}
-    <div class="callout">
-      <span class="eyebrow">${escapeHtml(c["roviq.whynow_heading"])}</span>
-      ${renderBullets(c["roviq.whynow_body"])}
-    </div>
-  </div>
-</section>
-
-<section class="section section--cream-alt">
-  <div class="container">
-    <span class="eyebrow">A distinct product line</span>
-    <h2>${escapeHtml(c["roviq.dealership_heading"])}</h2>
-    ${richText(c["roviq.dealership_body"])}
-    ${renderBullets(c["roviq.dealership_pillars"])}
-  </div>
-</section>
-
-<section class="section">
-  <div class="container">
-    <span class="eyebrow">Diagnostics</span>
-    <h2>${escapeHtml(c["roviq.diagnostic_partners_heading"])}</h2>
-    ${richText(c["roviq.diagnostic_partners_body"])}
-    <p class="pullquote" style="font-size:1rem;">${escapeHtml(c["roviq.diagnostic_partners_flow"])}</p>
-  </div>
-</section>
-
-<section class="section section--cream-alt">
-  <div class="container">
-    <span class="eyebrow">Mobility</span>
-    <h2>${escapeHtml(c["roviq.mobility_heading"])}</h2>
-    ${richText(c["roviq.mobility_body"])}
-  </div>
-</section>
-
-<section class="section">
-  <div class="container">
-    <span class="eyebrow">Capacity network</span>
-    <h2>${escapeHtml(c["roviq.capacity_heading"])}</h2>
-    ${richText(c["roviq.capacity_body"])}
-  </div>
-</section>
-
-<section class="section section--cream-alt">
-  <div class="container">
-    <span class="eyebrow">Not one borrowed model — six, recombined</span>
-    <h2>${escapeHtml(c["roviq.playbook_heading"])}</h2>
-    ${renderBullets(c["roviq.playbook_body"])}
-  </div>
-</section>
-
-<section class="section section--navy">
-  <div class="container">
-    <span class="eyebrow">Why this works</span>
-    <h2>${escapeHtml(c["roviq.competitors_heading"])}</h2>
-    ${richText(c["roviq.competitors_body"])}
-  </div>
-</section>
-
-<section class="section">
-  <div class="container">
-    <span class="eyebrow">How it's actually built</span>
-    <h2>${escapeHtml(c["roviq.stack_heading"])}</h2>
-    ${richText(c["roviq.stack_body"])}
-  </div>
-</section>
-
-<section class="section section--navy">
-  <div class="container">
-    <span class="eyebrow">The ecosystem</span>
-    <h2>${escapeHtml(c["roviq.station_teaser_heading"])}</h2>
-    ${richText(c["roviq.station_teaser_body"])}
-    <a href="/station" class="btn btn--outline" style="margin-top:1rem;">See Roviq Station &rarr;</a>
-  </div>
-</section>
-
-<section class="section">
-  <div class="container">
-    <span class="eyebrow">Get involved</span>
-    <h2>${escapeHtml(c["roviq.partners_heading"])}</h2>
-    <div class="grid grid--3">
-      ${PARTNER_TYPES.map(
-        (p) => `<div class="card card--accent-${p.accent}">
-          <h3>${p.title}</h3>
-          <p>${escapeHtml(c[`roviq.partners_${p.key}_body`])}</p>
-          <a href="/about" class="btn btn--outline" style="margin-top:0.75rem; font-size:0.85rem; padding:0.5rem 0.9rem;">${p.cta} &rarr;</a>
-        </div>`
-      ).join("\n")}
-    </div>
-  </div>
-</section>
-
-<section class="section">
-  <div class="container">
-    <span class="eyebrow">${escapeHtml(c["roviq.why_heading"])}</span>
-    <h2>Built to be trusted with the whole job</h2>
-    ${renderBullets(c["roviq.why_pillars"])}
-  </div>
-</section>
-
-<section class="section section--cream-alt">
-  <div class="container">
-    <span class="eyebrow">Investment case</span>
-    <h2>${escapeHtml(c["roviq.ask_heading"])}</h2>
-    ${renderStats(c["roviq.ask_stats"])}
-    ${richText(c["roviq.ask_body"])}
-    <div class="grid grid--2" style="margin-top:1.5rem; align-items:start;">
-      <div>
-        <h3>Use of funds</h3>
-        ${renderBullets(c["roviq.ask_funds"])}
-      </div>
-      <div>
-        <h3>Milestones this unlocks</h3>
-        ${renderBullets(c["roviq.ask_milestones"])}
-      </div>
-    </div>
-  </div>
-</section>
+<section class="section"><div class="container"><span class="eyebrow">Partner network</span><h2>${escapeHtml(c["roviq.dealership_heading"])}</h2>${richText(c["roviq.dealership_body"])}${renderBullets(c["roviq.dealership_pillars"])}</div></section>
+<section class="section section--cream-alt"><div class="container"><span class="eyebrow">Diagnostics</span><h2>${escapeHtml(c["roviq.diagnostic_partners_heading"])}</h2>${richText(c["roviq.diagnostic_partners_body"])}<p class="pullquote" style="font-size:1rem;">${escapeHtml(c["roviq.diagnostic_partners_flow"])}</p></div></section>
+<section class="section"><div class="container"><span class="eyebrow">Mobility</span><h2>${escapeHtml(c["roviq.mobility_heading"])}</h2>${richText(c["roviq.mobility_body"])}</div></section>
+<section class="section section--cream-alt"><div class="container"><span class="eyebrow">Connected capacity</span><h2>${escapeHtml(c["roviq.capacity_heading"])}</h2>${richText(c["roviq.capacity_body"])}</div></section>
+<section class="section section--navy"><div class="container"><span class="eyebrow">Why Roviq</span><h2>Coordination instead of fragmentation</h2><p class="lead" style="max-width:900px;">Vehicle service today spans owners, diagnostics, repair facilities, dealerships, parts providers, towing and mobility. Roviq is designed to connect those handoffs into one managed journey while each business keeps its own operational role.</p><p class="pullquote">&ldquo;${escapeHtml(c["roviq.pullquote"])}&rdquo;</p></div></section>
+<section class="section"><div class="container"><span class="eyebrow">The ecosystem</span><h2>${escapeHtml(c["roviq.station_teaser_heading"])}</h2>${richText(c["roviq.station_teaser_body"])}<a href="/station" class="btn btn--navy" style="margin-top:1rem;">See Roviq Station &rarr;</a></div></section>
+<section class="section section--cream-alt"><div class="container"><span class="eyebrow">For partners</span><h2>${escapeHtml(c["roviq.partners_heading"])}</h2><div class="grid grid--3">${PARTNER_TYPES.map((p)=>`<div class="card card--accent-${p.accent}"><h3>${p.title}</h3><p>${escapeHtml(c[`roviq.partners_${p.key}_body`])}</p><a href="/about" class="btn btn--navy" style="margin-top:.75rem;font-size:.85rem;padding:.5rem .9rem;">${p.cta} &rarr;</a></div>`).join("\n")}</div></div></section>
+<section class="section section--navy"><div class="container"><span class="eyebrow">${escapeHtml(c["roviq.why_heading"])}</span><h2>Built to be trusted with the whole journey</h2>${renderBullets(c["roviq.why_pillars"])}</div></section>
 `;
 }
