@@ -32,7 +32,6 @@ const MODULES = [
 
 export function stationPage(c) {
   const fuelImage = c["station.image_fuel"];
-  const portlandImage = c["station.image_portland"];
 
   return `
 <style>
@@ -82,6 +81,17 @@ export function stationPage(c) {
 
   .station-network-band { text-align:center; }
   .station-network-band .lead { max-width:52rem; margin:0 auto; color:#d7e0ef; }
+
+  .station-market-visual .media-full {
+    border-color:rgba(255,255,255,.16);
+    box-shadow:0 18px 42px rgba(0,0,0,.24);
+  }
+  .station-market-note {
+    margin-top:.75rem;
+    font-size:.78rem;
+    color:#bfcce0;
+    letter-spacing:.02em;
+  }
 
   .station-modules { display:grid; gap:1.5rem; margin-top:2rem; }
   .station-module {
@@ -223,20 +233,17 @@ export function stationPage(c) {
 
 <section class="section section--navy">
   <div class="container">
-    ${portlandImage ? `
-      <div class="station-feature-grid">
-        <div class="station-feature-copy">
-          <span class="eyebrow">Market entry</span>
-          <h2>${escapeHtml(c["station.portland_heading"])}</h2>
-          ${richText(c["station.portland_body"])}
-        </div>
-        ${mediaFull(portlandImage, "Portland-area Roviq Station concept")}
-      </div>` : `
-      <div style="max-width:760px;">
+    <div class="station-feature-grid">
+      <div class="station-feature-copy">
         <span class="eyebrow">Market entry</span>
         <h2>${escapeHtml(c["station.portland_heading"])}</h2>
         ${richText(c["station.portland_body"])}
-      </div>`}
+      </div>
+      <div class="station-market-visual">
+        ${mediaFull(STATION_IMAGES["hero-forecourt"].file, "Portland-area Roviq Station pilot concept")}
+        <p class="station-market-note">Illustrative Roviq Station pilot concept for the Portland-area market.</p>
+      </div>
+    </div>
   </div>
 </section>
 
