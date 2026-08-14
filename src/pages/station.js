@@ -1,184 +1,65 @@
-import { richText, mediaBlock, mediaFull, diagramImage, renderBullets, renderStats, escapeHtml } from "../layout.js";
+import { richText, mediaFull, escapeHtml } from "../layout.js";
 import { STATION_IMAGES } from "../../content/station-images.js";
 
 const SERVICES = [
   { key: "fuel", title: "Fuel", accent: "gold" },
   { key: "ev", title: "EV Charging", accent: "teal" },
   { key: "cafe", title: "Café", accent: "navy" },
-  { key: "wine", title: "Wine & Retail", accent: "gold" },
+  { key: "wine", title: "Market & Retail", accent: "gold" },
   { key: "wash", title: "Car Wash", accent: "teal" }
 ];
 
+const MODULES = [
+  { title: "Motor Court", body: "station.expansion_motor_court_body", image: "motorcourt", label: "Hospitality concept" },
+  { title: "Swap Station", body: "station.expansion_post_station_body", image: "swap-station", label: "Energy concept" },
+  { title: "Vehicle Relay", body: "station.expansion_vehicle_relay_body", image: "relay-station", label: "Mobility concept" }
+];
+
 export function stationPage(c) {
+  const fuelImage = c["station.image_fuel"];
+
   return `
-<section class="hero section--tight">
-  <div class="container">
-    <div class="grid grid--2" style="align-items:center;">
-      <div>
-        <span class="eyebrow">${escapeHtml(c["station.hero_eyebrow"])}</span>
-        <h1>${escapeHtml(c["station.hero_heading"])}</h1>
-        <p class="lead" style="font-family:'Cinzel', serif; color: var(--gold-light); font-size:1.2rem;">${escapeHtml(c["station.tagline"])}</p>
-        <p class="lead">${escapeHtml(c["station.hero_sub"])}</p>
-      </div>
-      ${mediaFull(STATION_IMAGES["hero-forecourt"].file, STATION_IMAGES["hero-forecourt"].alt)}
-    </div>
-  </div>
-</section>
+<style>
+  .station-hero-grid{display:grid;grid-template-columns:minmax(0,.88fr) minmax(0,1.12fr);gap:3rem;align-items:center}
+  .station-hero-grid .media-full{box-shadow:0 18px 55px rgba(0,0,0,.28);border-color:rgba(255,255,255,.14)}
+  .station-hero-copy{max-width:34rem}.station-hero-copy .lead:last-child{margin-bottom:0}
+  .station-feature-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:3rem;align-items:center}
+  .station-feature-grid--reverse{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr)}
+  .station-feature-copy{max-width:38rem}.station-feature-grid .media-full{box-shadow:0 12px 32px rgba(11,37,69,.12)}
+  .station-service-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1rem;margin-top:1.75rem}
+  .station-service-grid .card{padding:1.35rem;min-height:100%}.station-service-grid .card h3{font-size:1.08rem}.station-service-grid .card p{font-size:.92rem;margin-bottom:0}
+  .station-visual{margin-top:2.25rem;max-width:1040px;margin-left:auto;margin-right:auto}.station-visual .media-full{box-shadow:0 12px 34px rgba(11,37,69,.12)}
+  .station-visual--pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.25rem;max-width:none}
+  .station-network-band{text-align:center}.station-network-band .lead{max-width:52rem;margin:0 auto;color:#d7e0ef}
+  .station-market-visual .media-full{border-color:rgba(255,255,255,.16);box-shadow:0 18px 42px rgba(0,0,0,.24)}
+  .station-market-note{margin-top:.75rem;font-size:.78rem;color:#bfcce0;letter-spacing:.02em}
+  .station-modules{display:grid;gap:1.5rem;margin-top:2rem}
+  .station-module{display:grid;grid-template-columns:minmax(260px,.9fr) minmax(0,1.1fr);background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 8px 24px rgba(11,37,69,.07)}
+  .station-module:nth-child(even){grid-template-columns:minmax(0,1.1fr) minmax(260px,.9fr)}.station-module:nth-child(even) .station-module-image{order:2}
+  .station-module-copy{padding:2rem;align-self:center}.station-module-copy h3{margin-bottom:.6rem}.station-module-copy p{margin-bottom:0}
+  .station-module-image .media-full{height:100%;border:0;border-radius:0}.station-module-image .media-full img{width:100%;height:100%;object-fit:cover;min-height:300px}
+  .station-concept-label{display:inline-block;margin-bottom:.75rem;font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;font-weight:800;color:var(--rust)}
+  .station-cta{background:linear-gradient(135deg,#f5f0e2,#fff);border:1px solid var(--line);border-radius:16px;padding:2.5rem;display:flex;align-items:center;justify-content:space-between;gap:2rem}
+  .station-cta-copy{max-width:46rem}.station-cta-copy p{margin-bottom:0}
+  @media(max-width:1000px){.station-service-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media(max-width:800px){.station-hero-grid,.station-feature-grid,.station-feature-grid--reverse{grid-template-columns:1fr;gap:1.75rem}.station-hero-copy,.station-feature-copy{max-width:none}.station-service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.station-module,.station-module:nth-child(even){grid-template-columns:1fr}.station-module:nth-child(even) .station-module-image{order:0}.station-module-image .media-full img{min-height:0;height:auto;object-fit:contain}.station-cta{display:block;padding:2rem}.station-cta .btn{margin-top:1.25rem}}
+  @media(max-width:520px){.station-service-grid{grid-template-columns:1fr}.station-visual--pair{grid-template-columns:1fr}.station-module-copy{padding:1.5rem}}
+</style>
 
-<section class="section">
-  <div class="container">
-    <span class="eyebrow">The concept</span>
-    <h2>${escapeHtml(c["station.concept_heading"])}</h2>
-    <div class="grid grid--2" style="align-items:start;">
-      <div>${richText(c["station.concept_body"])}</div>
-      ${mediaFull(STATION_IMAGES["forecourt-secondary"].file, STATION_IMAGES["forecourt-secondary"].alt)}
-    </div>
-    <div style="margin-top:2rem;">
-      ${diagramImage("/diagrams/socar_layout.png", "SOCAR-style premium forecourt reference layout", "Reference model: SOCAR-style premium forecourt — mechanics only, not the brand.")}
-    </div>
-  </div>
-</section>
+<section class="hero section--tight"><div class="container"><div class="station-hero-grid"><div class="station-hero-copy"><span class="eyebrow">${escapeHtml(c["station.hero_eyebrow"])}</span><h1>${escapeHtml(c["station.hero_heading"])}</h1><p class="lead" style="font-family:'Cinzel',serif;color:var(--gold-light);font-size:1.2rem;">${escapeHtml(c["station.tagline"])}</p><p class="lead">${escapeHtml(c["station.hero_sub"])}</p></div>${mediaFull(STATION_IMAGES["hero-forecourt"].file, STATION_IMAGES["hero-forecourt"].alt)}</div></div></section>
 
-<section class="section section--cream-alt">
-  <div class="container">
-    <span class="eyebrow">Why now</span>
-    <h2>${escapeHtml(c["station.market_heading"])}</h2>
-    ${renderStats(c["station.market_stats"])}
-    ${richText(c["station.market_body"])}
-    <div class="callout">
-      <span class="eyebrow">${escapeHtml(c["station.proof_heading"])}</span>
-      ${richText(c["station.proof_body"])}
-    </div>
-  </div>
-</section>
+<section class="section"><div class="container"><div class="station-feature-grid"><div class="station-feature-copy"><span class="eyebrow">The concept</span><h2>${escapeHtml(c["station.concept_heading"])}</h2>${richText(c["station.concept_body"])}</div>${mediaFull(STATION_IMAGES["forecourt-secondary"].file, STATION_IMAGES["forecourt-secondary"].alt)}</div></div></section>
 
-<section class="section">
-  <div class="container">
-    <span class="eyebrow">Where Roviq Station fits</span>
-    <h2>${escapeHtml(c["station.benchmark_heading"])}</h2>
-    ${renderBullets(c["station.benchmark_body"])}
-  </div>
-</section>
+<section class="section section--navy station-network-band"><div class="container"><span class="eyebrow">A physical node in the Roviq network</span><h2>More than a stop: a coordinated automotive service hub</h2><p class="lead">Roviq Station is envisioned as a premium travel-center format combining fuel, EV charging, café and market retail, vehicle care, and selected Roviq-enabled service handoffs in one recognizable location.</p></div></section>
 
-<section class="section section--cream-alt">
-  <div class="container">
-    <span class="eyebrow">Product &amp; service mix</span>
-    <h2>Five services, one visit</h2>
-    <div class="grid grid--5">
-      ${SERVICES.map(
-        (s) => `<div class="card card--accent-${s.accent}">
-          <h3>${s.title}</h3>
-          <p>${escapeHtml(c[`station.service_${s.key}_body`])}</p>
-        </div>`
-      ).join("\n")}
-    </div>
-    <div class="grid grid--2" style="margin-top:2rem;">
-      ${mediaFull(c["station.image_fuel"], "Roviq Station pricing board and fuel canopy detail")}
-      ${mediaFull(STATION_IMAGES["ev-charging"].file, STATION_IMAGES["ev-charging"].alt)}
-    </div>
-  </div>
-</section>
+<section class="section section--cream-alt"><div class="container"><span class="eyebrow">Product &amp; service mix</span><h2>Multiple needs, one visit</h2><div class="station-service-grid">${SERVICES.map((s)=>`<div class="card card--accent-${s.accent}"><h3>${s.title}</h3><p>${escapeHtml(c[`station.service_${s.key}_body`])}</p></div>`).join("\n")}</div>${fuelImage?`<div class="station-visual station-visual--pair">${mediaFull(fuelImage,"Roviq Station fuel and forecourt detail")}${mediaFull(STATION_IMAGES["ev-charging"].file,STATION_IMAGES["ev-charging"].alt)}</div>`:`<div class="station-visual">${mediaFull(STATION_IMAGES["ev-charging"].file,STATION_IMAGES["ev-charging"].alt)}</div>`}</div></section>
 
-<section class="section">
-  <div class="container">
-    <span class="eyebrow">Site &amp; interior</span>
-    <h2>${escapeHtml(c["station.layout_heading"])}</h2>
-    ${richText(c["station.layout_body"])}
-    <div class="grid grid--2" style="margin-top:1.5rem;">
-      ${diagramImage("/diagrams/site_layout.png", "Roviq Station site layout schematic", "Site layout — fuel/EV canopy at the perimeter, café + retail anchoring the center, wash at the rear.")}
-      ${diagramImage("/diagrams/interior_layout.png", "Roviq Station interior zoning schematic", "Interior layout — fast lane kept separate from sit-down café flow.")}
-    </div>
-    <div style="margin-top:1.5rem;">
-      ${mediaFull(STATION_IMAGES["interior-cafe"].file, STATION_IMAGES["interior-cafe"].alt)}
-      <p class="diagram-caption">The interior in practice — coffee bar and fresh grab-and-go on the left, fast lane kept to the right, matching the zoning diagram above.</p>
-    </div>
-  </div>
-</section>
+<section class="section"><div class="container"><div class="station-feature-grid station-feature-grid--reverse"><div>${mediaFull("/images/cafe.png","Roviq Station café and market interior")}</div><div class="station-feature-copy"><span class="eyebrow">Customer experience</span><h2>${escapeHtml(c["station.layout_heading"])}</h2>${richText(c["station.layout_body"])}<p class="diagram-caption" style="text-align:left;margin-top:1rem;">Quick-stop convenience and café dwell time are designed as distinct flows inside one clearly recognizable travel-center environment.</p></div></div></div></section>
 
-<section class="section section--navy">
-  <div class="container">
-    <span class="eyebrow">Market entry</span>
-    <h2>${escapeHtml(c["station.portland_heading"])}</h2>
-    ${richText(c["station.portland_body"])}
-    <div style="margin-top:1.5rem;">
-      ${diagramImage("/diagrams/portland_socar_layout.png", "Portland, Oregon entry site layout", "Portland entry path and the regulatory/tax constraints designed into the plan from day one: attendant-pump law, OLCC wine-and-beer-only retail, no state sales tax.")}
-    </div>
-    ${mediaFull(c["station.image_portland"], "Portland streetscape")}
-  </div>
-</section>
+<section class="section section--navy"><div class="container"><div class="station-feature-grid"><div class="station-feature-copy"><span class="eyebrow">Market entry</span><h2>${escapeHtml(c["station.portland_heading"])}</h2>${richText(c["station.portland_body"])}</div><div class="station-market-visual">${mediaFull("/images/1000053772(1).jpg","Portland-area Roviq Station pilot concept")}<p class="station-market-note">Illustrative Roviq Station pilot concept for the Portland-area market.</p></div></div></div></section>
 
-<section class="section section--cream-alt">
-  <div class="container">
-    <div class="grid grid--2" style="align-items:start;">
-      <div>
-        <span class="eyebrow">Planning frame</span>
-        <h2>${escapeHtml(c["station.financials_heading"])}</h2>
-        ${richText(c["station.financials_body"])}
-      </div>
-      <div>
-        <span class="eyebrow">Named directly</span>
-        <h2>${escapeHtml(c["station.risks_heading"])}</h2>
-        ${richText(c["station.risks_body"])}
-      </div>
-    </div>
-  </div>
-</section>
+<section class="section section--cream-alt"><div class="container"><span class="eyebrow">Future modules</span><h2>${escapeHtml(c["station.expansion_heading"])}</h2><div style="max-width:780px;">${richText(c["station.expansion_body"])}</div><div class="station-modules">${MODULES.map((m)=>`<article class="station-module"><div class="station-module-image">${mediaFull(STATION_IMAGES[m.image].file,STATION_IMAGES[m.image].alt)}</div><div class="station-module-copy"><span class="station-concept-label">${m.label}</span><h3>${m.title}</h3><p>${escapeHtml(c[m.body])}</p></div></article>`).join("\n")}</div></div></section>
 
-<section class="section" id="roadmap">
-  <div class="container">
-    <span class="eyebrow">The roadmap</span>
-    <h2>${escapeHtml(c["station.roadmap_heading"])}</h2>
-    ${richText(c["station.roadmap_body"])}
-    <div style="margin: 1.5rem 0 2rem;">
-      ${diagramImage("/diagrams/master_roadmap.png", "Roviq Station master staged roadmap", "Master staged roadmap — Tier 1 core pilot, Tier 2 low-capex layer, Tier 3 moonshot, laid out month by month.")}
-    </div>
-    <div class="tier-columns">
-      <div class="tier tier--1">
-        <span class="tier-label">Tier 1 &middot; Core pilot</span>
-        <h3>${escapeHtml(c["station.tier1_heading"].replace(/^Tier 1\s*—\s*/, ""))}</h3>
-        <p>${escapeHtml(c["station.tier1_body"])}</p>
-      </div>
-      <div class="tier tier--2">
-        <span class="tier-label">Tier 2 &middot; Low-capex layer</span>
-        <h3>${escapeHtml(c["station.tier2_heading"].replace(/^Tier 2\s*—\s*/, ""))}</h3>
-        <p>${escapeHtml(c["station.tier2_body"])}</p>
-      </div>
-      <div class="tier tier--3">
-        <span class="tier-label">Tier 3 &middot; Moonshot</span>
-        <h3>${escapeHtml(c["station.tier3_heading"].replace(/^Tier 3\s*—\s*/, ""))}</h3>
-        <p>${escapeHtml(c["station.tier3_body"])}</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="section section--cream-alt">
-  <div class="container">
-    <span class="eyebrow">Beyond the first site</span>
-    <h2>${escapeHtml(c["station.expansion_heading"])} <span class="tag-inline tag-inline--tier3">Tier 3 &middot; Later stage</span></h2>
-    ${richText(c["station.expansion_body"])}
-
-    <div class="card card--accent-rust" style="margin-top:2rem;">
-      <h3>Motor Court <span class="tag-inline tag-inline--tier3">Tier 3</span></h3>
-      <p>${escapeHtml(c["station.expansion_motor_court_body"])}</p>
-      ${diagramImage("/diagrams/motor_court_layout.png", "Motor court expansion module layout", "Motor court concept — boutique lodging arranged around the shared forecourt.")}
-      ${mediaFull(STATION_IMAGES["motorcourt"].file, STATION_IMAGES["motorcourt"].alt)}
-    </div>
-
-    <div class="card card--accent-rust" style="margin-top:1.5rem;">
-      <h3>Post Station <span class="tag-inline tag-inline--tier3">Tier 3</span></h3>
-      <p>${escapeHtml(c["station.expansion_post_station_body"])}</p>
-      ${diagramImage("/diagrams/post_station_layout.png", "Post Station battery-swap module layout", "Post Station concept — a battery-swap bay layered onto the existing forecourt, named for the 19th-century relay stations that swapped a tired horse for a fresh one.")}
-      ${mediaFull(STATION_IMAGES["swap-station"].file, STATION_IMAGES["swap-station"].alt)}
-    </div>
-
-    <div class="card card--accent-rust" style="margin-top:1.5rem;">
-      <h3>Vehicle Relay <span class="tag-inline tag-inline--tier3">Tier 3</span></h3>
-      <p>${escapeHtml(c["station.expansion_vehicle_relay_body"])}</p>
-      ${diagramImage("/diagrams/vehicle_relay.png", "Vehicle relay concept diagram", "Vehicle relay concept — a corridor of 3+ stations acting as custody hand-off points, logged in Roviq Core.")}
-      ${mediaFull(STATION_IMAGES["relay-station"].file, STATION_IMAGES["relay-station"].alt)}
-    </div>
-  </div>
-</section>
+<section class="section"><div class="container"><div class="station-cta"><div class="station-cta-copy"><span class="eyebrow">Explore the connection</span><h2>Physical infrastructure connected to the coordination platform</h2><p>Roviq Station complements the software layer rather than replacing existing automotive businesses. It can serve as a visible service point, customer handoff location, and future network node.</p></div><a href="/roviq-x-station" class="btn btn--navy">See Roviq × Station &rarr;</a></div></div></section>
 `;
 }
