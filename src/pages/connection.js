@@ -1,4 +1,4 @@
-import { richText, escapeHtml } from "../layout.js";
+import { richText, mediaFull, escapeHtml } from "../layout.js";
 
 const TIEINS = [
   { key: "tow", title: "Tow dispatch staging point", accent: "navy" },
@@ -11,9 +11,14 @@ export function connectionPage(c) {
   return `
 <section class="hero section--tight">
   <div class="container">
-    <span class="eyebrow">${escapeHtml(c["connection.hero_eyebrow"])}</span>
-    <h1>${escapeHtml(c["connection.hero_heading"])}</h1>
-    <p class="lead">${escapeHtml(c["connection.hero_sub"])}</p>
+    <div class="grid grid--2" style="align-items:center;">
+      <div>
+        <span class="eyebrow">${escapeHtml(c["connection.hero_eyebrow"])}</span>
+        <h1>${escapeHtml(c["connection.hero_heading"])}</h1>
+        <p class="lead">${escapeHtml(c["connection.hero_sub"])}</p>
+      </div>
+      ${mediaFull("/images/Roviq Smart Mobility Network Mockup.png", "Roviq smart mobility network connecting digital coordination and physical service nodes")}
+    </div>
   </div>
 </section>
 
@@ -40,6 +45,12 @@ export function connectionPage(c) {
   <div class="container">
     <span class="eyebrow">On the ground</span>
     <h2>What this looks like in practice</h2>
+    <div class="grid grid--2" style="align-items:center;margin-bottom:2rem;">
+      ${mediaFull("/images/Roviq Station_ Tow and Parts Hub.png", "Roviq Station tow drop-off and parts hub concept")}
+      <div>
+        <p class="lead">A Station can become a physical handoff point for services already coordinated through Roviq — including towing, parts pickup, diagnostics and vehicle custody.</p>
+      </div>
+    </div>
     <div class="grid grid--2">
       ${TIEINS.map(
         (t) => `<div class="card card--accent-${t.accent}" style="background:#fff;">
