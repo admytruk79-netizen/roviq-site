@@ -16,8 +16,6 @@ const MODULES = [
 ];
 
 export function stationPage(c) {
-  const fuelImage = c["station.image_fuel"];
-
   return `
 <style>
   .station-hero-grid{display:grid;grid-template-columns:minmax(0,.88fr) minmax(0,1.12fr);gap:3rem;align-items:center}
@@ -52,7 +50,7 @@ export function stationPage(c) {
 
 <section class="section section--navy station-network-band"><div class="container"><span class="eyebrow">A physical node in the Roviq network</span><h2>More than a stop: a coordinated automotive service hub</h2><p class="lead">Roviq Station is envisioned as a premium travel-center format combining fuel, EV charging, café and market retail, vehicle care, and selected Roviq-enabled service handoffs in one recognizable location.</p></div></section>
 
-<section class="section section--cream-alt"><div class="container"><span class="eyebrow">Product &amp; service mix</span><h2>Multiple needs, one visit</h2><div class="station-service-grid">${SERVICES.map((s)=>`<div class="card card--accent-${s.accent}"><h3>${s.title}</h3><p>${escapeHtml(c[`station.service_${s.key}_body`])}</p></div>`).join("\n")}</div>${fuelImage?`<div class="station-visual station-visual--pair">${mediaFull(fuelImage,"Roviq Station fuel and forecourt detail")}${mediaFull(STATION_IMAGES["ev-charging"].file,STATION_IMAGES["ev-charging"].alt)}</div>`:`<div class="station-visual">${mediaFull(STATION_IMAGES["ev-charging"].file,STATION_IMAGES["ev-charging"].alt)}</div>`}</div></section>
+<section class="section section--cream-alt"><div class="container"><span class="eyebrow">Product &amp; service mix</span><h2>Multiple needs, one visit</h2><div class="station-service-grid">${SERVICES.map((s)=>`<div class="card card--accent-${s.accent}"><h3>${s.title}</h3><p>${escapeHtml(c[`station.service_${s.key}_body`])}</p></div>`).join("\n")}</div><div class="station-visual station-visual--pair">${mediaFull(STATION_IMAGES["forecourt-secondary"].file,"Roviq Station fuel and forecourt detail")}${mediaFull(STATION_IMAGES["ev-charging"].file,STATION_IMAGES["ev-charging"].alt)}</div></div></section>
 
 <section class="section"><div class="container"><div class="station-feature-grid station-feature-grid--reverse"><div>${mediaFull("/images/cafe.png","Roviq Station café and market interior")}</div><div class="station-feature-copy"><span class="eyebrow">Customer experience</span><h2>${escapeHtml(c["station.layout_heading"])}</h2>${richText(c["station.layout_body"])}<p class="diagram-caption" style="text-align:left;margin-top:1rem;">Quick-stop convenience and café dwell time are designed as distinct flows inside one clearly recognizable travel-center environment.</p></div></div></div></section>
 
