@@ -1,4 +1,4 @@
-import { richText, escapeHtml } from "../layout.js";
+import { richText, mediaFull, escapeHtml } from "../layout.js";
 
 const TIEINS = [
   { key: "tow", title: "Tow dispatch staging point", accent: "navy" },
@@ -11,9 +11,14 @@ export function connectionPage(c) {
   return `
 <section class="hero section--tight">
   <div class="container">
-    <span class="eyebrow">${escapeHtml(c["connection.hero_eyebrow"])}</span>
-    <h1>${escapeHtml(c["connection.hero_heading"])}</h1>
-    <p class="lead">${escapeHtml(c["connection.hero_sub"])}</p>
+    <div class="grid grid--2" style="align-items:center;">
+      <div>
+        <span class="eyebrow">${escapeHtml(c["connection.hero_eyebrow"])}</span>
+        <h1>${escapeHtml(c["connection.hero_heading"])}</h1>
+        <p class="lead">${escapeHtml(c["connection.hero_sub"])}</p>
+      </div>
+      ${mediaFull("/images/Roviq Smart Mobility Network Mockup.png", "Roviq smart mobility network connecting digital coordination and physical service nodes")}
+    </div>
   </div>
 </section>
 
@@ -22,16 +27,8 @@ export function connectionPage(c) {
     <h2>${escapeHtml(c["connection.parallel_heading"])}</h2>
     ${richText(c["connection.parallel_body"])}
     <div class="grid grid--2" style="margin-top:2rem;">
-      <div class="card card--accent-navy">
-        <span class="eyebrow">Digital</span>
-        <h3>Roviq Core</h3>
-        <p>One backend routes every job — tow, diagnostic, parts — to the right role-based front end in real time.</p>
-      </div>
-      <div class="card card--accent-teal">
-        <span class="eyebrow">Physical</span>
-        <h3>Roviq Station</h3>
-        <p>One hub routes every visitor — fuel, EV, café, retail, wash — to the right service under one roof.</p>
-      </div>
+      <div class="card card--accent-navy"><span class="eyebrow">Digital</span><h3>Roviq Core</h3><p>One backend routes every job — tow, diagnostic, parts — to the right role-based front end in real time.</p></div>
+      <div class="card card--accent-teal"><span class="eyebrow">Physical</span><h3>Roviq Station</h3><p>One hub routes every visitor — fuel, EV, café, retail, wash — to the right service under one roof.</p></div>
     </div>
   </div>
 </section>
@@ -40,13 +37,12 @@ export function connectionPage(c) {
   <div class="container">
     <span class="eyebrow">On the ground</span>
     <h2>What this looks like in practice</h2>
+    <div class="grid grid--2" style="align-items:center;margin-bottom:2rem;">
+      ${mediaFull("/images/Roviq Station_ Tow and Parts Hub.png", "Roviq Station tow drop-off and parts hub concept")}
+      <div><p class="lead">A Station can become a physical handoff point for services already coordinated through Roviq — including towing, parts pickup, diagnostics and vehicle custody.</p></div>
+    </div>
     <div class="grid grid--2">
-      ${TIEINS.map(
-        (t) => `<div class="card card--accent-${t.accent}" style="background:#fff;">
-          <h3>${t.title}</h3>
-          <p>${escapeHtml(c[`connection.tiein_${t.key}_body`])}</p>
-        </div>`
-      ).join("\n")}
+      ${TIEINS.map((t)=>`<div class="card card--accent-${t.accent}" style="background:#fff;"><h3>${t.title}</h3><p>${escapeHtml(c[`connection.tiein_${t.key}_body`])}</p></div>`).join("\n")}
     </div>
   </div>
 </section>
