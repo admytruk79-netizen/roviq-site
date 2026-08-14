@@ -1,11 +1,11 @@
-import { richText, mediaBlock, mediaFull, diagramImage, renderBullets, renderStats, escapeHtml } from "../layout.js";
+import { richText, mediaFull, renderBullets, escapeHtml } from "../layout.js";
 import { STATION_IMAGES } from "../../content/station-images.js";
 
 const SERVICES = [
   { key: "fuel", title: "Fuel", accent: "gold" },
   { key: "ev", title: "EV Charging", accent: "teal" },
   { key: "cafe", title: "Café", accent: "navy" },
-  { key: "wine", title: "Wine & Retail", accent: "gold" },
+  { key: "wine", title: "Market & Retail", accent: "gold" },
   { key: "wash", title: "Car Wash", accent: "teal" }
 ];
 
@@ -33,37 +33,21 @@ export function stationPage(c) {
       <div>${richText(c["station.concept_body"])}</div>
       ${mediaFull(STATION_IMAGES["forecourt-secondary"].file, STATION_IMAGES["forecourt-secondary"].alt)}
     </div>
-    <div style="margin-top:2rem;">
-      ${diagramImage("/diagrams/socar_layout.png", "SOCAR-style premium forecourt reference layout", "Reference model: SOCAR-style premium forecourt — mechanics only, not the brand.")}
-    </div>
   </div>
 </section>
 
-<section class="section section--cream-alt">
+<section class="section section--navy">
   <div class="container">
-    <span class="eyebrow">Why now</span>
-    <h2>${escapeHtml(c["station.market_heading"])}</h2>
-    ${renderStats(c["station.market_stats"])}
-    ${richText(c["station.market_body"])}
-    <div class="callout">
-      <span class="eyebrow">${escapeHtml(c["station.proof_heading"])}</span>
-      ${richText(c["station.proof_body"])}
-    </div>
-  </div>
-</section>
-
-<section class="section">
-  <div class="container">
-    <span class="eyebrow">Where Roviq Station fits</span>
-    <h2>${escapeHtml(c["station.benchmark_heading"])}</h2>
-    ${renderBullets(c["station.benchmark_body"])}
+    <span class="eyebrow">A physical node in the Roviq network</span>
+    <h2>More than a stop: a coordinated automotive service hub</h2>
+    <p class="lead" style="max-width:900px;">Roviq Station is envisioned as a premium travel-center format that can combine conventional fuel, EV charging, café and market retail, vehicle care, and selected Roviq-enabled service handoffs in one recognizable location.</p>
   </div>
 </section>
 
 <section class="section section--cream-alt">
   <div class="container">
     <span class="eyebrow">Product &amp; service mix</span>
-    <h2>Five services, one visit</h2>
+    <h2>Multiple needs, one visit</h2>
     <div class="grid grid--5">
       ${SERVICES.map(
         (s) => `<div class="card card--accent-${s.accent}">
@@ -73,7 +57,7 @@ export function stationPage(c) {
       ).join("\n")}
     </div>
     <div class="grid grid--2" style="margin-top:2rem;">
-      ${mediaFull(c["station.image_fuel"], "Roviq Station pricing board and fuel canopy detail")}
+      ${mediaFull(c["station.image_fuel"], "Roviq Station fuel and forecourt detail")}
       ${mediaFull(STATION_IMAGES["ev-charging"].file, STATION_IMAGES["ev-charging"].alt)}
     </div>
   </div>
@@ -81,16 +65,12 @@ export function stationPage(c) {
 
 <section class="section">
   <div class="container">
-    <span class="eyebrow">Site &amp; interior</span>
+    <span class="eyebrow">Customer experience</span>
     <h2>${escapeHtml(c["station.layout_heading"])}</h2>
     ${richText(c["station.layout_body"])}
-    <div class="grid grid--2" style="margin-top:1.5rem;">
-      ${diagramImage("/diagrams/site_layout.png", "Roviq Station site layout schematic", "Site layout — fuel/EV canopy at the perimeter, café + retail anchoring the center, wash at the rear.")}
-      ${diagramImage("/diagrams/interior_layout.png", "Roviq Station interior zoning schematic", "Interior layout — fast lane kept separate from sit-down café flow.")}
-    </div>
     <div style="margin-top:1.5rem;">
       ${mediaFull(STATION_IMAGES["interior-cafe"].file, STATION_IMAGES["interior-cafe"].alt)}
-      <p class="diagram-caption">The interior in practice — coffee bar and fresh grab-and-go on the left, fast lane kept to the right, matching the zoning diagram above.</p>
+      <p class="diagram-caption">A travel-center interior designed to keep quick-stop convenience distinct from café dwell time while remaining clearly part of the forecourt experience.</p>
     </div>
   </div>
 </section>
@@ -100,84 +80,44 @@ export function stationPage(c) {
     <span class="eyebrow">Market entry</span>
     <h2>${escapeHtml(c["station.portland_heading"])}</h2>
     ${richText(c["station.portland_body"])}
-    <div style="margin-top:1.5rem;">
-      ${diagramImage("/diagrams/portland_socar_layout.png", "Portland, Oregon entry site layout", "Portland entry path and the regulatory/tax constraints designed into the plan from day one: attendant-pump law, OLCC wine-and-beer-only retail, no state sales tax.")}
-    </div>
-    ${mediaFull(c["station.image_portland"], "Portland streetscape")}
+    ${mediaFull(c["station.image_portland"], "Portland-area Roviq Station concept")}
   </div>
 </section>
 
 <section class="section section--cream-alt">
   <div class="container">
-    <div class="grid grid--2" style="align-items:start;">
-      <div>
-        <span class="eyebrow">Planning frame</span>
-        <h2>${escapeHtml(c["station.financials_heading"])}</h2>
-        ${richText(c["station.financials_body"])}
-      </div>
-      <div>
-        <span class="eyebrow">Named directly</span>
-        <h2>${escapeHtml(c["station.risks_heading"])}</h2>
-        ${richText(c["station.risks_body"])}
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="roadmap">
-  <div class="container">
-    <span class="eyebrow">The roadmap</span>
-    <h2>${escapeHtml(c["station.roadmap_heading"])}</h2>
-    ${richText(c["station.roadmap_body"])}
-    <div style="margin: 1.5rem 0 2rem;">
-      ${diagramImage("/diagrams/master_roadmap.png", "Roviq Station master staged roadmap", "Master staged roadmap — Tier 1 core pilot, Tier 2 low-capex layer, Tier 3 moonshot, laid out month by month.")}
-    </div>
-    <div class="tier-columns">
-      <div class="tier tier--1">
-        <span class="tier-label">Tier 1 &middot; Core pilot</span>
-        <h3>${escapeHtml(c["station.tier1_heading"].replace(/^Tier 1\s*—\s*/, ""))}</h3>
-        <p>${escapeHtml(c["station.tier1_body"])}</p>
-      </div>
-      <div class="tier tier--2">
-        <span class="tier-label">Tier 2 &middot; Low-capex layer</span>
-        <h3>${escapeHtml(c["station.tier2_heading"].replace(/^Tier 2\s*—\s*/, ""))}</h3>
-        <p>${escapeHtml(c["station.tier2_body"])}</p>
-      </div>
-      <div class="tier tier--3">
-        <span class="tier-label">Tier 3 &middot; Moonshot</span>
-        <h3>${escapeHtml(c["station.tier3_heading"].replace(/^Tier 3\s*—\s*/, ""))}</h3>
-        <p>${escapeHtml(c["station.tier3_body"])}</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="section section--cream-alt">
-  <div class="container">
-    <span class="eyebrow">Beyond the first site</span>
-    <h2>${escapeHtml(c["station.expansion_heading"])} <span class="tag-inline tag-inline--tier3">Tier 3 &middot; Later stage</span></h2>
+    <span class="eyebrow">Future modules</span>
+    <h2>${escapeHtml(c["station.expansion_heading"])}</h2>
     ${richText(c["station.expansion_body"])}
 
-    <div class="card card--accent-rust" style="margin-top:2rem;">
-      <h3>Motor Court <span class="tag-inline tag-inline--tier3">Tier 3</span></h3>
-      <p>${escapeHtml(c["station.expansion_motor_court_body"])}</p>
-      ${diagramImage("/diagrams/motor_court_layout.png", "Motor court expansion module layout", "Motor court concept — boutique lodging arranged around the shared forecourt.")}
-      ${mediaFull(STATION_IMAGES["motorcourt"].file, STATION_IMAGES["motorcourt"].alt)}
-    </div>
+    <div class="grid grid--3" style="margin-top:2rem; align-items:start;">
+      <div class="card card--accent-rust">
+        <h3>Motor Court <span class="tag-inline tag-inline--tier3">Concept</span></h3>
+        <p>${escapeHtml(c["station.expansion_motor_court_body"])}</p>
+        ${mediaFull(STATION_IMAGES["motorcourt"].file, STATION_IMAGES["motorcourt"].alt)}
+      </div>
 
-    <div class="card card--accent-rust" style="margin-top:1.5rem;">
-      <h3>Post Station <span class="tag-inline tag-inline--tier3">Tier 3</span></h3>
-      <p>${escapeHtml(c["station.expansion_post_station_body"])}</p>
-      ${diagramImage("/diagrams/post_station_layout.png", "Post Station battery-swap module layout", "Post Station concept — a battery-swap bay layered onto the existing forecourt, named for the 19th-century relay stations that swapped a tired horse for a fresh one.")}
-      ${mediaFull(STATION_IMAGES["swap-station"].file, STATION_IMAGES["swap-station"].alt)}
-    </div>
+      <div class="card card--accent-rust">
+        <h3>Swap Station <span class="tag-inline tag-inline--tier3">Concept</span></h3>
+        <p>${escapeHtml(c["station.expansion_post_station_body"])}</p>
+        ${mediaFull(STATION_IMAGES["swap-station"].file, STATION_IMAGES["swap-station"].alt)}
+      </div>
 
-    <div class="card card--accent-rust" style="margin-top:1.5rem;">
-      <h3>Vehicle Relay <span class="tag-inline tag-inline--tier3">Tier 3</span></h3>
-      <p>${escapeHtml(c["station.expansion_vehicle_relay_body"])}</p>
-      ${diagramImage("/diagrams/vehicle_relay.png", "Vehicle relay concept diagram", "Vehicle relay concept — a corridor of 3+ stations acting as custody hand-off points, logged in Roviq Core.")}
-      ${mediaFull(STATION_IMAGES["relay-station"].file, STATION_IMAGES["relay-station"].alt)}
+      <div class="card card--accent-rust">
+        <h3>Vehicle Relay <span class="tag-inline tag-inline--tier3">Concept</span></h3>
+        <p>${escapeHtml(c["station.expansion_vehicle_relay_body"])}</p>
+        ${mediaFull(STATION_IMAGES["relay-station"].file, STATION_IMAGES["relay-station"].alt)}
+      </div>
     </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <span class="eyebrow">Explore the connection</span>
+    <h2>Physical infrastructure connected to the coordination platform</h2>
+    <p class="lead">The Station concept is designed to complement Roviq's software layer rather than replace existing automotive businesses. It can serve as a visible service point, customer handoff location, and future network node.</p>
+    <a href="/roviq-x-station" class="btn btn--outline" style="margin-top:1rem;">See Roviq × Station &rarr;</a>
   </div>
 </section>
 `;
