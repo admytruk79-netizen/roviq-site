@@ -1,44 +1,51 @@
 // content/station-images.js
 // Single source of truth for /station image placement.
-// Every section pulls its image from here — no inline <img> tags anywhere else.
+// Each public section gets a distinct visual. Do not recycle the forecourt across modules.
 
 export const STATION_IMAGES = {
   "hero-forecourt": {
-    file: "/images/roviq-hero-forecourt.png",       // navy canopy, "ROVIQ STATION", FUEL·EV CHARGE·CAFE·MARKET·RESTROOMS sign
-    alt: "Roviq Station forecourt at dusk",
-    section: "Hero / top of page",
+    file: "/images/roviq-hero-forecourt.png",
+    alt: "Roviq Station main forecourt at dusk",
+    section: "Hero only",
   },
   "forecourt-secondary": {
-    file: "/images/roviq-forecourt-secondary.png",  // "FORECOURT REFERENCE", price board, CAFE·MARKET strip
-    alt: "Roviq Station pump islands and canopy",
-    section: "Concept section, secondary forecourt shot",
+    file: "/images/roviq-forecourt-secondary.png",
+    alt: "Roviq Station forecourt reference",
+    section: "Core concept only",
   },
   "ev-charging": {
-    file: "/images/roviq-ev-charging.png",           // EV bay, teal accents, ULTRA FAST DC / 100% RENEWABLE strip
-    alt: "Roviq Station EV charging bay",
-    section: "Product mix — EV charging subsection",
+    file: "/images/roviq-ev-charging.png",
+    alt: "Roviq Station dedicated EV fast-charging bay",
+    section: "EV charging only",
+  },
+  "portable-cafe": {
+    file: "/images/cafe.png",
+    alt: "Roviq portable café concept",
+    section: "Portable café / satellite format only",
+  },
+  "local-oregon": {
+    file: "/images/Oregon.png",
+    alt: "Roviq Station Oregon design with Pacific Northwest character",
+    section: "Portland / local adaptation only",
   },
   "interior-cafe": {
-    file: "/images/roviq-interior-cafe.png",          // coffee bar, grab-and-go, "GOOD FOOD GOOD COFFEE GOOD JOURNEYS"
+    file: "/images/roviq-interior-cafe.png",
     alt: "Roviq Station café and market interior",
-    section: "Interior zoning section, below interior_layout.png diagram",
+    section: "Interior only",
   },
   "motorcourt": {
-    file: "/images/roviq-motorcourt.png",             // "MOTORCOURT REFERENCE", courtyard, cars, neon sign
+    file: "/images/roviq-motorcourt.png",
     alt: "Roviq Motorcourt boutique lodging",
-    section: "Motor Court module (Tier 3) ONLY",
+    section: "Motor Court only",
   },
   "swap-station": {
-    file: "/images/roviq-swap-station.png",           // "ROVIQ SWAP STATION", 5-step DRIVE IN/POSITION/RELEASE/LIFT/OUT
+    file: "/images/roviq-swap-station.png",
     alt: "Roviq Swap Station battery swap bay",
-    section: "Post Station battery swap (Tier 3) ONLY",
+    section: "Post Station / battery swap only",
   },
   "relay-station": {
-    file: "/images/roviq-relay-station.png",          // "RELAY STATION", BAY 01-03, 6-step HOW IT WORKS
-    alt: "Roviq Relay Station vehicle swap",
-    section: "Vehicle relay (Tier 3) ONLY",
+    file: "/images/roviq-relay-station.png",
+    alt: "Roviq Relay Station vehicle handoff",
+    section: "Vehicle Relay only",
   },
-  // Composite reference board (5-panel grid w/ real OKKO logo) — INTERNAL REFERENCE ONLY,
-  // never imported on the public site. Kept at /images/roviq-reference-composite.png for
-  // internal use; deliberately has no key wired into any public page.
 };
