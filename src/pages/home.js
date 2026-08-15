@@ -57,72 +57,8 @@ export function homePage(c) {
     </div>
   </div>
 </section>
-
-<section class="section home-ecosystem">
-  <div class="container">
-    <div class="home-ecosystem-head">
-      <span class="eyebrow">One ecosystem. Multiple front ends.</span>
-      <h2>Built around the whole automotive journey.</h2>
-      <p>Each ROVIQ experience serves a different need while remaining connected to the same operating discipline, service network and brand.</p>
-    </div>
-    <div class="home-ecosystem-grid">
-      ${ECOSYSTEM.map((item) => `
-        <article class="eco-card">
-          <div class="eco-card-media"><img src="${item.image}" alt="${item.alt}" loading="lazy"></div>
-          <div class="eco-card-body">
-            <h3>${item.title}</h3>
-            <p>${item.body}</p>
-            <a href="${item.href}">Learn more &rarr;</a>
-          </div>
-        </article>`).join("\n")}
-    </div>
-  </div>
-</section>
-
-<section class="vehicle-local" id="vehicle-local">
-  <div class="container">
-    <div class="vehicle-local-panel">
-      <div class="vehicle-local-image"><img src="/images/Oregon.png" alt="Scenic Oregon destination representing Vehicle Local discovery" loading="lazy"></div>
-      <div class="vehicle-local-copy">
-        <span class="status-chip">In development</span>
-        <h2>ROVIQ Vehicle Local</h2>
-        <p class="lead">Discover what’s actually worth stopping for.</p>
-        <p>A driver-powered local discovery experience for people passing through, working on the road, or arriving somewhere new. Vehicle Local surfaces verified places contributed through the ROVIQ community — from independent food and coffee to unusual local finds, useful stops and nature.</p>
-        <div class="local-tags"><span>Food</span><span>Coffee</span><span>Local finds</span><span>Nature</span><span>Useful stops</span></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="section home-team" id="team">
-  <div class="container">
-    <div class="home-team-grid">
-      <div>
-        <span class="eyebrow">Team &amp; progress</span>
-        <h2>Beyond concept. Development is underway.</h2>
-        <p>ROVIQ is being developed by a real multidisciplinary team with experience across software, finance, entrepreneurship, partnerships and business operations. The project has moved into active prototype development while the physical Station and wider ecosystem continue to be refined.</p>
-      </div>
-      <div class="team-points">
-        <div class="team-point"><strong>Technical development</strong><span>Platform architecture, coding and prototype development.</span></div>
-        <div class="team-point"><strong>Commercial &amp; financial</strong><span>Business planning, financial discipline and market development.</span></div>
-        <div class="team-point"><strong>Entrepreneurial experience</strong><span>Hands-on operating and product-building experience across multiple ventures.</span></div>
-        <div class="team-point"><strong>Partnership liaison</strong><span>Stakeholder introductions, relationship support and strategic connections.</span></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="section home-contact" id="contact">
-  <div class="container">
-    <div class="contact-strip" style="grid-template-columns:1fr;">
-      <div class="contact-tile" style="border-right:0;">
-        <span class="eyebrow">Contact</span>
-        <h3>Get in touch</h3>
-        <p>Partnerships, investment, press, brochure requests, project questions or general enquiries — one contact point for ROVIQ.</p>
-        <a href="/about#contact">Contact ROVIQ &rarr;</a>
-      </div>
-    </div>
-  </div>
-</section>
-`;
+<section class="section home-ecosystem"><div class="container"><div class="home-ecosystem-head"><span class="eyebrow">One ecosystem. Multiple front ends.</span><h2>Built around the whole automotive journey.</h2><p>Each ROVIQ experience serves a different need while remaining connected to the same operating discipline, service network and brand.</p></div><div class="home-ecosystem-grid">${ECOSYSTEM.map((item) => `<article class="eco-card"><div class="eco-card-media"><img src="${item.image}" alt="${item.alt}" loading="lazy"></div><div class="eco-card-body"><h3>${item.title}</h3><p>${item.body}</p><a href="${item.href}">Learn more &rarr;</a></div></article>`).join("\n")}</div></div></section>
+<section class="vehicle-local" id="vehicle-local"><div class="container"><div class="vehicle-local-panel"><div class="vehicle-local-image"><img src="/images/Oregon.png" alt="Scenic Oregon destination representing Vehicle Local discovery" loading="lazy"></div><div class="vehicle-local-copy"><span class="status-chip">In development</span><h2>ROVIQ Vehicle Local</h2><p class="lead">Discover what’s actually worth stopping for.</p><p>A driver-powered local discovery experience for people passing through, working on the road, or arriving somewhere new. Vehicle Local surfaces verified places contributed through the ROVIQ community — from independent food and coffee to unusual local finds, useful stops and nature.</p><div class="local-tags"><span>Food</span><span>Coffee</span><span>Local finds</span><span>Nature</span><span>Useful stops</span></div></div></div></div></section>
+<section class="section home-team" id="team"><div class="container"><div class="home-team-grid"><div><span class="eyebrow">Team &amp; progress</span><h2>Beyond concept. Development is underway.</h2><p>ROVIQ is being developed by a real multidisciplinary team with experience across software, finance, entrepreneurship, partnerships and business operations. The project has moved into active prototype development while the physical Station and wider ecosystem continue to be refined.</p></div><div class="team-points"><div class="team-point"><strong>Technical development</strong><span>Platform architecture, coding and prototype development.</span></div><div class="team-point"><strong>Commercial &amp; financial</strong><span>Business planning, financial discipline and market development.</span></div><div class="team-point"><strong>Entrepreneurial experience</strong><span>Hands-on operating and product-building experience across multiple ventures.</span></div><div class="team-point"><strong>Partnership liaison</strong><span>Stakeholder introductions, relationship support and strategic connections.</span></div></div></div></div></section>
+<section class="section home-contact" id="contact"><div class="container"><div class="contact-strip" style="grid-template-columns:1fr;"><div class="contact-tile" style="border-right:0;"><span class="eyebrow">Contact</span><h3>Get in touch</h3><p>Partnerships, investment, press, brochure requests, project questions or general enquiries — one contact point for ROVIQ.</p><a href="/contact">Contact ROVIQ &rarr;</a></div></div></div></section>`;
 }
