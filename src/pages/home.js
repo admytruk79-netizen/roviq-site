@@ -20,14 +20,14 @@ const ECOSYSTEM = [
     body: "A service-facing experience for diagnostics, repairs, workflow visibility and connected customer handoffs.",
     image: "/images/roviq-motorcourt.png",
     alt: "ROVIQ service and motor court concept",
-    href: "/roviq"
+    href: "/roviq#shop"
   },
   {
     title: "ROVIQ Mobility",
     body: "Connected towing, transport and mobility capacity supporting the wider automotive service network.",
     image: "/images/Roviq Smart Mobility Network Mockup.png",
     alt: "ROVIQ smart mobility network",
-    href: "/roviq"
+    href: "/roviq#mobility"
   },
   {
     title: "ROVIQ Parts",
