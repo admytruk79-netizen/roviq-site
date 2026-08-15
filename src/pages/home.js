@@ -114,21 +114,12 @@ export function homePage(c) {
 
 <section class="section home-contact" id="contact">
   <div class="container">
-    <div class="contact-strip">
-      <div class="contact-tile">
-        <h3>For Investors</h3>
-        <p>Request information about the ROVIQ opportunity, progress and ecosystem.</p>
-        <a href="/about#contact">Investor information &rarr;</a>
-      </div>
-      <div class="contact-tile">
-        <h3>For Partners</h3>
-        <p>Explore service, location, technology and network partnership opportunities.</p>
-        <a href="/about#contact">Partner with us &rarr;</a>
-      </div>
-      <div class="contact-tile">
-        <h3>General Enquiries</h3>
-        <p>Questions, media interest, brochure requests or other enquiries.</p>
-        <a href="/about#contact">Contact us &rarr;</a>
+    <div class="contact-strip" style="grid-template-columns:1fr;">
+      <div class="contact-tile" style="border-right:0;">
+        <span class="eyebrow">Contact</span>
+        <h3>Get in touch</h3>
+        <p>Partnerships, investment, press, brochure requests, project questions or general enquiries — one contact point for ROVIQ.</p>
+        <a href="/about#contact">Contact ROVIQ &rarr;</a>
       </div>
     </div>
   </div>
