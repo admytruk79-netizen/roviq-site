@@ -1,11 +1,12 @@
-import { CSS } from "./styles.js";
+import { CSS } from "./styles-dark.js";
 
 const NAV_LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/roviq", label: "Roviq" },
-  { href: "/station", label: "Roviq Station" },
-  { href: "/roviq-x-station", label: "Roviq × Station" },
-  { href: "/about", label: "About" }
+  { href: "/roviq", label: "Platform" },
+  { href: "/station", label: "Station" },
+  { href: "/#vehicle-local", label: "Vehicle Local" },
+  { href: "/about", label: "About" },
+  { href: "/#team", label: "Team" },
+  { href: "/#contact", label: "Contact" }
 ];
 
 export function escapeHtml(str) {
@@ -14,7 +15,6 @@ export function escapeHtml(str) {
   }[c]));
 }
 
-// Renders a paragraph body that may contain blank-line-separated paragraphs.
 export function richText(str) {
   return String(str ?? "")
     .split(/\n{2,}/)
@@ -27,54 +27,36 @@ export function renderList(str) {
   return `<ol class="steps">${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ol>`;
 }
 
-// Renders "VALUE | label" entries (one per line) as a stat-tile grid —
-// the pulled-out-of-the-paragraph headline numbers pattern used throughout
-// pitch decks: bold sans value, sentence-case label underneath.
 export function renderStats(str) {
   const lines = String(str ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
-  return `<div class="stat-grid">${lines
-    .map((l) => {
-      const idx = l.indexOf("|");
-      const value = idx === -1 ? l : l.slice(0, idx).trim();
-      const label = idx === -1 ? "" : l.slice(idx + 1).trim();
-      return `<div class="stat-tile"><div class="stat-value">${escapeHtml(value)}</div><div class="stat-label">${escapeHtml(label)}</div></div>`;
-    })
-    .join("")}</div>`;
+  return `<div class="stat-grid">${lines.map((l) => {
+    const idx = l.indexOf("|");
+    const value = idx === -1 ? l : l.slice(0, idx).trim();
+    const label = idx === -1 ? "" : l.slice(idx + 1).trim();
+    return `<div class="stat-tile"><div class="stat-value">${escapeHtml(value)}</div><div class="stat-label">${escapeHtml(label)}</div></div>`;
+  }).join("")}</div>`;
 }
 
-// Renders "Label — rest of line" entries (one per line) as a bulleted list
-// with the label bolded, e.g. a competitor benchmark or a glossary.
 export function renderBullets(str) {
   const lines = String(str ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
-  return `<ul class="bullets">${lines
-    .map((l) => {
-      const idx = l.indexOf("—");
-      if (idx === -1) return `<li>${escapeHtml(l)}</li>`;
-      const label = l.slice(0, idx).trim();
-      const rest = l.slice(idx + 1).trim();
-      return `<li><strong>${escapeHtml(label)}</strong> — ${escapeHtml(rest)}</li>`;
-    })
-    .join("")}</ul>`;
+  return `<ul class="bullets">${lines.map((l) => {
+    const idx = l.indexOf("—");
+    if (idx === -1) return `<li>${escapeHtml(l)}</li>`;
+    const label = l.slice(0, idx).trim();
+    const rest = l.slice(idx + 1).trim();
+    return `<li><strong>${escapeHtml(label)}</strong> — ${escapeHtml(rest)}</li>`;
+  }).join("")}</ul>`;
 }
 
-// An image block backed by a KV-editable URL. Falls back to a labeled
-// placeholder so the site always renders something meaningful before an
-// admin has supplied a real photo.
 export function mediaBlock(url, alt, placeholderLabel) {
-  if (url) {
-    return `<div class="media"><img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy"></div>`;
-  }
+  if (url) return `<div class="media"><img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy"></div>`;
   return `<div class="media"><div class="media-placeholder">${escapeHtml(placeholderLabel)}<br><small>Add a real photo URL in /admin</small></div></div>`;
 }
 
-// A diagram backed by a real static asset (served from /public via the
-// Worker's ASSETS binding) rather than a hand-drawn inline SVG.
 export function diagramImage(src, alt, caption) {
   return `<div class="diagram-frame"><img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy"></div><p class="diagram-caption">${escapeHtml(caption)}</p>`;
 }
 
-// A pre-composed branded image (its own baked-in text/signage) shown at
-// its native aspect ratio — no object-fit crop-box, so nothing gets cut off.
 export function mediaFull(url, alt) {
   if (!url) return "";
   return `<div class="media-full"><img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy"></div>`;
@@ -100,9 +82,8 @@ export function renderPage({ title, description, activePath, body }) {
     <a href="/" class="wordmark"><img src="/brand/roviq-icon.png" alt="" class="wordmark-icon">ROVIQ</a>
     <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">&#9776;</button>
     <nav class="site-nav" id="siteNav">
-      ${NAV_LINKS.map(
-        (l) => `<a href="${l.href}" class="${l.href === activePath ? "active" : ""}">${l.label}</a>`
-      ).join("\n")}
+      ${NAV_LINKS.map((l) => `<a href="${l.href}" class="${l.href === activePath ? "active" : ""}">${l.label}</a>`).join("\n")}
+      <a href="/about#contact" class="nav-access">Request Access</a>
     </nav>
   </div>
 </header>
@@ -111,8 +92,8 @@ ${body}
 </main>
 <footer class="site-footer">
   <div class="container">
-    <div>&copy; ${new Date().getFullYear()} Roviq. Roviq Station is an independent brand — not affiliated with or licensed by OKKO or SOCAR.</div>
-    <div><a href="/about">Contact</a> &middot; <a href="/admin">Admin</a></div>
+    <div>&copy; ${new Date().getFullYear()} ROVIQ. Automotive service coordination, physical infrastructure and local discovery.</div>
+    <div><a href="/about#contact">Contact</a> &middot; <a href="/admin">Admin</a></div>
   </div>
 </footer>
 <script>
@@ -128,13 +109,9 @@ if ('IntersectionObserver' in window) {
       }
     });
   }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
-  document.querySelectorAll('main section:not(.hero)').forEach(function (el) {
-    revealObserver.observe(el);
-  });
+  document.querySelectorAll('main section:not(.hero)').forEach(function (el) { revealObserver.observe(el); });
 } else {
-  document.querySelectorAll('main section').forEach(function (el) {
-    el.classList.add('is-visible');
-  });
+  document.querySelectorAll('main section').forEach(function (el) { el.classList.add('is-visible'); });
 }
 </script>
 </body>
