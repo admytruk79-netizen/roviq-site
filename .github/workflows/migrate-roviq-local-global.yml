@@ -1,0 +1,45 @@
+name: Migrate ROVIQ Local Global DB
+
+on:
+  push:
+    paths:
+      - '.github/workflows/migrate-roviq-local-global.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create migration SQL
+        run: |
+          cat > /tmp/roviq-local-global.sql <<'SQL'
+          ALTER TABLE places ADD COLUMN country_code TEXT;
+          ALTER TABLE places ADD COLUMN country TEXT;
+          ALTER TABLE places ADD COLUMN region TEXT;
+          ALTER TABLE places ADD COLUMN city TEXT;
+          ALTER TABLE places ADD COLUMN locality TEXT;
+          ALTER TABLE places ADD COLUMN postal_code TEXT;
+          ALTER TABLE places ADD COLUMN market_slug TEXT;
+          ALTER TABLE places ADD COLUMN timezone TEXT;
+
+          UPDATE places
+          SET country_code = COALESCE(country_code, 'US'),
+              country = COALESCE(country, 'United States'),
+              region = COALESCE(region, 'Oregon'),
+              city = COALESCE(city, 'Portland'),
+              market_slug = COALESCE(market_slug, 'us-or-portland'),
+              timezone = COALESCE(timezone, 'America/Los_Angeles');
+
+          CREATE INDEX IF NOT EXISTS idx_places_country_city ON places(country_code, city);
+          CREATE INDEX IF NOT EXISTS idx_places_market ON places(market_slug);
+          CREATE INDEX IF NOT EXISTS idx_places_lat_lng ON places(lat, lng);
+          SQL
+
+      - name: Apply migration to ROVIQ Local D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4 d1 execute 9a594b6c-0e35-4417-afbc-d072166b3e98 --remote --file=/tmp/roviq-local-global.sql
