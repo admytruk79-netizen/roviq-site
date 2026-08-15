@@ -1,6 +1,7 @@
 import { CSS } from "./styles-dark.js";
 
 const NAV_LINKS = [
+  { href: "/", label: "Home" },
   { href: "/roviq", label: "Platform" },
   { href: "/station", label: "Station" },
   { href: "/#vehicle-local", label: "Vehicle Local" },
