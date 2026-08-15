@@ -4,6 +4,7 @@ import { roviqPage } from "./pages/roviq.js";
 import { stationPage } from "./pages/station.js";
 import { connectionPage } from "./pages/connection.js";
 import { aboutPage } from "./pages/about.js";
+import { contactPage } from "./pages/contact.js";
 import {
   handleAdminGet,
   handleAdminLogin,
@@ -39,7 +40,12 @@ const PAGES = {
   "/about": {
     render: aboutPage,
     title: "About — Roviq & Roviq Station",
-    description: "The founder story behind Roviq and Roviq Station, and how to get in touch."
+    description: "The founder story and team behind Roviq and Roviq Station."
+  },
+  "/contact": {
+    render: contactPage,
+    title: "Contact — ROVIQ",
+    description: "Contact ROVIQ about investment, partnerships, press, brochure requests, locations, technology or general enquiries."
   }
 };
 
@@ -76,9 +82,6 @@ export default {
         });
       }
 
-      // Static assets (diagram PNGs, etc.) are served automatically by the
-      // ASSETS binding for matching paths, but fall through here explicitly
-      // in case the request reaches the Worker first.
       if (method === "GET" && env.ASSETS) {
         const assetResponse = await env.ASSETS.fetch(request);
         if (assetResponse.status !== 404) return assetResponse;
