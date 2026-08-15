@@ -1,7 +1,7 @@
-import { richText, escapeHtml } from "../layout.js";
+import { escapeHtml } from "../layout.js";
 
 export function contactPage(c) {
-  const email = c["about.contact_email"] || "admytruk@proton.me";
+  const email = "admytruk79@gmail.com";
   return `
 <section class="hero section--tight"><div class="container"><span class="eyebrow">Contact</span><h1>Get in touch</h1><p class="lead">Partnerships, investment, press, brochure requests, project questions and general enquiries.</p></div></section>
 <section class="section"><div class="container"><div class="contact-page-grid"><div><h2>Contact ROVIQ</h2><p>Use the form or email us directly at <a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a>.</p><p>Choose the enquiry type so your message is clear from the start.</p></div><form id="contactForm" class="contact-form">
@@ -16,13 +16,12 @@ export function contactPage(c) {
 <script>(function(){
 var f=document.getElementById('contactForm'),btn=document.getElementById('contactSubmit'),status=document.getElementById('contactStatus');if(!f)return;
 var endpoint='https://wiafdkxfgwazprjucspg.supabase.co/functions/v1/send-contact-email';
-var key='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
-key='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpYWZka3hmZ3dhenByanVjc3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MDE4NDgsImV4cCI6MjEwMjM3Nzg0OH0.qghDfY_FIOEoqmoQWFDmvLTqhKbuJDOi5MmmkG7nhv8';
+var key='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpYWZka3hmZ3dhenByanVjc3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MDE4NDgsImV4cCI6MjEwMjM3Nzg0OH0.qghDfY_FIOEoqmoQWFDmvLTqhKbuJDOi5MmmkG7nhv8';
 f.addEventListener('submit',async function(e){e.preventDefault();
 var payload={name:f.name.value.trim(),email:f.email.value.trim(),company:f.company.value.trim()||null,enquiry_type:f.type.value,subject:f.subject.value.trim(),message:f.message.value.trim()};
 if(!payload.name||!payload.email||!payload.enquiry_type||!payload.subject||!payload.message){status.textContent='Please complete all required fields.';return;}
 btn.disabled=true;btn.textContent='Sending…';status.textContent='Sending your enquiry…';
-try{var r=await fetch(endpoint,{method:'POST',headers:{'apikey':key,'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(payload)});var data=await r.json().catch(function(){return {};});if(!r.ok)throw new Error(data.error||'submit failed');f.reset();status.innerHTML='Thank you — your enquiry has been received and emailed to ROVIQ.';}
+try{var r=await fetch(endpoint,{method:'POST',headers:{'apikey':key,'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(payload)});var data=await r.json().catch(function(){return {};});if(!r.ok||data.notified===false)throw new Error(data.error||'email delivery failed');f.reset();status.innerHTML='Thank you — your enquiry has been received and emailed to ROVIQ.';}
 catch(err){status.innerHTML='We could not send the form. Please email <a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a> directly.';}
 finally{btn.disabled=false;btn.textContent='Send enquiry';}
 });})();</script>`;
