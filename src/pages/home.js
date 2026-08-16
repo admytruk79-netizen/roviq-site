@@ -34,7 +34,7 @@ const ECOSYSTEM = [
     body: "Parts coordination and pickup concepts designed to connect supply, service providers and physical network nodes.",
     image: "/images/Roviq Station_ Tow and Parts Hub.png",
     alt: "ROVIQ parts and service hub concept",
-    href: "/station"
+    href: "/roviq#parts"
   }
 ];
 
