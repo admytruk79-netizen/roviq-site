@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100" role="img" aria-labelledby="title desc">
+  <title id="title">ROVIQ mark</title>
+  <desc id="desc">Interlocking R mark in midnight navy and burnished copper.</desc>
+  <path fill="#101D2C" d="M10 12h64c24 0 39 11 39 29 0 12-7 21-19 26l24 21H87L59 63H37v25H10V12zm27 20v12h34c9 0 14-2 14-6s-5-6-14-6H37z"/>
+  <path fill="#E46F35" d="M82 12h21c28 0 47 17 47 42 0 13-5 24-15 33l-18-16c5-5 8-11 8-18 0-12-9-21-23-21H82V12z"/>
+  <path fill="#E46F35" d="M106 65l35 23h-31L86 71z"/>
+</svg>
