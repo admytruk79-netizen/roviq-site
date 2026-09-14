@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 120" role="img" aria-labelledby="title desc">
+  <title id="title">ROVIQ</title>
+  <desc id="desc">ROVIQ wordmark for dark backgrounds with white and burnished copper interlocking R mark.</desc>
+  <g transform="translate(0 10)">
+    <path fill="#F4F2ED" d="M10 12h64c24 0 39 11 39 29 0 12-7 21-19 26l24 21H87L59 63H37v25H10V12zm27 20v12h34c9 0 14-2 14-6s-5-6-14-6H37z"/>
+    <path fill="#E46F35" d="M82 12h21c28 0 47 17 47 42 0 13-5 24-15 33l-18-16c5-5 8-11 8-18 0-12-9-21-23-21H82V12z"/>
+    <path fill="#E46F35" d="M106 65l35 23h-31L86 71z"/>
+  </g>
+  <rect x="177" y="18" width="2" height="84" rx="1" fill="#A8B1BA" opacity=".9"/>
+  <g fill="#F4F2ED">
+    <path d="M225 31h97c22 0 35 10 35 27 0 11-6 19-17 24l21 20h-31l-24-23h-52v23h-29V31zm29 21v8h64c7 0 11-1 11-4s-4-4-11-4h-64z"/>
+    <path d="M401 31h67c30 0 49 14 49 36s-19 35-49 35h-67c-30 0-49-13-49-35s19-36 49-36zm4 22c-15 0-24 5-24 14s9 14 24 14h59c15 0 24-5 24-14s-9-14-24-14h-59z"/>
+    <path d="M515 31h31l34 46 34-46h31l-52 71h-26l-52-71z"/>
+    <path d="M652 31h29v71h-29V31z"/>
+  </g>
+  <path fill="#F4F2ED" d="M620 31h82c11 0 18 7 18 18v35c0 11-7 18-18 18h-8l18 18h-34l-18-18h-40c-11 0-18-7-18-18V49c0-11 7-18 18-18zm7 22v27h60l-9-9h29V53h-80z"/>
+</svg>
