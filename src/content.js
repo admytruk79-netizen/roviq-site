@@ -191,8 +191,8 @@ export const DEFAULT_CONTENT = {
   "home.throughline_heading": "Same architecture, applied twice.",
   "home.throughline_body":
     "Roviq Core is one backend feeding many digital front ends. Roviq Station is one physical location housing many services. Neither is a bundle bolted together after the fact — both were designed from the center outward, so every new front end or every new service line inherits the same routing logic, the same brand, and the same operating discipline.",
-  "home.image_roviq": "/photos/dispatch_app_mockup.jpg",
-  "home.image_station": "/photos/roviq_forecourt_lounge.png",
+  "home.image_roviq": "",
+  "home.image_station": "",
 
   // ---------- ROVIQ ----------
   "roviq.hero_eyebrow": "Roviq Core",
@@ -289,7 +289,7 @@ export const DEFAULT_CONTENT = {
   "roviq.stack_heading": "Built for reliability, not hype",
   "roviq.stack_body":
     "Roviq Core runs on modern, proven, boring-on-purpose infrastructure — the same category of tools that power reliable consumer platforms at scale, with every state change in a job tracked, not just overwritten. We don't publish the specific architecture, data model, or coordination logic here; that's the part of the business we protect.",
-  "roviq.dispatch_image": "/photos/dispatch_app_mockup.jpg",
+  "roviq.dispatch_image": "",
 
   // ---------- STATION ----------
   "station.hero_eyebrow": "Roviq Station",
@@ -354,16 +354,16 @@ export const DEFAULT_CONTENT = {
     "\"Post Station\" — named for 19th-century relay stations that swapped a tired horse for a fresh one rather than resting it for hours. Applied to EVs: exchange a depleted battery for a charged one in minutes instead of a 20–40 minute charge. This is proven at scale in China — NIO operates roughly 9,000 charging and swap facilities, completed its 100-millionth swap in February 2026, and swaps average about 3 minutes — and exists in the US today at smaller scale via Ample, a Shell Ventures/Repsol-backed startup already pairing swap stations with a Repsol fuel retail forecourt in Madrid. Honest constraint: no major US consumer EV currently ships swap-ready from the factory, so a Roviq Station swap bay would realistically serve fleet, rideshare, and delivery vehicles first — a fleet-focused module and a long-term option, not a near-term mass-market feature.",
   "station.expansion_vehicle_relay_body":
     "The more literal version of the historic analog: stagecoach lines swapped entire teams, and sometimes the coach itself, at fixed relay stations. Applied today, a traveler drops off a Roviq rental EV at one station and picks up a different, fully-charged one at the next — the same Hertz/Turo-style one-way rental logic already in Roviq's own platform strategy, applied to a fixed physical corridor. The honest risk, shared by every one-way rental network including U-Haul: vehicles pile up at popular destinations and run short at popular origins, requiring paid repositioning. This requires 3+ Roviq Station sites on one fixed corridor before it's viable at all — the natural first candidate is the I-5 Pacific Northwest spine (Seattle–Portland–Eugene) — and should be modeled and piloted separately from the core fuel/café/wine business.",
-  "station.image_hero": "/photos/roviq_forecourt_flagship.png",
-  "station.image_hero_secondary": "/photos/roviq_forecourt_design_language.png",
-  "station.image_competitor_ref": "/photos/roviq_reference_board.png",
-  "station.image_cafe": "/photos/roviq_coffee_interior.png",
-  "station.image_ev": "/photos/roviq_forecourt_lounge.png",
-  "station.image_fuel": "/photos/roviq_pricing_detail.png",
-  "station.image_portland": "/photos/roviq_portland_streetscape.png",
-  "station.image_motor_court": "/photos/roviq_motorcourt_reference.png",
-  "station.image_battery_swap": "/photos/roviq_swap_station.png",
-  "station.image_vehicle_relay": "/photos/roviq_relay_station.png",
+  "station.image_hero": "",
+  "station.image_hero_secondary": "",
+  "station.image_competitor_ref": "",
+  "station.image_cafe": "",
+  "station.image_ev": "",
+  "station.image_fuel": "",
+  "station.image_portland": "",
+  "station.image_motor_court": "",
+  "station.image_battery_swap": "",
+  "station.image_vehicle_relay": "",
 
   // ---------- CONNECTION ----------
   "connection.hero_eyebrow": "Where they meet",
