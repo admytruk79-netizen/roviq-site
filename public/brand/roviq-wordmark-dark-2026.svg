@@ -1,15 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 180" role="img" aria-labelledby="title desc" preserveAspectRatio="xMinYMid meet">
-<title id="title">ROVIQ</title><desc id="desc">ROVIQ white and burnished copper lockup for dark backgrounds.</desc>
-<g transform="translate(12 22)">
-<path fill="#F4F2ED" d="M0 0h112c39 0 65 19 65 49 0 20-11 35-31 44l43 39h-53l-49-45H43v45H0V0zm43 33v22h62c17 0 26-4 26-11s-9-11-26-11H43z"/>
-<path fill="#E46F35" d="M113 0h31c48 0 80 28 80 69 0 22-9 41-27 57l-31-27c10-9 15-19 15-31 0-21-16-35-39-35h-29V0z"/>
-<path fill="#E46F35" d="M154 91l59 41h-53l-42-31z"/>
-</g>
-<rect x="270" y="24" width="2" height="132" rx="1" fill="#F4F2ED" opacity=".72"/>
-<g fill="#F4F2ED" transform="translate(320 38)">
-<path d="M0 0h118c31 0 50 14 50 37 0 15-9 27-25 34l31 33h-45l-35-37H43v37H0V0zm43 31v16h69c10 0 15-3 15-8s-5-8-15-8H43z"/>
-<path d="M218 0h83c48 0 78 20 78 52s-30 52-78 52h-83c-48 0-78-20-78-52S170 0 218 0zm5 31c-24 0-38 8-38 21s14 21 38 21h73c24 0 38-8 38-21s-14-21-38-21h-73z"/>
-<path d="M378 0h47l52 70 52-70h47l-79 104h-40L378 0z"/>
-<path d="M580 0h43v104h-43z"/>
-<path d="M642 0h118c31 0 50 14 50 37v30c0 22-18 37-47 37h-7l30 31h-48l-29-31h-67c-31 0-50-14-50-37V37c0-23 19-37 50-37zm5 31v42h84l-18-19h47V31h-113z"/>
-</g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 728 129" preserveAspectRatio="xMidYMid meet" role="img" aria-label="ROVIQ"><image width="728" height="129" href="data:image/png;base64,
