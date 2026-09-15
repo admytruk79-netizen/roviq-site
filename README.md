@@ -68,8 +68,8 @@ npm run dev                       # wrangler dev, KV simulated locally
 
 ## Deploying
 
-The KV namespace `ROVIQ_CONTENT` already exists in the connected Cloudflare
-account and is wired into `wrangler.toml` (`id = "0a3a91e8fa63462eae8cf3f2e77e8a22"`).
+The KV namespace bound as `CONTENT` already exists in the connected Cloudflare
+account and is wired into `wrangler.toml` (`id = "735c76702fab44f1bd401bdf83367ee2"`).
 
 **Primary path — Cloudflare's own Git integration:** in the Cloudflare
 dashboard, **Workers & Pages → Create → Import a repository**, connect this
