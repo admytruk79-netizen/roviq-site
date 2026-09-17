@@ -38,7 +38,7 @@ function brandLockup() {
 
 function sharedBanner() {
   return `<section class="site-shared-banner" aria-label="ROVIQ automotive service coordination">
-    <img class="site-shared-banner-bg" src="/images/roviq-banner-site-hq.webp?v=20260917-hq" alt="ROVIQ — Keeping You Moving Forward">
+    <img class="site-shared-banner-bg" src="/images/roviq-banner-site-hq.webp?v=20260917-hq2" alt="ROVIQ — Keeping You Moving Forward">
   </section>`;
 }
 
