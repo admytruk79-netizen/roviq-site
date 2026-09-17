@@ -45,23 +45,23 @@ export function stationPage(c) {
       ${SERVICES.map((s)=>`<div class="card card--accent-${s.accent}"><h3>${s.title}</h3><p>${escapeHtml(c[`station.service_${s.key}_body`] || "Part of the integrated ROVIQ Station experience.")}</p></div>`).join("\n")}
     </div>
 
-    <div class="station-module-grid" style="margin-top:1.5rem;">
-      <div class="station-module-card">
+    <div class="station-module-grid" style="margin-top:2.5rem;gap:3.5rem;">
+      <div class="station-module-card" style="margin-bottom:.5rem;">
         <span class="eyebrow">EV charging</span>
-        <h3>Dedicated fast-charging bank</h3>
+        <h3 style="margin-bottom:1.35rem;">Dedicated fast-charging bank</h3>
         ${mediaFull(c["station.image_ev"] || STATION_IMAGES["ev-charging"].file, STATION_IMAGES["ev-charging"].alt)}
       </div>
-      <div class="station-module-card">
+      <div class="station-module-card" style="margin-top:.5rem;margin-bottom:.5rem;">
         <span class="eyebrow">Portable café</span>
-        <h3>A smaller satellite format</h3>
+        <h3 style="margin-bottom:1.35rem;">A smaller satellite format</h3>
         ${mediaFull(STATION_IMAGES["portable-cafe"].file, STATION_IMAGES["portable-cafe"].alt)}
       </div>
     </div>
 
-    <div class="station-wash-feature">
+    <div class="station-wash-feature" style="margin-top:4rem;">
       <div>
         <span class="eyebrow">Car wash</span>
-        <h3>Car Wash &amp; Vacuum Bay</h3>
+        <h3 style="margin-bottom:1rem;">Car Wash &amp; Vacuum Bay</h3>
         <p>A dedicated vehicle-care module with its own ROVIQ identity and clear separation from the forecourt.</p>
       </div>
       ${mediaFull(CAR_WASH_IMAGE, "Roviq Station car wash and vacuum bay")}
