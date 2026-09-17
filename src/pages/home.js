@@ -10,15 +10,7 @@ const ECOSYSTEM = [
 
 export function homePage(c) {
   return `
-<section class="hero home-hero roviq-hero-v2" style="min-height:auto;display:block;padding-bottom:0;overflow:hidden;background:#07131f;">
-  <a href="/roviq" aria-label="Explore the ROVIQ platform" style="display:block;position:relative;overflow:hidden;background:#07131f;aspect-ratio:16/9;">
-    <img src="/images/roviq-hero-forecourt.png?v=20260916" alt="ROVIQ automotive service hub at dusk" style="display:block;width:100%;height:100%;object-fit:cover;object-position:center 54%;margin:0;">
-    <div aria-hidden="true" style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,10,16,.18) 0%,rgba(3,10,16,.08) 50%,rgba(3,10,16,.28) 100%);"></div>
-    <div style="position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:min(58vw,760px);padding:1.15rem 1.6rem;background:rgba(5,14,23,.68);border:1px solid rgba(228,110,53,.35);border-radius:10px;backdrop-filter:blur(5px);">
-      <img src="/brand/roviq-wordmark-dark-2026.svg?v=20260916" alt="ROVIQ" style="display:block;width:100%;height:auto;object-fit:contain;margin:0 auto;">
-      <div style="margin-top:.7rem;text-align:center;color:#f4f2ed;font-family:Inter,sans-serif;font-size:clamp(.55rem,1.25vw,.95rem);letter-spacing:.26em;text-transform:uppercase;white-space:nowrap;">Driven by a brighter tomorrow</div>
-    </div>
-  </a>
+<section class="hero home-hero roviq-hero-v2" style="min-height:auto;display:block;padding:0;overflow:hidden;background:#07131f;">
   <div class="hero-capabilities" aria-label="ROVIQ capabilities" style="position:relative;left:auto;right:auto;bottom:auto;"><a href="/roviq#maintenance"><span class="cap-icon" aria-hidden="true">⌁</span><strong>Maintain</strong></a><a href="/roviq#mobility"><span class="cap-icon" aria-hidden="true">↗</span><strong>Move</strong></a><a href="/roviq#front-ends"><span class="cap-icon" aria-hidden="true">◎</span><strong>Connect</strong></a><a href="/station"><span class="cap-icon" aria-hidden="true">⌂</span><strong>Keep you going</strong></a></div>
 </section>
 <section class="section home-ecosystem"><div class="container"><div class="home-ecosystem-head"><span class="eyebrow">One ecosystem. Multiple front ends.</span><h2>Built around the whole automotive journey.</h2><p>Each ROVIQ experience serves a different participant while remaining connected to the same coordination layer, service network and operating discipline.</p></div><div class="home-ecosystem-grid">${ECOSYSTEM.map((item) => `<article class="eco-card"><div class="eco-card-media"><img src="${escapeHtml((item.contentKey && c[item.contentKey]) || item.image)}" alt="${item.alt}" loading="lazy"></div><div class="eco-card-body"><h3>${item.title}</h3><p>${item.body}</p><a href="${item.href}">Learn more &rarr;</a></div></article>`).join("\n")}</div></div></section>
