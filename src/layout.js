@@ -63,8 +63,8 @@ export function renderPage({title,description,activePath,body}) {
 (function(){
   var img=document.getElementById('siteGeneratedBanner');
   if(!img)return;
-  var v='20260917-0607';
-  Promise.all(['/banner-data/generated-00.txt','/banner-data/generated-01.txt','/banner-data/generated-02.txt'].map(function(u){return fetch(u+'?v='+v,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('banner chunk');return r.text();});})).then(function(parts){
+  var v='20260917-0709';
+  Promise.all(['/banner-data/exact-00.txt','/banner-data/exact-r00.txt','/banner-data/exact-02.txt'].map(function(u){return fetch(u+'?v='+v,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('banner chunk');return r.text();});})).then(function(parts){
     img.onload=function(){img.classList.add('is-loaded');};
     img.src='data:image/webp;base64,'+parts.join('');
   }).catch(function(err){console.error('ROVIQ banner load failed',err);});
