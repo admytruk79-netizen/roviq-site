@@ -38,16 +38,15 @@ function brandLockup() {
 
 function sharedBanner() {
   return `<section class="site-shared-banner" aria-label="ROVIQ automotive service coordination">
-    <img id="siteGeneratedBanner" class="site-shared-banner-bg" alt="ROVIQ — Keeping You Moving Forward">
+    <img class="site-shared-banner-bg" src="/images/roviq-banner-site-hq.webp?v=20260917-hq" alt="ROVIQ — Keeping You Moving Forward">
   </section>`;
 }
 
 export function renderPage({title,description,activePath,body}) {
   return `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description||"")}"><link rel="icon" href="/brand/roviq-mark-2026.svg" type="image/svg+xml"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><style>${CSS}
 .brand-lockup{display:flex;align-items:center;gap:.65rem;color:#f4f2ed;font-family:Inter,sans-serif;font-weight:800;letter-spacing:.035em;white-space:nowrap}.brand-lockup img{display:block;width:72px;height:auto;flex:0 0 auto}.brand-lockup span{font-size:2.15rem;line-height:1}.site-header .brand-lockup{max-width:calc(100vw - 115px)}
-.site-shared-banner{position:relative;overflow:hidden;background:#07131f;border-bottom:1px solid rgba(200,146,69,.25);aspect-ratio:16/9}
-.site-shared-banner-bg{display:block;width:100%;height:100%;object-fit:contain;object-position:center;opacity:0;transition:opacity .12s ease;background:#07131f}
-.site-shared-banner-bg.is-loaded{opacity:1}
+.site-shared-banner{position:relative;overflow:hidden;background:#07131f;border-bottom:1px solid rgba(200,146,69,.25)}
+.site-shared-banner-bg{display:block;width:100%;height:auto;object-fit:contain;object-position:center;background:#07131f}
 @media(max-width:560px){
   .section>.container{padding-left:1.05rem!important;padding-right:1.05rem!important}
   .roviq-tow-feature{margin-left:0!important;margin-right:0!important;padding:.75rem!important;gap:1rem!important;border-radius:10px!important}
@@ -57,17 +56,8 @@ export function renderPage({title,description,activePath,body}) {
   .roviq-tow-feature p{font-size:.96rem!important;line-height:1.55!important}
   .grid>.card{padding:1.25rem!important}
   .site-header .brand-lockup{gap:.42rem}.site-header .brand-lockup img{width:54px}.site-header .brand-lockup span{font-size:1.72rem}
-  .site-shared-banner{aspect-ratio:16/9}.site-shared-banner-bg{width:100%;height:100%;object-fit:contain;background:#07131f}
+  .site-shared-banner-bg{width:100%;height:auto;object-fit:contain;background:#07131f}
 }
 </style><script>document.documentElement.classList.add('js');</script></head><body><header class="site-header"><div class="container"><a href="/" class="wordmark" aria-label="ROVIQ home">${brandLockup()}</a><button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">&#9776;</button><nav class="site-nav" id="siteNav">${NAV_LINKS.map((l)=>`<a href="${l.href}" class="${l.href===activePath?"active":""}">${l.label}</a>`).join("\n")}<a href="/contact" class="nav-access">Request Access</a></nav></div></header>${sharedBanner()}<main>${body}</main><footer class="site-footer"><div class="container"><div>&copy; ${new Date().getFullYear()} ROVIQ. Automotive service coordination, physical infrastructure and local discovery.</div><div><a href="/contact">Contact</a> &middot; <a href="/admin">Admin</a></div></div></footer><script>
-(function(){
-  var img=document.getElementById('siteGeneratedBanner');
-  if(!img)return;
-  var v='20260917-0709';
-  Promise.all(['/banner-data/exact-00.txt','/banner-data/exact-r00.txt','/banner-data/exact-02.txt'].map(function(u){return fetch(u+'?v='+v,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('banner chunk');return r.text();});})).then(function(parts){
-    img.onload=function(){img.classList.add('is-loaded');};
-    img.src='data:image/webp;base64,'+parts.join('');
-  }).catch(function(err){console.error('ROVIQ banner load failed',err);});
-})();
 document.getElementById('navToggle').addEventListener('click',function(){document.getElementById('siteNav').classList.toggle('open');});if(location.hash){window.addEventListener('load',function(){var target=document.getElementById(location.hash.slice(1));if(target)target.scrollIntoView();});}if('IntersectionObserver' in window){var revealObserver=new IntersectionObserver(function(entries){entries.forEach(function(entry){if(entry.isIntersecting){entry.target.classList.add('is-visible');revealObserver.unobserve(entry.target);}});},{threshold:.12,rootMargin:'0px 0px -40px 0px'});document.querySelectorAll('main section:not(.hero)').forEach(function(el){revealObserver.observe(el);});}else{document.querySelectorAll('main section').forEach(function(el){el.classList.add('is-visible');});}</script></body></html>`;
 }
