@@ -37,7 +37,7 @@ function brandLockup() {
 }
 
 function sharedBanner() {
-  return `<section class="site-shared-banner" aria-label="ROVIQ automotive service coordination"><img class="site-shared-banner-bg" src="/images/roviq-luxury-mobility-hub-at-dusk.png?v=20260917" alt="ROVIQ luxury mobility hub at dusk"></section>`;
+  return `<section class="site-shared-banner" aria-label="ROVIQ automotive service coordination"><img class="site-shared-banner-bg" src="/images/roviq-banner-approved-screenshot.png?v=20260917" alt="ROVIQ automotive service coordination banner"></section>`;
 }
 
 export function renderPage({title,description,activePath,body}) {
