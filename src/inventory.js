@@ -129,9 +129,9 @@ function parseDetail(html, source, url, previous={}) {
   const exterior = first(html,/Exterior(?: Color)?[^A-Za-z0-9]{0,50}([^<\n]{2,70})/i) || previous.exterior || "See photo";
   const interior = first(html,/Interior(?: Color)?[^A-Za-z0-9]{0,50}([^<\n]{2,70})/i) || previous.interior || "See details";
   const fuel = /\b(EV|electric|dual[- ]motor)\b/i.test(combined) ? "Electric" : (/duramax|diesel/i.test(combined+" "+(engine||"")) ? "Diesel" : previous.fuel || "Gasoline");
-  const soldSignal = /\b(sold|no longer available|vehicle unavailable|removed from inventory)\b/i.test(combined);
+  const priceMatch = combined.match(/\\$\\s*([1-9][0-9,]{3,7})\\b/);\n  const askingPrice = priceMatch ? num(priceMatch[1]) : (previous.askingPrice ?? null);\n  const soldSignal = /\b(sold|no longer available|vehicle unavailable|removed from inventory)\b/i.test(combined);
 
-  return { ...previous, sourceId:source.id, sourceNameInternal:source.name, sourceUrl:url, year, make, model, mileageMi:mileage, vin, directImage:image, engine, drivetrain, transmission, exterior, interior, fuel, soldSignal };
+  return { ...previous, sourceId:source.id, sourceNameInternal:source.name, sourceUrl:url, year, make, model, mileageMi:mileage, vin, directImage:image, engine, drivetrain, transmission, exterior, interior, fuel, askingPrice, soldSignal };
 }
 
 function stableId(v) {
