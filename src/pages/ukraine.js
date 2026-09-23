@@ -9,7 +9,7 @@ function card(v){return `
 <details class="reserve"><summary>Reserve / request this vehicle</summary>${bookingForm(v)}</details>
 </div></article>`}
 
-export function ukrainePage(content,inventory,bookingId){
+export function ukrainePage(content,inventory,bookingId,unavailableId){
 const vehicles=inventory?.vehicles||[];
 const synced=inventory?.syncedAt?new Date(inventory.syncedAt).toLocaleString("en-US",{timeZone:"America/Los_Angeles",dateStyle:"medium",timeStyle:"short"}):"initializing";
 return `<style>
@@ -55,6 +55,6 @@ return `<style>
 @media(max-width:480px){.book-grid{grid-template-columns:1fr}}
 
 </style><div class="uk-wrap"><div class="uk-hero"><div class="uk-kicker">ROVIQ • LIVE U.S. VEHICLE APP</div><h1>Trucks selected for Ukraine.</h1><p>Live Chevrolet Silverado and GMC Sierra inventory under 60,000 miles. Source pricing and dealer identity stay private.</p><div class="uk-note"><strong>Inventory-linked.</strong> Dealer feeds are checked automatically. Sold/disappeared vehicles are removed after verification.</div><div class="uk-live">● Last inventory sync: ${synced}</div></div>
-${bookingId?`<div class="success"><strong>Request received.</strong> ROVIQ booking ID: ${bookingId}</div>`:""}
+${bookingId?`<div class="success"><strong>Request received.</strong> ROVIQ rechecked the dealer listing. Booking ID: ${bookingId}. Dealer confirmation is still required before the vehicle is secured.</div>`:""}\n${unavailableId?`<div class="success" style="background:#2b1717;border-color:#7a3b3b;color:#ffd9d9"><strong>Vehicle no longer available for reservation.</strong> ROVIQ rechecked ${unavailableId} with the dealer before creating a booking. Please choose another vehicle.</div>`:""}
 ${vehicles.length?`<div class="uk-grid">${vehicles.map(card).join("")}</div>`:`<div class="uk-empty">Inventory sync is initializing.</div>`}
 <div class="uk-foot">Shipping is a preliminary Oregon-to-Rijeka estimate and may change after vehicle selection. ROVIQ re-verifies vehicle history, title status, export eligibility and logistics before commitment.</div></div>`}
