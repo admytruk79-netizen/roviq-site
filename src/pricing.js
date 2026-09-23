@@ -4,10 +4,10 @@ export const DEFAULT_PRICING = {
   marginPercent: 7.5,
   minimumMargin: 3000,
   riskReserve: 500,
-  shippingLow: 3000,
-  shippingHigh: 5500,
+  shippingLow: 5000,
+  shippingHigh: 7000,
   roundTo: 100,
-  configVersion: 2
+  configVersion: 3
 };
 
 function money(n){ return Math.round(Number(n)||0); }
@@ -26,6 +26,15 @@ export async function getPricingConfig(env){
       Number(saved.riskReserve)===750;
     if(isLegacyDefault){
       const migrated={...DEFAULT_PRICING};
+      await env.CONTENT.put(PRICING_KEY,JSON.stringify(migrated));
+      return migrated;
+    }
+    const wasPreviousShippingDefault =
+      Number(saved.configVersion||0) < 3 &&
+      Number(saved.shippingLow)===3000 &&
+      Number(saved.shippingHigh)===5500;
+    if(wasPreviousShippingDefault){
+      const migrated={...DEFAULT_PRICING,...saved,shippingLow:5000,shippingHigh:7000,configVersion:3};
       await env.CONTENT.put(PRICING_KEY,JSON.stringify(migrated));
       return migrated;
     }
