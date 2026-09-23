@@ -19,7 +19,7 @@ return `<style>
 .uk-hero h1{font-size:clamp(1.9rem,4vw,3rem);line-height:1;margin:0 0 8px;color:#f4f2ed}
 .uk-hero p{font-size:.96rem;line-height:1.5;color:#c3cdd4;margin:0;max-width:760px}
 .uk-note{margin-top:12px;padding:11px 13px;border-left:3px solid #c89245;background:#0d1b28;border-radius:8px;color:#d7e0e6;font-size:12px;box-shadow:0 10px 28px rgba(0,0,0,.16)}
-.uk-live{margin-top:9px;font-size:11px;color:#9ba8b3}
+.uk-live{margin-top:9px;font-size:11px;color:#9ba8b3}.uk-standards{margin:14px 0 18px;padding:13px 14px;border:1px solid rgba(200,146,69,.28);border-radius:10px;background:#0a1723;color:#d7e0e6;font-size:12px;line-height:1.55}.uk-standards strong{color:#e1b770}
 .uk-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
 .uk-card{background:#0c1a27;border:1px solid rgba(200,146,69,.28);border-radius:18px;overflow:hidden;box-shadow:0 18px 45px rgba(0,0,0,.24);animation:ukFade .45s ease both}
 .uk-photo{position:relative;background:linear-gradient(110deg,#0a1722 8%,#132637 18%,#0a1722 33%);background-size:200% 100%;aspect-ratio:16/10;overflow:hidden;animation:ukShimmer 1.6s linear infinite}
@@ -54,7 +54,7 @@ return `<style>
 @media(max-width:860px){.uk-grid{grid-template-columns:1fr}.price-box{grid-template-columns:1fr}.uk-specs{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.book-grid{grid-template-columns:1fr}}
 
-</style><div class="uk-wrap"><div class="uk-hero"><div class="uk-kicker">ROVIQ • LIVE U.S. VEHICLE APP</div><h1>Trucks selected for Ukraine.</h1><p>Live Chevrolet Silverado and GMC Sierra inventory under 60,000 miles. Source pricing and dealer identity stay private.</p><div class="uk-note"><strong>Inventory-linked.</strong> Dealer feeds are checked automatically. Sold/disappeared vehicles are removed after verification.</div><div class="uk-live">● Last inventory sync: ${synced}</div></div>
+</style><div class="uk-wrap"><div class="uk-hero"><div class="uk-kicker">ROVIQ • LIVE U.S. VEHICLE APP</div><h1>Trucks selected for Ukraine.</h1><p>Live Chevrolet Silverado and GMC Sierra inventory under 60,000 miles. Source pricing and dealer identity stay private.</p><div class="uk-note"><strong>Inventory-linked.</strong> Dealer feeds are checked automatically. Sold/disappeared vehicles are removed after verification.</div><div class="uk-live">● Last inventory sync: ${synced}</div><div class="uk-standards"><strong>ROVIQ sourcing standard:</strong> dealership-sourced vehicles must have a clean, non-branded title. Salvage, rebuilt/reconstructed, flood, or major total-loss vehicles are excluded. Title status and vehicle history are re-verified before purchase and export.</div></div>
 ${bookingId?`<div class="success"><strong>Request received.</strong> ROVIQ rechecked the dealer listing. Booking ID: ${bookingId}. Dealer confirmation is still required before the vehicle is secured.</div>`:""}\n${unavailableId?`<div class="success" style="background:#2b1717;border-color:#7a3b3b;color:#ffd9d9"><strong>Vehicle no longer available for reservation.</strong> ROVIQ rechecked ${unavailableId} with the dealer before creating a booking. Please choose another vehicle.</div>`:""}
 ${vehicles.length?`<div class="uk-grid">${vehicles.map(card).join("")}</div>`:`<div class="uk-empty">Inventory sync is initializing.</div>`}
 <div class="uk-foot">Shipping is a preliminary Oregon-to-Rijeka estimate and may change after vehicle selection. ROVIQ re-verifies vehicle history, title status, export eligibility and logistics before commitment.</div></div>`}
