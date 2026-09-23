@@ -5,6 +5,7 @@ import { stationPage } from "./pages/station.js";
 import { connectionPage } from "./pages/connection.js";
 import { aboutPage } from "./pages/about.js";
 import { contactPage } from "./pages/contact.js";
+import { ukrainePage } from "./pages/ukraine.js";
 import {
   handleAdminGet,
   handleAdminLogin,
@@ -46,6 +47,12 @@ const PAGES = {
     render: contactPage,
     title: "Contact — ROVIQ",
     description: "Contact ROVIQ about investment, partnerships, press, brochure requests, locations, technology or general enquiries."
+  }
+,
+  "/ukraine": {
+    render: ukrainePage,
+    title: "ROVIQ — U.S. Vehicle Selection for Ukraine",
+    description: "Curated low-mileage U.S. vehicles selected by ROVIQ for export to Ukraine, with verified customer-facing specifications."
   }
 };
 
