@@ -62,13 +62,9 @@ function abs(href, base) { try { return new URL(href, base).href; } catch { retu
 function clean(s="") { return s.replace(/<[^>]*>/g," ").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/\s+/g," ").trim(); }
 function num(s) { if (!s) return null; const n = Number(String(s).replace(/[^0-9.]/g,"")); return Number.isFinite(n) ? n : null; }
 function meta(html, key) {
-  const safe = String(key).replace(/[.*+?^$\{\}()|[\]\\]/g, "\\function meta(html, key) {
-  const a = new RegExp('<meta[^>]+(?:property|name)=["\\']'+key+'["\\'][^>]+content=["\\']([^"\\']+)["\\']',"i");
-  const b = new RegExp('<meta[^>]+content=["\\']([^"\\']+)["\\'][^>]+(?:property|name)=["\\']'+key+'["\\']',"i");
-  return clean((html.match(a)||html.match(b)||[])[1]||"") || null;
-}");
-  const a = new RegExp(`<meta[^>]+(?:property|name)=["']${safe}["'][^>]+content=["']([^"']+)["']`, "i");
-  const b = new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${safe}["']`, "i");
+  const safe = String(key).replace(/[.*+?^$\\{\\}()|[\\]\\\\]/g, "\\$&");
+  const a = new RegExp(`<meta[^>]+(?:property|name)=["\']${safe}["\'][^>]+content=["\']([^"\']+)["\']`, "i");
+  const b = new RegExp(`<meta[^>]+content=["\']([^"\']+)["\'][^>]+(?:property|name)=["\']${safe}["\']`, "i");
   return clean((html.match(a)||html.match(b)||[])[1]||"") || null;
 }
 function first(html, re) { const m = html.match(re); return m ? clean(m[1]||m[0]) : null; }
