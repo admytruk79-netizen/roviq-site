@@ -1,6 +1,7 @@
 import { getPricingConfig, publicPricing } from "./pricing.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
+const INVENTORY_SCHEMA_VERSION = 5;
 
 const SOURCE_PLUGINS = [
   {
@@ -353,7 +354,7 @@ export async function syncVehicleInventory(env) {
     const matching = retainedVehicles.filter(v => v.sourceId === id);
     return { ...h, availableVehicles: matching.filter(v=>v.status==="available").length, totalVehicles: matching.length };
   });
-  const state={version:4,maxMileage:MAX_MILES,syncedAt:now(),sources,vehicles:retainedVehicles};
+  const state={version:INVENTORY_SCHEMA_VERSION,maxMileage:MAX_MILES,syncedAt:now(),sources,vehicles:retainedVehicles};
   await saveState(env,state);
   return state;
 }
@@ -361,7 +362,7 @@ export async function syncVehicleInventory(env) {
 export async function getVehicleInventory(env) {
   let state=await readState(env);
   const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
-  if(!state || !Number.isFinite(age) || age > 30*60*1000) state=await syncVehicleInventory(env);
+  if(!state || state.version !== INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age > 30*60*1000) state=await syncVehicleInventory(env);
   const pricingConfig=await getPricingConfig(env);
   const vehicles=(state.vehicles||[]).filter(v=>v.status==="available"&&v.mileageMi<MAX_MILES).sort((a,b)=>a.mileageMi-b.mileageMi).map(v=>({
     id:v.id,year:v.year,make:v.make,model:v.model,trim:v.trim||"",mileageMi:v.mileageMi,
@@ -372,6 +373,36 @@ export async function getVehicleInventory(env) {
     pricing:publicPricing(v,pricingConfig)
   }));
   return {syncedAt:state.syncedAt,maxMileage:MAX_MILES,vehicles};
+}
+
+export async function getPublicInventoryHealth(env) {
+  let state=await readState(env);
+  const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
+  if(!state || state.version !== INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age > 30*60*1000) state=await syncVehicleInventory(env);
+  const vehicles=state.vehicles||[];
+  return {
+    version: state.version,
+    syncedAt: state.syncedAt,
+    maxMileage: state.maxMileage,
+    counts: {
+      total: vehicles.length,
+      available: vehicles.filter(v=>v.status==="available").length,
+      sold: vehicles.filter(v=>v.status==="sold").length,
+      unavailable: vehicles.filter(v=>v.status==="unavailable").length,
+      withImages: vehicles.filter(v=>v.status==="available" && Boolean(v.directImage)).length
+    },
+    sources: (state.sources||[]).map(s=>({
+      id:s.id,
+      healthy:Number(s.inventoryPagesOk||0)>0,
+      pagesOk:Number(s.inventoryPagesOk||0),
+      pagesFailed:Number(s.inventoryPagesFailed||0),
+      discovered:Number(s.discovered||0),
+      detailChecks:Number(s.detailChecks||0),
+      detailFailures:Number(s.detailFailures||0),
+      availableVehicles:Number(s.availableVehicles||0),
+      lastSuccessAt:s.lastSuccessAt||null
+    }))
+  };
 }
 
 export async function getInventoryAdmin(env) {
