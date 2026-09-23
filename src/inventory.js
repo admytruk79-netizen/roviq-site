@@ -179,13 +179,12 @@ function safeField(value, fallback=null) {
   return v;
 }
 function attrValue(html, names) {
-  for(const name of names){
-    const escaped=String(name).replace(/[.*+?^$\{\}()|[\]\\]/g,"\\    const escaped=String(name).replace(/[.*+?^$\{\}()|[\]\\]/g,"\\function first(html, re) { const m = html.match(re); return m ? clean(m[1]||m[0]) : null; }
-");");
-    const re=new RegExp(escaped+'\\s*=\\s*["\\']([^"\\']+)["\\']',"i");
-    const m=html.match(re);
-    const v=safeField(m?.[1]||null);
-    if(v) return v;
+  for (const name of names) {
+    const escaped = String(name).replace(/[.*+?^$\{\}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(escaped + '\\s*=\\s*["\\\']([^"\\\']+)["\\\']', "i");
+    const m = html.match(re);
+    const v = safeField(m?.[1] || null);
+    if (v) return v;
   }
   return null;
 }
