@@ -144,4 +144,3 @@ Admin sessions are a signed, `HttpOnly`, `Secure`, `SameSite=Strict` cookie
 (HMAC-SHA256 over an expiry timestamp using `SESSION_SECRET`) — there's no
 session store, so rotating `SESSION_SECRET` immediately invalidates all
 sessions.
-
