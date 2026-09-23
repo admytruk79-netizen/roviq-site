@@ -24,6 +24,10 @@ import {
   isAuthed
 } from "./admin.js";
 
+function redirectTo(request, path, status=302) {
+  return Response.redirect(new URL(path, request.url).toString(), status);
+}
+
 function secureHeaders(extra={}) {
   return {
     "x-content-type-options":"nosniff",
@@ -110,7 +114,7 @@ export default {
       }
 
       if (path === "/admin/pricing") {
-        if (!(await isAuthed(request, env))) return Response.redirect("/admin", 302);
+        if (!(await isAuthed(request, env))) return redirectTo(request, "/admin", 302);
         if (method === "GET") return new Response(await pricingAdminPage(env), { headers: secureHeaders({ "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" }) });
         return new Response("Method not allowed", { status: 405 });
       }
@@ -120,7 +124,7 @@ export default {
       }
 
       if (path === "/admin/vehicles") {
-        if (!(await isAuthed(request, env))) return Response.redirect("/admin", 302);
+        if (!(await isAuthed(request, env))) return redirectTo(request, "/admin", 302);
         if (method === "GET") return new Response(await vehicleAdminPage(env), { headers: { "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" } });
         return new Response("Method not allowed", { status: 405 });
       }
@@ -129,7 +133,7 @@ export default {
         return syncNow(env);
       }
       if (path === "/admin/bookings") {
-        if (!(await isAuthed(request, env))) return Response.redirect("/admin", 302);
+        if (!(await isAuthed(request, env))) return redirectTo(request, "/admin", 302);
         if (method === "GET") return new Response(bookingsAdminPage(await listBookings(env)), { headers: { "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" } });
         return new Response("Method not allowed", { status: 405 });
       }
@@ -139,18 +143,18 @@ export default {
       }
 
       if (path === "/admin/core-cases") {
-        if (!(await isAuthed(request, env))) return Response.redirect("/admin", 302);
+        if (!(await isAuthed(request, env))) return redirectTo(request, "/admin", 302);
         if (method === "GET") return new Response(coreCasesAdminPage(await listCoreCases(env)), { headers: secureHeaders({ "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" }) });
         return new Response("Method not allowed", { status: 405 });
       }
 
       if (path === "/ops") {
-        if (!(await isAuthed(request, env))) return Response.redirect("/admin", 302);
+        if (!(await isAuthed(request, env))) return redirectTo(request, "/admin", 302);
         if (method === "GET") return new Response(await operationsDashboard(env), { headers: secureHeaders({ "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" }) });
         return new Response("Method not allowed", { status: 405 });
       }
       if (path === "/ops/case") {
-        if (!(await isAuthed(request, env))) return Response.redirect("/admin", 302);
+        if (!(await isAuthed(request, env))) return redirectTo(request, "/admin", 302);
         if (method === "GET") return new Response(await operationCasePage(env,url.searchParams.get("id")||""), { headers: secureHeaders({ "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" }) });
         return new Response("Method not allowed", { status: 405 });
       }
