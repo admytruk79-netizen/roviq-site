@@ -3,7 +3,7 @@ const BOOKINGS_KEY = "vehicle_bookings:v1";
 function esc(s=""){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 async function read(env){const raw=env.CONTENT?await env.CONTENT.get(BOOKINGS_KEY):null;if(!raw)return[];try{return JSON.parse(raw)}catch{return[]}}
 async function write(env,items){if(env.CONTENT)await env.CONTENT.put(BOOKINGS_KEY,JSON.stringify(items))}
-function id(){return "RB-"+Date.now().toString(36).toUpperCase()+"-"+crypto.randomUUID().slice(0,6).toUpperCase()}
+function id(){return "RB-"+Date.now().toString(36).toUpperCase()+"-"+crypto.randomUUID().slice(0,6).toUpperCase()}\nfunction emailOk(v){return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(v)&&v.length<=160}\nfunction clip(v,n){return String(v||"").trim().slice(0,n)}\nfunction clientIp(request){return request.headers.get("cf-connecting-ip")||request.headers.get("x-forwarded-for")||"unknown"}\nasync function rateLimit(request,env){if(!env.CONTENT)return true;const bucket=Math.floor(Date.now()/(10*60*1000));const key="booking_rate:"+clientIp(request)+":"+bucket;const raw=await env.CONTENT.get(key);const count=Number(raw||0);if(count>=5)return false;await env.CONTENT.put(key,String(count+1),{expirationTtl:900});return true;}
 
 export async function createBooking(request,env){
   const form=await request.formData();
@@ -48,7 +48,7 @@ export function bookingForm(vehicle){
       <input name="phone" placeholder="Phone / WhatsApp">
       <input name="destination" value="Ukraine" placeholder="Destination">
     </div>
-    <textarea name="note" placeholder="Questions or preferred delivery city"></textarea>
+    <textarea maxlength="1200" name="note" placeholder="Questions or preferred delivery city"></textarea>
     <button class="uk-btn primary" type="submit">Reserve / request vehicle</button>
   </form>
   </section>`;
