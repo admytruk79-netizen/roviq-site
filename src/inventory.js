@@ -48,6 +48,23 @@ function meta(html, key) {
 }
 function first(html, re) { const m = html.match(re); return m ? clean(m[1]||m[0]) : null; }
 
+function extractImage(html) {
+  const og = meta(html,"og:image");
+  if (og) return og;
+
+  const jsonImage = first(html,/"image"\s*:\s*"([^"]+\.(?:jpg|jpeg|png|webp)(?:\?[^"]*)?)"/i);
+  if (jsonImage) return jsonImage.replace(/\\u0026/g,"&").replace(/\\\//g,"/");
+
+  const jsonArrayImage = first(html,/"image"\s*:\s*\[\s*"([^"]+\.(?:jpg|jpeg|png|webp)(?:\?[^"]*)?)"/i);
+  if (jsonArrayImage) return jsonArrayImage.replace(/\\u0026/g,"&").replace(/\\\//g,"/");
+
+  const lazy = first(html,/(?:data-src|data-lazy-src|data-original|src)=["'](https?:\/\/[^"']+\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)["']/i);
+  if (lazy) return lazy.replace(/&amp;/g,"&");
+
+  const dealerCdn = first(html,/(https?:\/\/(?:pictures\.dealer\.com|vehicle-images\.dealerinspire\.com|images\.autotrader\.com|images\.cars\.com)[^"'<>\s]+\.(?:jpg|jpeg|png|webp)(?:\?[^"'<>\s]*)?)/i);
+  return dealerCdn ? dealerCdn.replace(/&amp;/g,"&") : null;
+}
+
 async function fetchHtml(url) {
   const r = await fetch(url, {
     redirect:"follow",
@@ -85,7 +102,7 @@ function parseDetail(html, source, url, previous={}) {
   const model = ((combined.match(/\b(Silverado(?:\s+1500(?:\s+LTD)?|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|Sierra(?:\s+1500|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?)\b/i)||[])[1] || previous.model || "").replace(/\s+/g," ");
   const mileage = num(first(html,/(?:Odometer|Mileage)[^0-9]{0,80}([0-9][0-9,.]{0,10}\s*(?:mi|miles?))/i) || (combined.match(/\b([0-9][0-9,]{2,6})\s*(?:mi|miles?)\b/i)||[])[1]) ?? previous.mileageMi;
   const vin = ((combined.match(/\b([A-HJ-NPR-Z0-9]{17})\b/)||[])[1] || previous.vin || null);
-  const image = meta(html,"og:image") || previous.directImage || null;
+  const image = extractImage(html) || previous.directImage || null;
   const engine = first(html,/(?:Engine|Engine Type)[^A-Za-z0-9]{0,50}([^<\n]{2,90})/i) || previous.engine || null;
   const drivetrain = first(html,/(?:Drivetrain|Drive Type)[^A-Za-z0-9]{0,50}([^<\n]{2,50})/i) || previous.drivetrain || null;
   const transmission = first(html,/Transmission[^A-Za-z0-9]{0,50}([^<\n]{2,70})/i) || previous.transmission || "Automatic";
@@ -192,7 +209,7 @@ export async function getVehicleImageResponse(request,env) {
   if(!image&&v.sourceUrl){
     try{
       const r=await fetchHtml(v.sourceUrl);
-      if(r.ok) image=meta(r.html,"og:image");
+      if(r.ok) image=extractImage(r.html);
     }catch{}
   }
 
@@ -206,9 +223,10 @@ export async function getVehicleImageResponse(request,env) {
           "referer":v.sourceUrl||"https://roviq-site.admytruk79.workers.dev/"
         }
       });
-      if(img.ok){
+      const type=(img.headers.get("content-type")||"").toLowerCase();
+      if(img.ok && type.startsWith("image/")){
         const headers=new Headers();
-        headers.set("content-type",img.headers.get("content-type")||"image/jpeg");
+        headers.set("content-type",type);
         headers.set("cache-control","public, max-age=1800, s-maxage=1800");
         headers.set("access-control-allow-origin","*");
         return new Response(img.body,{status:200,headers});
