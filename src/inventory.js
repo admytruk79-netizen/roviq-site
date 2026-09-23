@@ -214,21 +214,51 @@ function discover(html, source) {
   return [...out];
 }
 
+function parseJsonLdVehicle(html) {
+  const scripts=[...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
+  for(const match of scripts){
+    try{
+      const parsed=JSON.parse(match[1].trim());
+      const nodes=Array.isArray(parsed)?parsed:(parsed && parsed["@graph"]?parsed["@graph"]:[parsed]);
+      for(const node of nodes){
+        if(!node || typeof node!=="object") continue;
+        const type=Array.isArray(node["@type"])?node["@type"].join(" "):String(node["@type"]||"");
+        if(!/(Vehicle|Car|Product)/i.test(type)) continue;
+        const mileageRaw=node.mileageFromOdometer?.value ?? node.mileageFromOdometer ?? null;
+        const imageRaw=Array.isArray(node.image)?node.image[0]:node.image;
+        return {
+          name: node.name || null,
+          sku: node.sku || null,
+          vin: node.vehicleIdentificationNumber || node.vin || null,
+          mileageMi: num(mileageRaw),
+          image: typeof imageRaw==="string" ? imageRaw : (imageRaw?.url || null),
+          color: node.color || null,
+          fuel: node.fuelType || null,
+          transmission: node.vehicleTransmission || null,
+          drivetrain: node.driveWheelConfiguration || null
+        };
+      }
+    }catch{}
+  }
+  return {};
+}
+
 function parseDetail(html, source, url, previous={}) {
   const text = clean(html.slice(0, 600000));
   const title = meta(html,"og:title") || first(html,/<title[^>]*>([\s\S]*?)<\/title>/i) || "";
-  const combined = title+" "+text;
+  const structured=parseJsonLdVehicle(html);
+  const combined = title+" "+(structured.name||"")+" "+text;
 
   const year = Number((combined.match(/\b(20\d{2})\b/)||[])[1] || previous.year || 0) || null;
   const make = ((combined.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1] || previous.make || "").replace(/^./,c=>c.toUpperCase());
   const model = ((combined.match(/\b(Silverado(?:\s+1500(?:\s+LTD)?|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|Sierra(?:\s+1500|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|F-?150(?:\s+Lightning)?)\b/i)||[])[1] || previous.model || "").replace(/\s+/g," ").replace(/^F150$/i,"F-150");
-  const mileage = num(first(html,/(?:Odometer|Mileage)[^0-9]{0,80}([0-9][0-9,.]{0,10}\s*(?:mi|miles?))/i) || (combined.match(/\b([0-9][0-9,]{2,6})\s*(?:mi|miles?)\b/i)||[])[1]) ?? previous.mileageMi;
-  const vin = ((combined.match(/\b([A-HJ-NPR-Z0-9]{17})\b/)||[])[1] || previous.vin || null);
-  const image = extractImage(html) || previous.directImage || null;
+  const mileage = structured.mileageMi ?? num(first(html,/(?:Odometer|Mileage)[^0-9]{0,80}([0-9][0-9,.]{0,10}\s*(?:mi|miles?))/i) || (combined.match(/\b([0-9][0-9,]{2,6})\s*(?:mi|miles?)\b/i)||[])[1]) ?? previous.mileageMi;
+  const vin = structured.vin || ((combined.match(/\b([A-HJ-NPR-Z0-9]{17})\b/)||[])[1] || previous.vin || null);
+  const image = structured.image || extractImage(html) || previous.directImage || null;
   const engine = first(html,/(?:Engine|Engine Type)[^A-Za-z0-9]{0,50}([^<\n]{2,90})/i) || previous.engine || null;
-  const drivetrain = first(html,/(?:Drivetrain|Drive Type)[^A-Za-z0-9]{0,50}([^<\n]{2,50})/i) || previous.drivetrain || null;
-  const transmission = first(html,/Transmission[^A-Za-z0-9]{0,50}([^<\n]{2,70})/i) || previous.transmission || "Automatic";
-  const exterior = first(html,/Exterior(?: Color)?[^A-Za-z0-9]{0,50}([^<\n]{2,70})/i) || previous.exterior || "See photo";
+  const drivetrain = structured.drivetrain || first(html,/(?:Drivetrain|Drive Type)[^A-Za-z0-9]{0,50}([^<\n]{2,50})/i) || previous.drivetrain || null;
+  const transmission = structured.transmission || first(html,/Transmission[^A-Za-z0-9]{0,50}([^<\n]{2,70})/i) || previous.transmission || "Automatic";
+  const exterior = structured.color || first(html,/Exterior(?: Color)?[^A-Za-z0-9]{0,50}([^<\n]{2,70})/i) || previous.exterior || "See photo";
   const interior = first(html,/Interior(?: Color)?[^A-Za-z0-9]{0,50}([^<\n]{2,70})/i) || previous.interior || "See details";
   const fuel = /\b(EV|electric|dual[- ]motor)\b/i.test(combined) ? "Electric" : (/duramax|diesel/i.test(combined+" "+(engine||"")) ? "Diesel" : previous.fuel || "Gasoline");
   const priceMatch = combined.match(/\$\s*([1-9][0-9,]{3,7})\b/);
@@ -350,7 +380,7 @@ export async function syncVehicleInventory(env) {
     v.id=stableId(v);
     if(!v.year||!v.make||!v.model||v.mileageMi==null) {
       if (sourceHealth[source.id]) sourceHealth[source.id].rejectedMissingCore++;
-      v.status = v.status || "incomplete";
+      v.status = "incomplete";
       v.incompleteReason = "missing_core";
       return v;
     }
@@ -393,7 +423,7 @@ export async function syncVehicleInventory(env) {
   }
   const uniqueVehicles=[...deduped.values()];
 
-  const cutoff = Date.now() - 30*24*60*60*1000;  const cutoff = Date.now() - 30*24*60*60*1000;
+  const cutoff = Date.now() - 30*24*60*60*1000;
   const retainedVehicles = uniqueVehicles.filter(v => {
     const retired = v.soldAt || v.unavailableAt;
     if (retired && Date.parse(retired) < cutoff) return false;
