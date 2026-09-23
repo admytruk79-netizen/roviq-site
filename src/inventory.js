@@ -286,7 +286,10 @@ export async function syncVehicleInventory(env) {
       inventoryPagesFailed: 0,
       discovered: 0,
       detailChecks: 0,
-      detailFailures: 0
+      detailFailures: 0,
+      rejectedMissingCore: 0,
+      rejectedMileage: 0,
+      rejectedMakeModel: 0
     };
     for (const inventoryUrl of (source.inventoryUrls || [])) {
       try {
@@ -344,11 +347,25 @@ export async function syncVehicleInventory(env) {
       if(v.status==="unavailable" && !v.unavailableAt) v.unavailableAt=now();
     }
 
-    if(!v.year||!v.make||!v.model||v.mileageMi==null) return null;
-    if(v.mileageMi>=MAX_MILES) return null;
-    if(!/^(Chevrolet|GMC|Ford)$/i.test(v.make)) return null;
-    if(!/(Silverado|Sierra|F-?150)/i.test(v.model)) return null;
     v.id=stableId(v);
+    if(!v.year||!v.make||!v.model||v.mileageMi==null) {
+      if (sourceHealth[source.id]) sourceHealth[source.id].rejectedMissingCore++;
+      v.status = v.status || "incomplete";
+      v.incompleteReason = "missing_core";
+      return v;
+    }
+    if(v.mileageMi>=MAX_MILES) {
+      if (sourceHealth[source.id]) sourceHealth[source.id].rejectedMileage++;
+      v.status = "filtered";
+      v.incompleteReason = "mileage";
+      return v;
+    }
+    if(!/^(Chevrolet|GMC|Ford)$/i.test(v.make) || !/(Silverado|Sierra|F-?150)/i.test(v.model)) {
+      if (sourceHealth[source.id]) sourceHealth[source.id].rejectedMakeModel++;
+      v.status = "filtered";
+      v.incompleteReason = "make_model";
+      return v;
+    }
     return v;
   }
 
@@ -379,13 +396,21 @@ export async function syncVehicleInventory(env) {
   const cutoff = Date.now() - 30*24*60*60*1000;  const cutoff = Date.now() - 30*24*60*60*1000;
   const retainedVehicles = uniqueVehicles.filter(v => {
     const retired = v.soldAt || v.unavailableAt;
-    return !retired || Date.parse(retired) >= cutoff;
+    if (retired && Date.parse(retired) < cutoff) return false;
+    return true;
   });
 
   const sources = SOURCE_PLUGINS.map(({id,name}) => {
     const h = sourceHealth[id] || { id, name, attemptedAt: now(), inventoryPagesOk:0, inventoryPagesFailed:0, discovered:0, detailChecks:0, detailFailures:0 };
     const matching = retainedVehicles.filter(v => v.sourceId === id);
-    return { ...h, availableVehicles: matching.filter(v=>v.status==="available").length, totalVehicles: matching.length };
+    return {
+      ...h,
+      availableVehicles: matching.filter(v=>v.status==="available").length,
+      publicReadyVehicles: matching.filter(isPublicReady).length,
+      incompleteVehicles: matching.filter(v=>v.status==="incomplete").length,
+      filteredVehicles: matching.filter(v=>v.status==="filtered").length,
+      totalVehicles: matching.length
+    };
   });
   const state={version:INVENTORY_SCHEMA_VERSION,maxMileage:MAX_MILES,syncedAt:now(),sources,vehicles:retainedVehicles};
   await saveState(env,state);
@@ -434,6 +459,12 @@ export async function getPublicInventoryHealth(env) {
       detailChecks:Number(s.detailChecks||0),
       detailFailures:Number(s.detailFailures||0),
       availableVehicles:Number(s.availableVehicles||0),
+      publicReadyVehicles:Number(s.publicReadyVehicles||0),
+      incompleteVehicles:Number(s.incompleteVehicles||0),
+      filteredVehicles:Number(s.filteredVehicles||0),
+      rejectedMissingCore:Number(s.rejectedMissingCore||0),
+      rejectedMileage:Number(s.rejectedMileage||0),
+      rejectedMakeModel:Number(s.rejectedMakeModel||0),
       lastSuccessAt:s.lastSuccessAt||null
     }))
   };
