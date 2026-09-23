@@ -1,8 +1,8 @@
 import { getPricingConfig, publicPricing } from "./pricing.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
-const LIVE_VERIFICATION_MAX_AGE_MS = 2 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 8;
+const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const INVENTORY_SCHEMA_VERSION = 9;
 
 const SOURCE_PLUGINS = [
   {
@@ -425,8 +425,8 @@ export async function syncVehicleInventory(env) {
       if (!r.ok) {
         if (sourceHealth[source.id]) sourceHealth[source.id].detailFailures++;
         v.missCount=(prev.missCount||0)+1;
-        v.status=v.missCount>=2?"unavailable":(prev.status||"available");
-        if(v.status==="unavailable" && !v.unavailableAt) v.unavailableAt=now();
+        v.status=prev.status||"available";
+        v.lastCheckFailedAt=now();
       } else {
         v=parseDetail(r.html,source,url,prev);
         if(v.soldSignal){
@@ -445,8 +445,8 @@ export async function syncVehicleInventory(env) {
     } catch {
       if (sourceHealth[source.id]) sourceHealth[source.id].detailFailures++;
       v.missCount=(prev.missCount||0)+1;
-      v.status=v.missCount>=2?"unavailable":(prev.status||"available");
-      if(v.status==="unavailable" && !v.unavailableAt) v.unavailableAt=now();
+      v.status=prev.status||"available";
+      v.lastCheckFailedAt=now();
     }
 
     v.id=stableId(v);
