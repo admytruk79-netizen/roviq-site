@@ -37,20 +37,24 @@ const SOURCE_PLUGINS = [
     id: "damerow-ford",
     name: "Damerow Ford",
     inventoryUrls: [
-      "https://www.damerowford.com/inventory/used-vehicles/models-Ford-F--150/srp-page-1/srp-sort-models--asc/",
-      "https://www.damerowford.com/inventory/used-vehicles/used/",
-      "https://www.damerowford.com/inventory/pre-owned-super-store/"
+      "https://www.damerowford.com/inventory/used-vehicles/models-Ford-F--150/"
     ],
-    baseUrl: "https://www.damerowford.com"
+    baseUrl: "https://www.damerowford.com",
+    detailPatterns: [
+      /\/inventory\/(?:certified-)?used-.*f-?150/i
+    ]
   },
   {
     id: "northside-ford",
     name: "Northside Ford",
     inventoryUrls: [
-      "https://www.northsideford.net/inventory/used-vehicles/models-Ford/",
       "https://www.northsideford.net/inventory/used-vehicles/models-Ford-F--150/"
     ],
-    baseUrl: "https://www.northsideford.net"
+    baseUrl: "https://www.northsideford.net",
+    detailPatterns: [
+      /\/inventory\/(?:certified-)?used-.*f-?150/i,
+      /\/vehicle\/.*f-?150/i
+    ]
   },
   {
     id: "courtesy-ford",
@@ -58,7 +62,10 @@ const SOURCE_PLUGINS = [
     inventoryUrls: [
       "https://www.courtesyford.com/used-vehicles/"
     ],
-    baseUrl: "https://www.courtesyford.com"
+    baseUrl: "https://www.courtesyford.com",
+    detailPatterns: [
+      /\/inventory\/(?:certified-)?used-.*f-?150/i
+    ]
   },
   {
     id: "auto-town-gmc",
@@ -190,8 +197,10 @@ function discover(html, source) {
   let m;
   while ((m = re.exec(html))) {
     const u = abs(m[1], source.baseUrl);
-    if (u && looksLikeListing(u)) out.add(u.split("#")[0]);
-    if (out.size >= 30) break;
+    if (!u) continue;
+    const customMatch=(source.detailPatterns||[]).some(p=>p.test(u));
+    if (customMatch || looksLikeListing(u)) out.add(u.split("#")[0]);
+    if (out.size >= 40) break;
   }
   return [...out];
 }
