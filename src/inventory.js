@@ -1,7 +1,7 @@
 import { getPricingConfig, publicPricing } from "./pricing.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
-const INVENTORY_SCHEMA_VERSION = 5;
+const INVENTORY_SCHEMA_VERSION = 6;
 
 const SOURCE_PLUGINS = [
   {
@@ -275,12 +275,9 @@ function isPublicReady(v) {
     v.status === "available" &&
     v.mileageMi != null &&
     v.mileageMi < MAX_MILES &&
-    v.directImage &&
     v.year &&
     v.make &&
-    v.model &&
-    v.engine &&
-    v.drivetrain
+    v.model
   );
 }
 
@@ -353,9 +350,15 @@ export async function syncVehicleInventory(env) {
       const r=await fetchHtml(url);
       if (!r.ok) {
         if (sourceHealth[source.id]) sourceHealth[source.id].detailFailures++;
-        v.missCount=(prev.missCount||0)+1;
-        v.status=v.missCount>=2?"unavailable":(prev.status||"available");
-        if(v.status==="unavailable" && !v.unavailableAt) v.unavailableAt=now();
+        const sourceHealthy = Number(sourceHealth[source.id]?.inventoryPagesOk||0) > 0;
+        if (sourceHealthy) {
+          v.missCount=(prev.missCount||0)+1;
+          v.status=v.missCount>=2?"unavailable":(prev.status||"available");
+          if(v.status==="unavailable" && !v.unavailableAt) v.unavailableAt=now();
+        } else {
+          v.missCount=prev.missCount||0;
+          v.status=prev.status||"available";
+        }
       } else {
         v=parseDetail(r.html,source,url,prev);
         if(v.soldSignal){
@@ -373,9 +376,15 @@ export async function syncVehicleInventory(env) {
       }
     } catch {
       if (sourceHealth[source.id]) sourceHealth[source.id].detailFailures++;
-      v.missCount=(prev.missCount||0)+1;
-      v.status=v.missCount>=2?"unavailable":(prev.status||"available");
-      if(v.status==="unavailable" && !v.unavailableAt) v.unavailableAt=now();
+      const sourceHealthy = Number(sourceHealth[source.id]?.inventoryPagesOk||0) > 0;
+      if (sourceHealthy) {
+        v.missCount=(prev.missCount||0)+1;
+        v.status=v.missCount>=2?"unavailable":(prev.status||"available");
+        if(v.status==="unavailable" && !v.unavailableAt) v.unavailableAt=now();
+      } else {
+        v.missCount=prev.missCount||0;
+        v.status=prev.status||"available";
+      }
     }
 
     v.id=stableId(v);
@@ -455,7 +464,7 @@ export async function getVehicleInventory(env) {
   const pricingConfig=await getPricingConfig(env);
   const vehicles=(state.vehicles||[]).filter(isPublicReady).sort((a,b)=>a.mileageMi-b.mileageMi).map(v=>({
     id:v.id,year:v.year,make:v.make,model:v.model,trim:v.trim||"",mileageMi:v.mileageMi,
-    engine:v.engine||"Specification pending",drivetrain:v.drivetrain||"4WD/AWD",
+    engine:v.engine||"Engine details pending",drivetrain:v.drivetrain||"Drivetrain details pending",
     transmission:v.transmission||"Automatic",fuel:v.fuel||"Gasoline",exterior:v.exterior||"See photo",
     interior:v.interior||"See details",vinPublic:v.vin?"••••••"+v.vin.slice(-6):"ROVIQ",
     imagePath:"/ukraine/image/"+encodeURIComponent(v.id),lastVerifiedAt:v.lastVerifiedAt,
