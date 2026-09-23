@@ -143,9 +143,7 @@ export default {
       const page = PAGES[path];
       if (page && method === "GET") {
         const content = await loadAllContent(env);
-        const inventory = path === "/ukraine" ? await getVehicleInventory(env) : null;
-        const bookingId = path === "/ukraine" ? url.searchParams.get("booking") : null;
-        const body = path === "/ukraine" ? page.render(content, inventory, bookingId) : page.render(content);
+        const body = page.render(content);
         const html = renderPage({
           title: page.title,
           description: page.description,
