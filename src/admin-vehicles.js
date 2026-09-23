@@ -8,8 +8,8 @@ export async function vehicleAdminPage(env) {
     <tr>
       <td>${esc(v.id)}</td><td>${esc(v.year)} ${esc(v.make)} ${esc(v.model)} ${esc(v.trim||"")}</td>
       <td>${Number(v.mileageMi||0).toLocaleString("en-US")}</td><td>${esc(v.fuel||"")}</td>
-      <td>${esc(v.status||"")}</td><td>${esc(v.sourceNameInternal||v.sourceId||"")}</td>
-      <td>${esc(v.lastVerifiedAt||"—")}</td>
+      <td>${esc(v.status||"")}${v.incompleteReason?` <span class="muted">(${esc(v.incompleteReason)})</span>`:""}</td><td>${esc(v.sourceNameInternal||v.sourceId||"")}</td>
+      <td>${v.directImage?"yes":"no"}</td><td>${esc(v.lastVerifiedAt||"—")}</td>
     </tr>`).join("");
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Vehicle inventory — ROVIQ</title>
   <style>body{font-family:Arial;margin:0;background:#f4f7fa;color:#17324a}.wrap{max-width:1200px;margin:auto;padding:28px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.actions{display:flex;gap:10px}.card{background:#fff;border:1px solid #dce6ee;border-radius:12px;padding:16px;margin:16px 0;overflow:auto}table{width:100%;border-collapse:collapse;min-width:900px}th,td{text-align:left;border-bottom:1px solid #e7edf2;padding:10px;font-size:13px}th{font-size:11px;text-transform:uppercase;color:#6d8397}button,a.btn{padding:9px 12px;border-radius:8px;border:1px solid #174f79;background:#174f79;color:#fff;text-decoration:none;font-weight:700}.muted{color:#6b8093;font-size:13px}.source-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:12px}.source{border:1px solid #e1e8ee;border-radius:10px;padding:12px}.source-head{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:7px}.pill{font-size:10px;font-weight:800;padding:4px 7px;border-radius:999px}.pill.ok{background:#e9f8ef;color:#17653a}.pill.warn{background:#fff4df;color:#8c5c00}</style>
@@ -20,10 +20,12 @@ export async function vehicleAdminPage(env) {
     return `<div class="source"><div class="source-head"><strong>${esc(s.name)}</strong><span class="pill ${ok?"ok":"warn"}">${ok?"SYNCING":"CHECK"}</span></div>
       <div class="muted">Inventory pages: ${Number(s.inventoryPagesOk||0)} ok / ${Number(s.inventoryPagesFailed||0)} failed</div>
       <div class="muted">Discovered: ${Number(s.discovered||0)} • Detail checks: ${Number(s.detailChecks||0)} • Failures: ${Number(s.detailFailures||0)}</div>
-      <div class="muted">Available: ${Number(s.availableVehicles||0)} • Last success: ${esc(s.lastSuccessAt||"—")}</div>
+      <div class="muted">Public-ready: ${Number(s.publicReadyVehicles||0)} • Available raw: ${Number(s.availableVehicles||0)} • Incomplete: ${Number(s.incompleteVehicles||0)} • Filtered: ${Number(s.filteredVehicles||0)}</div>
+      <div class="muted">Rejected — missing core: ${Number(s.rejectedMissingCore||0)} • mileage: ${Number(s.rejectedMileage||0)} • make/model: ${Number(s.rejectedMakeModel||0)}</div>
+      <div class="muted">Last success: ${esc(s.lastSuccessAt||"—")}</div>
     </div>`;
   }).join("")||"<div class=\"muted\">Source status initializes after the next sync.</div>"}</div></div>
-  <div class="card"><table><thead><tr><th>ID</th><th>Vehicle</th><th>Miles</th><th>Fuel</th><th>Status</th><th>Source</th><th>Last verified</th></tr></thead><tbody>${rows||'<tr><td colspan="7">No synced vehicles yet.</td></tr>'}</tbody></table></div></div></body></html>`;
+  <div class="card"><table><thead><tr><th>ID</th><th>Vehicle</th><th>Miles</th><th>Fuel</th><th>Status</th><th>Source</th><th>Photo</th><th>Last verified</th></tr></thead><tbody>${rows||'<tr><td colspan="8">No synced vehicles yet.</td></tr>'}</tbody></table></div></div></body></html>`;
 }
 
 export async function diagnosticsPage(env) {
