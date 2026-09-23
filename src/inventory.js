@@ -360,7 +360,6 @@ function isPublicReady(v) {
     recentlyVerified &&
     v.mileageMi!=null &&
     v.mileageMi<MAX_MILES &&
-    v.directImage &&
     v.year &&
     v.make &&
     v.model &&
