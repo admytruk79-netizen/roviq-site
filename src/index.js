@@ -5,7 +5,7 @@ import { stationPage } from "./pages/station.js";
 import { connectionPage } from "./pages/connection.js";
 import { aboutPage } from "./pages/about.js";
 import { contactPage } from "./pages/contact.js";
-import { ukrainePage } from "./pages/ukraine.js";
+import { ukrainePage, handleUkraineVehicleImage } from "./pages/ukraine.js";
 import {
   handleAdminGet,
   handleAdminLogin,
@@ -73,6 +73,7 @@ export default {
       if (path === "/admin/reset-field" && method === "POST") return handleAdminResetField(request, env);
       if (path === "/admin/upload" && method === "POST") return handleAdminUpload(request, env);
       if (path.startsWith("/uploads/") && method === "GET") return handleUploadedAsset(request, env);
+      if (path.startsWith("/ukraine/image/") && method === "GET") return handleUkraineVehicleImage(request);
 
       const page = PAGES[path];
       if (page && method === "GET") {
