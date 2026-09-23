@@ -141,7 +141,8 @@ export default {
         const content = await loadAllContent(env);
         const inventory = path === "/ukraine" ? await getVehicleInventory(env) : null;
         const bookingId = path === "/ukraine" ? url.searchParams.get("booking") : null;
-        const body = path === "/ukraine" ? page.render(content, inventory, bookingId) : page.render(content);
+        const unavailableId = path === "/ukraine" ? url.searchParams.get("unavailable") : null;
+        const body = path === "/ukraine" ? page.render(content, inventory, bookingId, unavailableId) : page.render(content);
         const html = renderPage({
           title: page.title,
           description: page.description,
