@@ -1,6 +1,7 @@
 import { getPricingConfig, publicPricing } from "./pricing.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
+const LIVE_VERIFICATION_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 const INVENTORY_SCHEMA_VERSION = 5;
 
 const SOURCE_PLUGINS = [
@@ -270,9 +271,12 @@ function parseDetail(html, source, url, previous={}) {
 }
 
 function isPublicReady(v) {
+  const verifiedAt = v?.lastVerifiedAt ? Date.parse(v.lastVerifiedAt) : NaN;
+  const recentlyVerified = Number.isFinite(verifiedAt) && (Date.now() - verifiedAt) <= LIVE_VERIFICATION_MAX_AGE_MS;
   return Boolean(
     v &&
     v.status === "available" &&
+    recentlyVerified &&
     v.mileageMi != null &&
     v.mileageMi < MAX_MILES &&
     v.directImage &&
