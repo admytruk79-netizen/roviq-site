@@ -5,7 +5,7 @@ function card(v){return `
 <article class="uk-card">
 <div class="uk-photo"><img src="${v.imagePath}" alt="${v.year} ${v.make} ${v.model}" loading="eager" fetchpriority="high" decoding="async"><div class="uk-badge">${v.mileageMi<10000?"ULTRA-LOW MILEAGE":"UNDER 60,000 MILES"}</div></div>
 <div class="uk-info"><div class="uk-id">${v.id} • LIVE U.S. INVENTORY</div><h2>${v.year} ${v.make} ${v.model}</h2><div class="uk-sub">${v.trim||""}${v.trim?" • ":""}${v.drivetrain} • ${v.engine}</div>
-<div class="price-box">${v.pricing?.hasPrice?`<div><span>ROVIQ vehicle price</span><strong>&#36;${v.pricing.vehiclePrice.toLocaleString("en-US")}</strong></div><div><span>Estimated shipping to Rijeka, Croatia</span><strong>&#36;${v.pricing.shippingLow.toLocaleString("en-US")}–&#36;${v.pricing.shippingHigh.toLocaleString("en-US")}</strong></div><div><span>Estimated vehicle + shipping to Rijeka</span><strong>&#36;${v.pricing.totalLow.toLocaleString("en-US")}–&#36;${v.pricing.totalHigh.toLocaleString("en-US")}</strong></div>`:`<div><span>ROVIQ price</span><strong>Quote pending</strong></div>`}</div>\n<div class="uk-specs"><div class="uk-spec"><span>Mileage</span><strong>${v.mileageMi.toLocaleString("en-US")} mi / ${km(v.mileageMi)} km</strong></div><div class="uk-spec"><span>Engine</span><strong>${v.engine}</strong></div><div class="uk-spec"><span>Drivetrain</span><strong>${v.drivetrain}</strong></div><div class="uk-spec"><span>Transmission</span><strong>${v.transmission}</strong></div><div class="uk-spec"><span>Fuel</span><strong>${v.fuel}</strong></div><div class="uk-spec"><span>Exterior</span><strong>${v.exterior}</strong></div><div class="uk-spec"><span>Interior</span><strong>${v.interior}</strong></div><div class="uk-spec"><span>Vehicle ID</span><strong>${v.vinPublic}</strong></div></div>
+<div class="price-box">${v.pricing?.hasPrice?`<div><span>ROVIQ vehicle price</span><strong>&#36;${v.pricing.vehiclePrice.toLocaleString("en-US")}</strong></div><div><span>Estimated total with shipping to Rijeka</span><strong>&#36;${v.pricing.totalLow.toLocaleString("en-US")}–&#36;${v.pricing.totalHigh.toLocaleString("en-US")}</strong><small>Includes estimated &#36;${v.pricing.shippingLow.toLocaleString("en-US")}–&#36;${v.pricing.shippingHigh.toLocaleString("en-US")} shipping</small></div>`:`<div><span>ROVIQ price</span><strong>Quote pending</strong></div>`}</div>\n<div class="uk-specs"><div class="uk-spec"><span>Mileage</span><strong>${v.mileageMi.toLocaleString("en-US")} mi / ${km(v.mileageMi)} km</strong></div><div class="uk-spec"><span>Engine</span><strong>${v.engine}</strong></div><div class="uk-spec"><span>Drivetrain</span><strong>${v.drivetrain}</strong></div><div class="uk-spec"><span>Transmission</span><strong>${v.transmission}</strong></div><div class="uk-spec"><span>Fuel</span><strong>${v.fuel}</strong></div><div class="uk-spec"><span>Exterior</span><strong>${v.exterior}</strong></div><div class="uk-spec"><span>Interior</span><strong>${v.interior}</strong></div><div class="uk-spec"><span>Vehicle ID</span><strong>${v.vinPublic}</strong></div></div>
 <details class="reserve"><summary>Reserve / request this vehicle</summary>${bookingForm(v)}</details>
 </div></article>`}
 
@@ -29,10 +29,10 @@ return `<style>
 .uk-id{font-size:11px;color:#9ba8b3;font-weight:800}
 .uk-info h2{font-size:1.55rem;margin:7px 0 5px;color:#f4f2ed}
 .uk-sub{font-weight:700;color:#c8d2d9;margin-bottom:17px}
-.price-box{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:14px}
+.price-box{display:grid;grid-template-columns:1fr 1.35fr;gap:9px;margin-bottom:14px}
 .price-box>div{padding:12px;border-radius:10px;background:#0f2231;border:1px solid rgba(200,146,69,.24)}
 .price-box span{display:block;font-size:9px;text-transform:uppercase;font-weight:800;color:#9ba8b3;margin-bottom:5px}
-.price-box strong{font-size:15px;color:#f0dfbf}
+.price-box strong{font-size:18px;color:#f0dfbf}.price-box small{display:block;margin-top:5px;color:#9ba8b3;font-size:10px;line-height:1.4}
 .uk-specs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
 .uk-spec{padding:10px;border-radius:9px;background:#091824;border:1px solid rgba(200,146,69,.18)}
 .uk-spec span{display:block;font-size:9px;text-transform:uppercase;font-weight:800;color:#8193a4;margin-bottom:4px}
