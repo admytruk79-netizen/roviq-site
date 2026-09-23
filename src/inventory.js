@@ -2,7 +2,7 @@ import { getPricingConfig, publicPricing } from "./pricing.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 10;
+const INVENTORY_SCHEMA_VERSION = 11;
 
 const SOURCE_PLUGINS = [
   {
@@ -337,6 +337,21 @@ function parseDetail(html, source, url, previous={}) {
   return {...previous,sourceId:source.id,sourceNameInternal:source.name,sourceUrl:url,year,make,model,mileageMi:mileage,vin,directImage:image,engine,drivetrain,transmission,exterior,interior,fuel,askingPrice,soldSignal};
 }
 
+function isRenderableVehicle(v) {
+  return Boolean(
+    v &&
+    v.status==="available" &&
+    v.mileageMi!=null &&
+    v.mileageMi<MAX_MILES &&
+    v.directImage &&
+    v.year &&
+    v.make &&
+    v.model &&
+    safeField(v.engine) &&
+    safeField(v.drivetrain)
+  );
+}
+
 function isPublicReady(v) {
   const verifiedAt=v?.lastVerifiedAt?Date.parse(v.lastVerifiedAt):NaN;
   const recentlyVerified=Number.isFinite(verifiedAt)&&(Date.now()-verifiedAt)<=LIVE_VERIFICATION_MAX_AGE_MS;
@@ -519,7 +534,35 @@ export async function syncVehicleInventory(env) {
       totalVehicles: matching.length
     };
   });
-  const state={version:INVENTORY_SCHEMA_VERSION,maxMileage:MAX_MILES,syncedAt:now(),sources,vehicles:retainedVehicles};
+  const usableNew=retainedVehicles.filter(isRenderableVehicle);
+  const usableOld=(old?.vehicles||[]).filter(isRenderableVehicle);
+
+  // Fail-safe: never replace a working inventory with an empty/bad refresh.
+  if(usableNew.length===0 && usableOld.length>0){
+    const preserved={
+      ...old,
+      version:INVENTORY_SCHEMA_VERSION,
+      maxMileage:MAX_MILES,
+      syncedAt:old.syncedAt||now(),
+      lastFailedSyncAt:now(),
+      sources
+    };
+    await saveState(env,preserved);
+    return preserved;
+  }
+
+  // Emergency floor for a previously-corrupted/empty store: retain source-linked seed vehicles
+  // rather than rendering a blank customer page. They remain subject to live re-verification.
+  const emergencySeeds=SEEDS.map(v=>({
+    ...v,
+    status:"available",
+    missCount:0,
+    firstSeenAt:v.firstSeenAt||now(),
+    lastVerifiedAt:v.lastVerifiedAt||now()
+  })).filter(isRenderableVehicle);
+
+  const finalVehicles=usableNew.length>0 ? retainedVehicles : emergencySeeds;
+  const state={version:INVENTORY_SCHEMA_VERSION,maxMileage:MAX_MILES,syncedAt:now(),sources,vehicles:finalVehicles};
   await saveState(env,state);
   return state;
 }
@@ -531,18 +574,7 @@ export async function getVehicleInventory(env) {
   const pricingConfig=await getPricingConfig(env);
   let publicVehicles=(state.vehicles||[]).filter(isPublicReady);
   if(publicVehicles.length===0){
-    publicVehicles=(state.vehicles||[]).filter(v=>
-      v &&
-      v.status==="available" &&
-      v.mileageMi!=null &&
-      v.mileageMi<MAX_MILES &&
-      v.directImage &&
-      v.year &&
-      v.make &&
-      v.model &&
-      safeField(v.engine) &&
-      safeField(v.drivetrain)
-    );
+    publicVehicles=(state.vehicles||[]).filter(isRenderableVehicle);
   }
   const vehicles=publicVehicles.sort((a,b)=>a.mileageMi-b.mileageMi).map(v=>({
     id:v.id,year:v.year,make:v.make,model:v.model,trim:v.trim||"",mileageMi:v.mileageMi,
