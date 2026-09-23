@@ -211,12 +211,14 @@ export async function getVehicleInventory(env) {
   let state=await readState(env);
   const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
   if(!state || !Number.isFinite(age) || age > 30*60*1000) state=await syncVehicleInventory(env);
+  const pricingConfig=await getPricingConfig(env);
   const vehicles=(state.vehicles||[]).filter(v=>v.status==="available"&&v.mileageMi<MAX_MILES).sort((a,b)=>a.mileageMi-b.mileageMi).map(v=>({
     id:v.id,year:v.year,make:v.make,model:v.model,trim:v.trim||"",mileageMi:v.mileageMi,
     engine:v.engine||"Specification pending",drivetrain:v.drivetrain||"4WD/AWD",
     transmission:v.transmission||"Automatic",fuel:v.fuel||"Gasoline",exterior:v.exterior||"See photo",
     interior:v.interior||"See details",vinPublic:v.vin?"••••••"+v.vin.slice(-6):"ROVIQ",
-    imagePath:"/ukraine/image/"+encodeURIComponent(v.id),lastVerifiedAt:v.lastVerifiedAt
+    imagePath:"/ukraine/image/"+encodeURIComponent(v.id),lastVerifiedAt:v.lastVerifiedAt,
+    pricing:publicPricing(v,pricingConfig)
   }));
   return {syncedAt:state.syncedAt,maxMileage:MAX_MILES,vehicles};
 }
