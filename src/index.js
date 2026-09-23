@@ -9,6 +9,7 @@ import { ukrainePage } from "./pages/ukraine.js";
 import { getVehicleInventory, getVehicleImageResponse, syncVehicleInventory } from "./inventory.js";
 import { createBooking, listBookings, updateBooking, bookingsAdminPage } from "./booking.js";
 import { vehicleAdminPage, syncNow } from "./admin-vehicles.js";
+import { pricingAdminPage, savePricing } from "./admin-pricing.js";
 import {
   handleAdminGet,
   handleAdminLogin,
@@ -98,6 +99,16 @@ export default {
         return Response.json(await getVehicleInventory(env), {
           headers: secureHeaders({ "cache-control": "no-store", "access-control-allow-origin": "*" })
         });
+      }
+
+      if (path === "/admin/pricing") {
+        if (!(await isAuthed(request, env))) return Response.redirect("/admin", 302);
+        if (method === "GET") return new Response(await pricingAdminPage(env), { headers: secureHeaders({ "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" }) });
+        return new Response("Method not allowed", { status: 405 });
+      }
+      if (path === "/admin/pricing/save" && method === "POST") {
+        if (!(await isAuthed(request, env))) return new Response("Unauthorized", { status: 401 });
+        return savePricing(request, env);
       }
 
       if (path === "/admin/vehicles") {
