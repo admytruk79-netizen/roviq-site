@@ -577,6 +577,11 @@ export async function getVehicleInventory(env) {
   if(publicVehicles.length===0){
     publicVehicles=(state.vehicles||[]).filter(isRenderableVehicle);
   }
+  if(publicVehicles.length===0){
+    publicVehicles=SEEDS
+      .filter(v=>Number(v.askingPrice)>0)
+      .map(v=>({...v,status:"available",lastVerifiedAt:now()}));
+  }
   const vehicles=publicVehicles.sort((a,b)=>a.mileageMi-b.mileageMi).map(v=>({
     id:v.id,year:v.year,make:v.make,model:v.model,trim:v.trim||"",mileageMi:v.mileageMi,
     engine:v.engine||"Specification pending",drivetrain:v.drivetrain||"4WD/AWD",
