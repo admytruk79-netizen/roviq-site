@@ -133,9 +133,13 @@ export function renderAdminDashboard(content, flash) {
 
   return shell("Admin — Roviq", `
 <div class="admin-shell">
-  <div style="display:flex; justify-content:space-between; align-items:center;">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
     <h2 style="margin-bottom:0;">Content admin</h2>
-    <form method="POST" action="/admin/logout"><button type="submit" class="btn btn--outline" style="color:var(--navy); border-color:var(--navy);">Log out</button></form>
+    <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+      <a href="/admin/vehicles" class="btn btn--outline" style="color:var(--navy); border-color:var(--navy);">Vehicle inventory</a>
+      <a href="/admin/bookings" class="btn btn--outline" style="color:var(--navy); border-color:var(--navy);">Bookings</a>
+      <form method="POST" action="/admin/logout"><button type="submit" class="btn btn--outline" style="color:var(--navy); border-color:var(--navy);">Log out</button></form>
+    </div>
   </div>
   <p style="color:#666; font-size:0.9rem;">Edit any block below and save. Changes are written to the CONTENT KV namespace and go live immediately — no redeploy needed. Leave an image field blank to use the site's default photo for that slot (or a labeled placeholder, if there is no default yet).</p>
   ${flash === "saved" ? `<div class="flash flash--ok">Saved. The live site now reflects these changes.</div>` : ""}
