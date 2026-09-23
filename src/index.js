@@ -11,6 +11,7 @@ import { createBooking, listBookings, updateBooking, bookingsAdminPage } from ".
 import { vehicleAdminPage, syncNow } from "./admin-vehicles.js";
 import { pricingAdminPage, savePricing } from "./admin-pricing.js";
 import { listCoreCases, coreCasesAdminPage } from "./core.js";
+import { operationsDashboard, operationCasePage } from "./ops.js";
 import {
   handleAdminGet,
   handleAdminLogin,
@@ -140,6 +141,17 @@ export default {
       if (path === "/admin/core-cases") {
         if (!(await isAuthed(request, env))) return Response.redirect("/admin", 302);
         if (method === "GET") return new Response(coreCasesAdminPage(await listCoreCases(env)), { headers: secureHeaders({ "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" }) });
+        return new Response("Method not allowed", { status: 405 });
+      }
+
+      if (path === "/ops") {
+        if (!(await isAuthed(request, env))) return Response.redirect("/admin", 302);
+        if (method === "GET") return new Response(await operationsDashboard(env), { headers: secureHeaders({ "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" }) });
+        return new Response("Method not allowed", { status: 405 });
+      }
+      if (path === "/ops/case") {
+        if (!(await isAuthed(request, env))) return Response.redirect("/admin", 302);
+        if (method === "GET") return new Response(await operationCasePage(env,url.searchParams.get("id")||""), { headers: secureHeaders({ "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" }) });
         return new Response("Method not allowed", { status: 405 });
       }
 
