@@ -1,12 +1,13 @@
 const PRICING_KEY = "vehicle_pricing_config:v1";
 
 export const DEFAULT_PRICING = {
-  marginPercent: 9,
-  minimumMargin: 3500,
-  riskReserve: 750,
+  marginPercent: 7.5,
+  minimumMargin: 3000,
+  riskReserve: 500,
   shippingLow: 3000,
   shippingHigh: 5500,
-  roundTo: 100
+  roundTo: 100,
+  configVersion: 2
 };
 
 function money(n){ return Math.round(Number(n)||0); }
@@ -16,7 +17,22 @@ export async function getPricingConfig(env){
   if(!env.CONTENT) return {...DEFAULT_PRICING};
   const raw=await env.CONTENT.get(PRICING_KEY);
   if(!raw) return {...DEFAULT_PRICING};
-  try { return {...DEFAULT_PRICING,...JSON.parse(raw)}; } catch { return {...DEFAULT_PRICING}; }
+  try {
+    const saved=JSON.parse(raw);
+    const isLegacyDefault =
+      !saved.configVersion &&
+      Number(saved.marginPercent)===9 &&
+      Number(saved.minimumMargin)===3500 &&
+      Number(saved.riskReserve)===750;
+    if(isLegacyDefault){
+      const migrated={...DEFAULT_PRICING};
+      await env.CONTENT.put(PRICING_KEY,JSON.stringify(migrated));
+      return migrated;
+    }
+    return {...DEFAULT_PRICING,...saved};
+  } catch {
+    return {...DEFAULT_PRICING};
+  }
 }
 
 export async function savePricingConfig(env, input){
