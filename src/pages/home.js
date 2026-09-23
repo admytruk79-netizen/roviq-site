@@ -1,7 +1,7 @@
 import { escapeHtml, RESPONSIVE_IMAGES } from "../layout.js";
 
 const ECOSYSTEM = [
-  { title: "ROVIQ Core", body: "The coordination layer connecting drivers, service providers, parts, towing and handoffs into one managed journey.", image: "/images/roviq-auto-service-dashboard.webp", alt: "ROVIQ automotive service dashboard", href: "/roviq", contentKey: "home.image_roviq" },
+  { title: "ROVIQ Core", body: "The coordination layer connecting drivers, service providers, parts, towing and handoffs into one managed journey.", image: "/images/roviq-core-command-center.webp", alt: "ROVIQ Core command center coordinating drivers, service providers, towing, mobility and partner capacity", href: "/roviq", contentKey: "home.image_roviq" },
   { title: "ROVIQ Station", body: "A premium physical hub combining fuel, charging, food, retail, vehicle care and selected service handoffs.", image: "/images/roviq-forecourt-secondary.webp", alt: "ROVIQ Station secondary forecourt view", href: "/station" },
   { title: "ROVIQ Shop", body: "A service-facing experience for diagnostics, repairs, workflow visibility and connected customer handoffs.", image: "/images/roviq-auto-service-dashboard.webp", alt: "ROVIQ shop service workflow dashboard", href: "/roviq#shop" },
   { title: "ROVIQ Mobility", body: "Connected towing, transport and mobility capacity supporting the wider automotive service network.", image: "/images/roviq-smart-mobility-network.webp", alt: "ROVIQ smart mobility network", href: "/roviq#mobility" },
