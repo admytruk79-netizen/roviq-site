@@ -12,10 +12,13 @@ export async function createBooking(request,env){
   const email=String(form.get("email")||"").trim();
   const phone=String(form.get("phone")||"").trim();
   const destination=String(form.get("destination")||"Ukraine").trim();
-  const note=String(form.get("note")||"").trim();
+  const note=clip(form.get("note"),1200);
+  if(!(await rateLimit(request,env))) return new Response("Too many requests. Please try again later.",{status:429});
   if(!vehicleId||!name||!email) return new Response("Vehicle, name and email are required.",{status:400});
+  if(!emailOk(email)) return new Response("Please enter a valid email address.",{status:400});
+  const safeName=clip(name,120), safePhone=clip(phone,80), safeDestination=clip(destination,120), safeVehicleId=clip(vehicleId,120);
   const items=await read(env);
-  const booking={id:id(),vehicleId,name,email,phone,destination,note,status:"new",createdAt:new Date().toISOString()};
+  const booking={id:id(),vehicleId:safeVehicleId,name:safeName,email:clip(email,160),phone:safePhone,destination:safeDestination,note,status:"new",createdAt:new Date().toISOString()};
   items.unshift(booking);
   await write(env,items.slice(0,500));
   if(env.BOOKING_WEBHOOK_URL){
