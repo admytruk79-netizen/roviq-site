@@ -1,3 +1,4 @@
+import { getPricingConfig, publicPricing } from "./pricing.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
 
