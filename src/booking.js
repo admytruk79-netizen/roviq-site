@@ -1,4 +1,5 @@
 import { requestDealerReservation } from "./inventory.js";
+import { createCoreVehicleCase, updateCoreCaseStatus } from "./core.js";
 
 const BOOKINGS_KEY = "vehicle_bookings:v1";
 const BOOKING_STATUSES = [
@@ -51,8 +52,18 @@ export async function createBooking(request,env){
     return Response.redirect("/ukraine?unavailable="+encodeURIComponent(safeVehicleId),303);
   }
 
+  const bookingId=id();
+  const coreCase=await createCoreVehicleCase(env,{
+    bookingId,
+    status:dealerResult.reservationStatus||"dealer_confirmation_pending",
+    customer:{name:safeName,email:clip(email,160),phone:safePhone,destination:safeDestination},
+    dealer:{sourceId:dealerResult.sourceId||null,reservationMode:dealerResult.reservationMode||"manual",confirmationRequired:dealerResult.requiresDealerConfirmation!==false},
+    vehicle:{vehicleId:safeVehicleId,vin:dealerResult.vin||null,dealerAskingPriceAtRequest:dealerResult.askingPrice||null,dealerVerifiedAt:dealerResult.lastVerifiedAt||new Date().toISOString()}
+  });
+
   const booking={
-    id:id(),
+    id:bookingId,
+    coreCaseId:coreCase.id,
     vehicleId:safeVehicleId,
     name:safeName,
     email:clip(email,160),
@@ -94,6 +105,7 @@ export async function updateBooking(request,env){
     if(status==="dealer_hold_confirmed") item.dealerConfirmedAt=item.updatedAt;
     if(status==="secured") item.securedAt=item.updatedAt;
     await write(env,items);
+    if(item.coreCaseId) await updateCoreCaseStatus(env,item.coreCaseId,status,{source:"admin_bookings"});
   }
   return Response.redirect("/admin/bookings",303);
 }
@@ -120,6 +132,6 @@ export function bookingsAdminPage(items){
   const options=BOOKING_STATUSES.map(s=>`<option value="${s}">${s.replaceAll("_"," ")}</option>`).join("");
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Vehicle bookings — ROVIQ</title>
   <style>body{font-family:Arial;margin:0;background:#f4f7fa;color:#17324a}.wrap{max-width:1180px;margin:auto;padding:28px}.top{display:flex;justify-content:space-between;align-items:center}.card{background:#fff;border:1px solid #dce6ee;border-radius:12px;padding:16px;margin:12px 0}.muted{color:#6b8093;font-size:13px}.status{font-weight:700}select,button{padding:8px 10px}.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}</style></head><body><div class="wrap"><div class="top"><h1>Vehicle bookings</h1><a href="/admin">Admin home</a></div>
-  ${items.length?items.map(b=>`<div class="card"><div class="row"><strong>${esc(b.id)}</strong><span>${esc(b.vehicleId)}</span><span>${esc(b.name)}</span><span>${esc(b.email)}</span><span>${esc(b.phone)}</span></div><p>${esc(b.note||"")}</p><div class="muted">${esc(b.createdAt)} • ${esc(b.destination)} • mode: ${esc(b.reservationMode||"legacy")}</div><p class="status">Status: ${esc((b.status||"").replaceAll("_"," "))}</p><form method="POST" action="/admin/bookings/status" class="row"><input type="hidden" name="bookingId" value="${esc(b.id)}"><select name="status">${options.replace(`value="${b.status}"`,`value="${b.status}" selected`)}</select><button>Update</button></form></div>`).join(""):`<div class="card">No booking requests yet.</div>`}
+  ${items.length?items.map(b=>`<div class="card"><div class="row"><strong>${esc(b.id)}</strong><span>${esc(b.vehicleId)}</span><span>${esc(b.name)}</span><span>${esc(b.email)}</span><span>${esc(b.phone)}</span></div><p>${esc(b.note||"")}</p><div class="muted">${esc(b.createdAt)} • ${esc(b.destination)} • mode: ${esc(b.reservationMode||"legacy")} • Core: ${esc(b.coreCaseId||"legacy")}</div><p class="status">Status: ${esc((b.status||"").replaceAll("_"," "))}</p><form method="POST" action="/admin/bookings/status" class="row"><input type="hidden" name="bookingId" value="${esc(b.id)}"><select name="status">${options.replace(`value="${b.status}"`,`value="${b.status}" selected`)}</select><button>Update</button></form></div>`).join(""):`<div class="card">No booking requests yet.</div>`}
   </div></body></html>`;
 }

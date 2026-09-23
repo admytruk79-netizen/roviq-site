@@ -10,6 +10,7 @@ import { getVehicleInventory, getVehicleImageResponse, getPublicInventoryHealth,
 import { createBooking, listBookings, updateBooking, bookingsAdminPage } from "./booking.js";
 import { vehicleAdminPage, syncNow } from "./admin-vehicles.js";
 import { pricingAdminPage, savePricing } from "./admin-pricing.js";
+import { listCoreCases, coreCasesAdminPage } from "./core.js";
 import {
   handleAdminGet,
   handleAdminLogin,
@@ -134,6 +135,12 @@ export default {
       if (path === "/admin/bookings/status" && method === "POST") {
         if (!(await isAuthed(request, env))) return new Response("Unauthorized", { status: 401 });
         return updateBooking(request, env);
+      }
+
+      if (path === "/admin/core-cases") {
+        if (!(await isAuthed(request, env))) return Response.redirect("/admin", 302);
+        if (method === "GET") return new Response(coreCasesAdminPage(await listCoreCases(env)), { headers: secureHeaders({ "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" }) });
+        return new Response("Method not allowed", { status: 405 });
       }
 
       const page = PAGES[path];
