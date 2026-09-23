@@ -6,7 +6,7 @@ import { connectionPage } from "./pages/connection.js";
 import { aboutPage } from "./pages/about.js";
 import { contactPage } from "./pages/contact.js";
 import { ukrainePage } from "./pages/ukraine.js";
-import { getVehicleInventory, getVehicleImageResponse, syncVehicleInventory } from "./inventory.js";
+import { getVehicleInventory, getVehicleImageResponse, getPublicInventoryHealth, syncVehicleInventory } from "./inventory.js";
 import { createBooking, listBookings, updateBooking, bookingsAdminPage } from "./booking.js";
 import { vehicleAdminPage, diagnosticsPage, syncNow } from "./admin-vehicles.js";
 import { pricingAdminPage, savePricing } from "./admin-pricing.js";
@@ -97,6 +97,11 @@ export default {
 
       if (path === "/api/vehicles" && method === "GET") {
         return Response.json(await getVehicleInventory(env), {
+          headers: secureHeaders({ "cache-control": "no-store", "access-control-allow-origin": "*" })
+        });
+      }
+      if (path === "/api/inventory-health" && method === "GET") {
+        return Response.json(await getPublicInventoryHealth(env), {
           headers: secureHeaders({ "cache-control": "no-store", "access-control-allow-origin": "*" })
         });
       }
