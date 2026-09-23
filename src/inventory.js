@@ -1,7 +1,7 @@
 import { getPricingConfig, publicPricing } from "./pricing.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
-const INVENTORY_SCHEMA_VERSION = 6;
+const INVENTORY_SCHEMA_VERSION = 7;
 
 const SOURCE_PLUGINS = [
   {
@@ -460,9 +460,25 @@ export async function syncVehicleInventory(env) {
 export async function getVehicleInventory(env) {
   let state=await readState(env);
   const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
-  if(!state || state.version !== INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age > 30*60*1000) state=await syncVehicleInventory(env);
+
+  if(!state || state.version !== INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age > 30*60*1000) {
+    try { state=await syncVehicleInventory(env); } catch {}
+  }
+
+  if(!state) {
+    state={version:INVENTORY_SCHEMA_VERSION,syncedAt:null,maxMileage:MAX_MILES,sources:[],vehicles:[]};
+  }
+
   const pricingConfig=await getPricingConfig(env);
-  const vehicles=(state.vehicles||[]).filter(isPublicReady).sort((a,b)=>a.mileageMi-b.mileageMi).map(v=>({
+  let visible=(state.vehicles||[]).filter(isPublicReady).sort((a,b)=>a.mileageMi-b.mileageMi);
+
+  if (!visible.length) {
+    visible=SEEDS
+      .filter(v=>v.mileageMi<MAX_MILES && v.directImage && v.year && v.make && v.model)
+      .map(v=>({...v,status:"available",lastVerifiedAt:state.syncedAt||null}));
+  }
+
+  const vehicles=visible.map(v=>({
     id:v.id,year:v.year,make:v.make,model:v.model,trim:v.trim||"",mileageMi:v.mileageMi,
     engine:v.engine||"Engine details pending",drivetrain:v.drivetrain||"Drivetrain details pending",
     transmission:v.transmission||"Automatic",fuel:v.fuel||"Gasoline",exterior:v.exterior||"See photo",
@@ -470,6 +486,7 @@ export async function getVehicleInventory(env) {
     imagePath:"/ukraine/image/"+encodeURIComponent(v.id),lastVerifiedAt:v.lastVerifiedAt,
     pricing:publicPricing(v,pricingConfig)
   }));
+
   return {syncedAt:state.syncedAt,maxMileage:MAX_MILES,vehicles};
 }
 
