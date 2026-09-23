@@ -25,6 +25,14 @@ const SOURCE_PLUGINS = [
     baseUrl: "https://www.rontonkinchevrolet.com"
   },
   {
+    id: "beaverton-gmc",
+    name: "Buick GMC of Beaverton",
+    inventoryUrls: [
+      "https://www.beavertongmc.com/searchused.aspx"
+    ],
+    baseUrl: "https://www.beavertongmc.com"
+  },
+  {
     id: "damerow-ford",
     name: "Damerow Ford",
     inventoryUrls: [
@@ -54,6 +62,46 @@ const SEEDS = [
     interior: "Jet Black vinyl",
     vin: "1GCPKAEKXTZ108327",
     directImage: "https://pictures.dealer.com/c/carrautogroupinc/0504/8ea960d39094638f006afbe60e3d52abx.jpg?imdensity=1&impolicy=downsize_bkpt&w=1400"
+  },
+  {
+    id: "ROVIQ-US-BGMC-147229",
+    sourceId: "beaverton-gmc",
+    sourceUrl: "https://www.beavertongmc.com/used-%2BPortland-2024-Chevrolet-Silverado%2B1500-WT-3GCPDAEK3RG147229",
+    year: 2024, make: "Chevrolet", model: "Silverado 1500", trim: "WT",
+    mileageMi: 27363, engine: "2.7L TurboMax", drivetrain: "4WD", transmission: "Automatic",
+    fuel: "Gasoline", exterior: "Summit White", interior: "Jet Black cloth", vin: "3GCPDAEK3RG147229"
+  },
+  {
+    id: "ROVIQ-US-BGMC-636138",
+    sourceId: "beaverton-gmc",
+    sourceUrl: "https://www.beavertongmc.com/used-%2BPortland-2022-Chevrolet-Silverado%2B1500-Custom%2BTrail%2BBoss-3GCPDCEK5NG636138",
+    year: 2022, make: "Chevrolet", model: "Silverado 1500", trim: "Custom Trail Boss",
+    mileageMi: 47074, engine: "2.7L Turbo", drivetrain: "4WD", transmission: "Automatic",
+    fuel: "Gasoline", exterior: "Summit White", interior: "Jet Black cloth", vin: "3GCPDCEK5NG636138"
+  },
+  {
+    id: "ROVIQ-US-BGMC-407865",
+    sourceId: "beaverton-gmc",
+    sourceUrl: "https://www.beavertongmc.com/used-%2BPortland-2026-Chevrolet-Silverado%2BEV-Trail%2BBoss%2B%2B%2BMax%2BRange-1GC405EL2TU407865",
+    year: 2026, make: "Chevrolet", model: "Silverado EV", trim: "Trail Boss Max Range",
+    mileageMi: 4119, engine: "Dual-motor electric", drivetrain: "AWD", transmission: "Single-speed",
+    fuel: "Electric", exterior: "Riptide Blue Metallic", interior: "Black / Artemis", vin: "1GC405EL2TU407865"
+  },
+  {
+    id: "ROVIQ-US-BGMC-403489",
+    sourceId: "beaverton-gmc",
+    sourceUrl: "https://www.beavertongmc.com/used-%2BPortland-2026-Chevrolet-Silverado%2BEV-LT%2B%2B%2BMax%2BRange-1GC400EL9TU403489",
+    year: 2026, make: "Chevrolet", model: "Silverado EV", trim: "LT Max Range",
+    mileageMi: 4005, engine: "Dual-motor electric", drivetrain: "AWD", transmission: "Single-speed",
+    fuel: "Electric", exterior: "Summit White", interior: "Black Evotex", vin: "1GC400EL9TU403489"
+  },
+  {
+    id: "ROVIQ-US-BGMC-412397",
+    sourceId: "beaverton-gmc",
+    sourceUrl: "https://www.beavertongmc.com/used-%2BPortland-2026-Chevrolet-Silverado%2BEV-LT%2B%2B%2BMax%2BRange-1GC400EL5TU412397",
+    year: 2026, make: "Chevrolet", model: "Silverado EV", trim: "LT Max Range",
+    mileageMi: 10602, engine: "Dual-motor electric", drivetrain: "AWD", transmission: "Single-speed",
+    fuel: "Electric", exterior: "Summit White", interior: "Black Evotex", vin: "1GC400EL5TU412397"
   }
 ];
 
