@@ -1,0 +1,11 @@
+{
+  "name": "ROVIQ Vehicle Sourcing",
+  "short_name": "ROVIQ Vehicles",
+  "description": "ROVIQ vehicle sourcing, live inventory and reservation app.",
+  "start_url": "/ukraine",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#071f35",
+  "theme_color": "#071f35",
+  "icons": []
+}
