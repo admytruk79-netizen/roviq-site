@@ -23,7 +23,11 @@ const SOURCE_PLUGINS = [
     inventoryUrls: [
       "https://www.rontonkinchevrolet.com/used-vehicles/"
     ],
-    baseUrl: "https://www.rontonkinchevrolet.com"
+    baseUrl: "https://www.rontonkinchevrolet.com",
+    detailPatterns: [
+      /\/inventory\/(?:certified-)?used-.*silverado/i,
+      /\/used-.*silverado/i
+    ]
   },
   {
     id: "beaverton-gmc",
@@ -31,7 +35,10 @@ const SOURCE_PLUGINS = [
     inventoryUrls: [
       "https://www.beavertongmc.com/searchused.aspx"
     ],
-    baseUrl: "https://www.beavertongmc.com"
+    baseUrl: "https://www.beavertongmc.com",
+    detailPatterns: [
+      /\/used-.*(?:silverado|sierra)/i
+    ]
   },
   {
     id: "damerow-ford",
@@ -71,10 +78,12 @@ const SOURCE_PLUGINS = [
     id: "auto-town-gmc",
     name: "Auto Town GMC",
     inventoryUrls: [
-      "https://www.autotowngmc.com/",
       "https://www.autotowngmc.com/searchused.aspx"
     ],
-    baseUrl: "https://www.autotowngmc.com"
+    baseUrl: "https://www.autotowngmc.com",
+    detailPatterns: [
+      /\/used-.*(?:silverado|sierra)/i
+    ]
   },
   {
     id: "aa-motor-pdx",
