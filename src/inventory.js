@@ -205,15 +205,31 @@ export async function syncVehicleInventory(env) {
   const candidates = new Map(oldVehicles.map(v=>[v.sourceUrl,{sourceId:v.sourceId,previous:v}]));
   for (const seed of SEEDS) candidates.set(seed.sourceUrl,{sourceId:seed.sourceId,previous:byUrl[seed.sourceUrl]||seed});
 
+  const sourceHealth = {};
   for (const source of SOURCE_PLUGINS) {
+    const health = sourceHealth[source.id] = {
+      id: source.id,
+      name: source.name,
+      attemptedAt: now(),
+      lastSuccessAt: null,
+      inventoryPagesOk: 0,
+      inventoryPagesFailed: 0,
+      discovered: 0,
+      detailChecks: 0,
+      detailFailures: 0
+    };
     for (const inventoryUrl of (source.inventoryUrls || [])) {
       try {
         const r=await fetchHtml(inventoryUrl);
-        if (!r.ok) continue;
-        for (const url of discover(r.html,source)) {
+        if (!r.ok) { health.inventoryPagesFailed++; continue; }
+        health.inventoryPagesOk++;
+        health.lastSuccessAt = now();
+        const found = discover(r.html,source);
+        health.discovered += found.length;
+        for (const url of found) {
           if(!candidates.has(url)) candidates.set(url,{sourceId:source.id,previous:byUrl[url]||{}});
         }
-      } catch {}
+      } catch { health.inventoryPagesFailed++; }
     }
   }
 
@@ -227,8 +243,10 @@ export async function syncVehicleInventory(env) {
     let v={...prev,sourceId:source.id,sourceNameInternal:source.name,sourceUrl:url};
     try {
       checks++;
+      if (sourceHealth[source.id]) sourceHealth[source.id].detailChecks++;
       const r=await fetchHtml(url);
       if (!r.ok) {
+        if (sourceHealth[source.id]) sourceHealth[source.id].detailFailures++;
         v.missCount=(prev.missCount||0)+1;
         v.status=v.missCount>=2?"unavailable":(prev.status||"available");
       } else {
@@ -241,6 +259,7 @@ export async function syncVehicleInventory(env) {
         }
       }
     } catch {
+      if (sourceHealth[source.id]) sourceHealth[source.id].detailFailures++;
       v.missCount=(prev.missCount||0)+1;
       v.status=v.missCount>=2?"unavailable":(prev.status||"available");
     }
@@ -252,7 +271,12 @@ export async function syncVehicleInventory(env) {
     vehicles.push(v);
   }
 
-  const state={version:2,maxMileage:MAX_MILES,syncedAt:now(),sources:SOURCE_PLUGINS.map(({id,name})=>({id,name})),vehicles};
+  const sources = SOURCE_PLUGINS.map(({id,name}) => {
+    const h = sourceHealth[id] || { id, name, attemptedAt: now(), inventoryPagesOk:0, inventoryPagesFailed:0, discovered:0, detailChecks:0, detailFailures:0 };
+    const matching = vehicles.filter(v => v.sourceId === id);
+    return { ...h, availableVehicles: matching.filter(v=>v.status==="available").length, totalVehicles: matching.length };
+  });
+  const state={version:3,maxMileage:MAX_MILES,syncedAt:now(),sources,vehicles};
   await saveState(env,state);
   return state;
 }
