@@ -5,7 +5,10 @@ import { stationPage } from "./pages/station.js";
 import { connectionPage } from "./pages/connection.js";
 import { aboutPage } from "./pages/about.js";
 import { contactPage } from "./pages/contact.js";
-import { ukrainePage, handleUkraineVehicleImage } from "./pages/ukraine.js";
+import { ukrainePage } from "./pages/ukraine.js";
+import { getVehicleInventory, getVehicleImageResponse, syncVehicleInventory } from "./inventory.js";
+import { createBooking, listBookings, updateBooking, bookingsAdminPage } from "./booking.js";
+import { vehicleAdminPage, syncNow } from "./admin-vehicles.js";
 import {
   handleAdminGet,
   handleAdminLogin,
@@ -14,7 +17,8 @@ import {
   handleAdminResetField,
   handleAdminUpload,
   handleUploadedAsset,
-  loadAllContent
+  loadAllContent,
+  isAuthed
 } from "./admin.js";
 
 const PAGES = {
@@ -57,6 +61,9 @@ const PAGES = {
 };
 
 export default {
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil(syncVehicleInventory(env));
+  },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
@@ -73,12 +80,34 @@ export default {
       if (path === "/admin/reset-field" && method === "POST") return handleAdminResetField(request, env);
       if (path === "/admin/upload" && method === "POST") return handleAdminUpload(request, env);
       if (path.startsWith("/uploads/") && method === "GET") return handleUploadedAsset(request, env);
-      if (path.startsWith("/ukraine/image/") && method === "GET") return handleUkraineVehicleImage(request);
+      if (path.startsWith("/ukraine/image/") && method === "GET") return getVehicleImageResponse(request, env);
+      if (path === "/ukraine/book" && method === "POST") return createBooking(request, env);
+
+      if (path === "/admin/vehicles") {
+        if (!(await isAuthed(request, env))) return Response.redirect("/admin", 302);
+        if (method === "GET") return new Response(await vehicleAdminPage(env), { headers: { "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" } });
+        return new Response("Method not allowed", { status: 405 });
+      }
+      if (path === "/admin/vehicles/sync" && method === "POST") {
+        if (!(await isAuthed(request, env))) return new Response("Unauthorized", { status: 401 });
+        return syncNow(env);
+      }
+      if (path === "/admin/bookings") {
+        if (!(await isAuthed(request, env))) return Response.redirect("/admin", 302);
+        if (method === "GET") return new Response(bookingsAdminPage(await listBookings(env)), { headers: { "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" } });
+        return new Response("Method not allowed", { status: 405 });
+      }
+      if (path === "/admin/bookings/status" && method === "POST") {
+        if (!(await isAuthed(request, env))) return new Response("Unauthorized", { status: 401 });
+        return updateBooking(request, env);
+      }
 
       const page = PAGES[path];
       if (page && method === "GET") {
         const content = await loadAllContent(env);
-        const body = page.render(content);
+        const inventory = path === "/ukraine" ? await getVehicleInventory(env) : null;
+        const bookingId = path === "/ukraine" ? url.searchParams.get("booking") : null;
+        const body = path === "/ukraine" ? page.render(content, inventory, bookingId) : page.render(content);
         const html = renderPage({
           title: page.title,
           description: page.description,
