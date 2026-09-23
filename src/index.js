@@ -21,6 +21,17 @@ import {
   isAuthed
 } from "./admin.js";
 
+function secureHeaders(extra={}) {
+  return {
+    "x-content-type-options":"nosniff",
+    "x-frame-options":"DENY",
+    "referrer-policy":"strict-origin-when-cross-origin",
+    "permissions-policy":"camera=(), microphone=(), geolocation=()",
+    "cross-origin-opener-policy":"same-origin",
+    ...extra
+  };
+}
+
 const PAGES = {
   "/": {
     render: homePage,
@@ -85,7 +96,7 @@ export default {
 
       if (path === "/api/vehicles" && method === "GET") {
         return Response.json(await getVehicleInventory(env), {
-          headers: { "cache-control": "no-store", "access-control-allow-origin": "*" }
+          headers: secureHeaders({ "cache-control": "no-store", "access-control-allow-origin": "*" })
         });
       }
 
@@ -121,7 +132,7 @@ export default {
           body
         });
         return new Response(html, {
-          headers: { "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" }
+          headers: secureHeaders({ "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" })
         });
       }
 
