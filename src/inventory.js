@@ -285,7 +285,6 @@ export async function syncVehicleInventory(env) {
         if (sourceHealth[source.id]) sourceHealth[source.id].detailFailures++;
         v.missCount=(prev.missCount||0)+1;
         v.status=v.missCount>=2?"unavailable":(prev.status||"available");
-      if(v.status==="unavailable" && !v.unavailableAt) v.unavailableAt=now();
         if(v.status==="unavailable" && !v.unavailableAt) v.unavailableAt=now();
       } else {
         v=parseDetail(r.html,source,url,prev);
@@ -301,6 +300,7 @@ export async function syncVehicleInventory(env) {
       if (sourceHealth[source.id]) sourceHealth[source.id].detailFailures++;
       v.missCount=(prev.missCount||0)+1;
       v.status=v.missCount>=2?"unavailable":(prev.status||"available");
+      if(v.status==="unavailable" && !v.unavailableAt) v.unavailableAt=now();
     }
     if(!v.year||!v.make||!v.model||v.mileageMi==null) continue;
     if(v.mileageMi>=MAX_MILES) continue;
