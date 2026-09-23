@@ -41,6 +41,41 @@ const SOURCE_PLUGINS = [
       "https://www.damerowford.com/inventory/pre-owned-super-store/"
     ],
     baseUrl: "https://www.damerowford.com"
+  },
+  {
+    id: "northside-ford",
+    name: "Northside Ford",
+    inventoryUrls: [
+      "https://www.northsideford.net/inventory/used-vehicles/models-Ford/",
+      "https://www.northsideford.net/inventory/used-vehicles/models-Ford-F--150/"
+    ],
+    baseUrl: "https://www.northsideford.net"
+  },
+  {
+    id: "courtesy-ford",
+    name: "Courtesy Ford",
+    inventoryUrls: [
+      "https://www.courtesyford.com/used-vehicles/"
+    ],
+    baseUrl: "https://www.courtesyford.com"
+  },
+  {
+    id: "auto-town-gmc",
+    name: "Auto Town GMC",
+    inventoryUrls: [
+      "https://www.autotowngmc.com/",
+      "https://www.autotowngmc.com/searchused.aspx"
+    ],
+    baseUrl: "https://www.autotowngmc.com"
+  },
+  {
+    id: "aa-motor-pdx",
+    name: "A&A Motor PDX",
+    inventoryUrls: [
+      "https://www.motorpdx.com/ford/f-150-for-sale",
+      "https://www.motorpdx.com/ford-for-sale"
+    ],
+    baseUrl: "https://www.motorpdx.com"
   }
 ];
 
@@ -205,13 +240,14 @@ export async function syncVehicleInventory(env) {
   const candidates = new Map(oldVehicles.map(v=>[v.sourceUrl,{sourceId:v.sourceId,previous:v}]));
   for (const seed of SEEDS) candidates.set(seed.sourceUrl,{sourceId:seed.sourceId,previous:byUrl[seed.sourceUrl]||seed});
 
+  const previousSources = Object.fromEntries((old?.sources || []).map(s => [s.id, s]));
   const sourceHealth = {};
   for (const source of SOURCE_PLUGINS) {
     const health = sourceHealth[source.id] = {
       id: source.id,
       name: source.name,
       attemptedAt: now(),
-      lastSuccessAt: null,
+      lastSuccessAt: previousSources[source.id]?.lastSuccessAt || null,
       inventoryPagesOk: 0,
       inventoryPagesFailed: 0,
       discovered: 0,
@@ -249,11 +285,14 @@ export async function syncVehicleInventory(env) {
         if (sourceHealth[source.id]) sourceHealth[source.id].detailFailures++;
         v.missCount=(prev.missCount||0)+1;
         v.status=v.missCount>=2?"unavailable":(prev.status||"available");
+      if(v.status==="unavailable" && !v.unavailableAt) v.unavailableAt=now();
+        if(v.status==="unavailable" && !v.unavailableAt) v.unavailableAt=now();
       } else {
         v=parseDetail(r.html,source,url,prev);
         if(v.soldSignal){
           v.missCount=(prev.missCount||0)+1;
           v.status=v.missCount>=2?"sold":(prev.status||"available");
+          if(v.status==="sold" && !v.soldAt) v.soldAt=now();
         } else {
           v.missCount=0; v.status="available"; v.lastVerifiedAt=now(); v.firstSeenAt=prev.firstSeenAt||now();
         }
@@ -271,12 +310,18 @@ export async function syncVehicleInventory(env) {
     vehicles.push(v);
   }
 
+  const cutoff = Date.now() - 30*24*60*60*1000;
+  const retainedVehicles = vehicles.filter(v => {
+    const retired = v.soldAt || v.unavailableAt;
+    return !retired || Date.parse(retired) >= cutoff;
+  });
+
   const sources = SOURCE_PLUGINS.map(({id,name}) => {
     const h = sourceHealth[id] || { id, name, attemptedAt: now(), inventoryPagesOk:0, inventoryPagesFailed:0, discovered:0, detailChecks:0, detailFailures:0 };
-    const matching = vehicles.filter(v => v.sourceId === id);
+    const matching = retainedVehicles.filter(v => v.sourceId === id);
     return { ...h, availableVehicles: matching.filter(v=>v.status==="available").length, totalVehicles: matching.length };
   });
-  const state={version:3,maxMileage:MAX_MILES,syncedAt:now(),sources,vehicles};
+  const state={version:4,maxMileage:MAX_MILES,syncedAt:now(),sources,vehicles:retainedVehicles};
   await saveState(env,state);
   return state;
 }
