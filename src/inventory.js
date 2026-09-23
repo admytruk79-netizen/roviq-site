@@ -238,6 +238,21 @@ function parseDetail(html, source, url, previous={}) {
   return { ...previous, sourceId:source.id, sourceNameInternal:source.name, sourceUrl:url, year, make, model, mileageMi:mileage, vin, directImage:image, engine, drivetrain, transmission, exterior, interior, fuel, askingPrice, soldSignal };
 }
 
+function isPublicReady(v) {
+  return Boolean(
+    v &&
+    v.status === "available" &&
+    v.mileageMi != null &&
+    v.mileageMi < MAX_MILES &&
+    v.directImage &&
+    v.year &&
+    v.make &&
+    v.model &&
+    v.engine &&
+    v.drivetrain
+  );
+}
+
 function stableId(v) {
   if (v.id) return v.id;
   if (v.vin) return "ROVIQ-US-"+v.vin.slice(-8);
@@ -382,7 +397,7 @@ export async function getVehicleInventory(env) {
   const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
   if(!state || state.version !== INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age > 30*60*1000) state=await syncVehicleInventory(env);
   const pricingConfig=await getPricingConfig(env);
-  const vehicles=(state.vehicles||[]).filter(v=>v.status==="available"&&v.mileageMi<MAX_MILES).sort((a,b)=>a.mileageMi-b.mileageMi).map(v=>({
+  const vehicles=(state.vehicles||[]).filter(isPublicReady).sort((a,b)=>a.mileageMi-b.mileageMi).map(v=>({
     id:v.id,year:v.year,make:v.make,model:v.model,trim:v.trim||"",mileageMi:v.mileageMi,
     engine:v.engine||"Specification pending",drivetrain:v.drivetrain||"4WD/AWD",
     transmission:v.transmission||"Automatic",fuel:v.fuel||"Gasoline",exterior:v.exterior||"See photo",
@@ -405,6 +420,7 @@ export async function getPublicInventoryHealth(env) {
     counts: {
       total: vehicles.length,
       available: vehicles.filter(v=>v.status==="available").length,
+      publicReady: vehicles.filter(isPublicReady).length,
       sold: vehicles.filter(v=>v.status==="sold").length,
       unavailable: vehicles.filter(v=>v.status==="unavailable").length,
       withImages: vehicles.filter(v=>v.status==="available" && Boolean(v.directImage)).length
@@ -465,6 +481,7 @@ export async function getInventoryDiagnostics(env) {
       sold:vehicles.filter(v=>v.status==="sold").length,
       unavailable:vehicles.filter(v=>v.status==="unavailable").length,
       withImages:available.filter(v=>Boolean(v.directImage)).length,
+      publicReady:available.filter(isPublicReady).length,
       sources:(state.sources||[]).length
     },
     issues:[...sourceIssues,...issues]
