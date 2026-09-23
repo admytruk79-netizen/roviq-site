@@ -570,7 +570,7 @@ export async function getVehicleImageResponse(request,env) {
       if(r.ok){
         const extracted=extractImage(r.html);
         if(extracted) candidates.push(extracted);
-        const all=[...r.html.matchAll(/https?:\\/\\/[^"'<>\\s]+\\.(?:jpg|jpeg|png|webp)(?:\\?[^"'<>\\s]*)?/gi)]
+        const all=[...r.html.matchAll(/https?:\/\/[^"'<>\s]+\.(?:jpg|jpeg|png|webp)(?:\?[^"'<>\s]*)?/gi)]
           .map(m=>m[0].replace(/&amp;/g,"&"))
           .filter(u=>/(dealer|vehicle|inventory|media|cdn|image|photo)/i.test(u));
         candidates.push(...all.slice(0,8));
