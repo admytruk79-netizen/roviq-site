@@ -187,11 +187,35 @@ export async function getVehicleImageResponse(request,env) {
   const state=await readState(env);
   const v=(state?.vehicles||[]).find(x=>x.id===id)||SEEDS.find(x=>x.id===id);
   if(!v) return new Response("Not found",{status:404});
+
   let image=v.directImage||null;
   if(!image&&v.sourceUrl){
-    try{const r=await fetchHtml(v.sourceUrl); if(r.ok) image=meta(r.html,"og:image");}catch{}
+    try{
+      const r=await fetchHtml(v.sourceUrl);
+      if(r.ok) image=meta(r.html,"og:image");
+    }catch{}
   }
-  if(image) return Response.redirect(image,302);
+
+  if(image){
+    try{
+      const img=await fetch(image,{
+        redirect:"follow",
+        headers:{
+          "user-agent":"Mozilla/5.0 (compatible; ROVIQVehicleCatalog/1.0)",
+          "accept":"image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+          "referer":v.sourceUrl||"https://roviq-site.admytruk79.workers.dev/"
+        }
+      });
+      if(img.ok){
+        const headers=new Headers();
+        headers.set("content-type",img.headers.get("content-type")||"image/jpeg");
+        headers.set("cache-control","public, max-age=1800, s-maxage=1800");
+        headers.set("access-control-allow-origin","*");
+        return new Response(img.body,{status:200,headers});
+      }
+    }catch{}
+  }
+
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="750"><rect width="100%" height="100%" fill="#dce6ee"/><text x="50%" y="48%" text-anchor="middle" font-family="Arial" font-size="72" font-weight="700" fill="#173c5d">ROVIQ</text><text x="50%" y="58%" text-anchor="middle" font-family="Arial" font-size="28" fill="#527087">Vehicle photo updating</text></svg>';
   return new Response(svg,{headers:{"content-type":"image/svg+xml","cache-control":"no-store"}});
 }
