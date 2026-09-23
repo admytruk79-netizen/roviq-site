@@ -230,36 +230,66 @@ export async function getInventoryAdmin(env) {
 }
 
 export async function getVehicleImageResponse(request,env) {
-  const id=decodeURIComponent(new URL(request.url).pathname.split("/").pop()||"");
+  const urlObj = new URL(request.url);
+  const id=decodeURIComponent(urlObj.pathname.split("/").pop()||"");
+  const cache = caches.default;
+  const cacheKey = new Request(urlObj.origin + "/_vehicle-photo-cache/" + encodeURIComponent(id), request);
+  const cached = await cache.match(cacheKey);
+  if (cached) return cached;
+
   const state=await readState(env);
   const v=(state?.vehicles||[]).find(x=>x.id===id)||SEEDS.find(x=>x.id===id);
   if(!v) return new Response("Not found",{status:404});
 
-  let image=v.directImage||null;
-  if(!image&&v.sourceUrl){
+  const candidates = [];
+  if (v.directImage) candidates.push(v.directImage);
+
+  if(v.sourceUrl){
     try{
       const r=await fetchHtml(v.sourceUrl);
-      if(r.ok) image=extractImage(r.html);
+      if(r.ok){
+        const extracted=extractImage(r.html);
+        if(extracted) candidates.push(extracted);
+        const all=[...r.html.matchAll(/https?:\\/\\/[^"'<>\\s]+\\.(?:jpg|jpeg|png|webp)(?:\\?[^"'<>\\s]*)?/gi)]
+          .map(m=>m[0].replace(/&amp;/g,"&"))
+          .filter(u=>/(dealer|vehicle|inventory|media|cdn|image|photo)/i.test(u));
+        candidates.push(...all.slice(0,8));
+      }
     }catch{}
   }
 
-  if(image){
+  const unique=[...new Set(candidates)].slice(0,10);
+  const attempts = [];
+  for (const image of unique){
+    attempts.push(
+      {url:image,headers:{
+        "user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36",
+        "accept":"image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+        "referer":v.sourceUrl||urlObj.origin+"/"
+      }},
+      {url:image,headers:{
+        "user-agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/605.1.15",
+        "accept":"image/*,*/*;q=0.8"
+      }}
+    );
+  }
+
+  for (const attempt of attempts){
     try{
-      const img=await fetch(image,{
-        redirect:"follow",
-        headers:{
-          "user-agent":"Mozilla/5.0 (compatible; ROVIQVehicleCatalog/1.0)",
-          "accept":"image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-          "referer":v.sourceUrl||"https://roviq-site.admytruk79.workers.dev/"
-        }
-      });
+      const img=await fetch(attempt.url,{redirect:"follow",headers:attempt.headers});
       const type=(img.headers.get("content-type")||"").toLowerCase();
-      if(img.ok && type.startsWith("image/")){
+      const len=Number(img.headers.get("content-length")||0);
+      if(img.ok && type.startsWith("image/") && (len===0 || len>5000)){
+        const bytes=await img.arrayBuffer();
+        if(bytes.byteLength<5000) continue;
         const headers=new Headers();
         headers.set("content-type",type);
-        headers.set("cache-control","public, max-age=1800, s-maxage=1800");
+        headers.set("cache-control","public, max-age=21600, s-maxage=21600");
         headers.set("access-control-allow-origin","*");
-        return new Response(img.body,{status:200,headers});
+        headers.set("x-roviq-image-source","proxied");
+        const response=new Response(bytes,{status:200,headers});
+        try{await cache.put(cacheKey,response.clone());}catch{}
+        return response;
       }
     }catch{}
   }
@@ -267,3 +297,4 @@ export async function getVehicleImageResponse(request,env) {
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="750"><rect width="100%" height="100%" fill="#dce6ee"/><text x="50%" y="48%" text-anchor="middle" font-family="Arial" font-size="72" font-weight="700" fill="#173c5d">ROVIQ</text><text x="50%" y="58%" text-anchor="middle" font-family="Arial" font-size="28" fill="#527087">Vehicle photo updating</text></svg>';
   return new Response(svg,{headers:{"content-type":"image/svg+xml","cache-control":"no-store"}});
 }
+
