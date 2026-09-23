@@ -580,6 +580,100 @@ export async function getInventoryAdmin(env) {
   let state=await readState(env); if(!state) state=await syncVehicleInventory(env); return state;
 }
 
+export async function checkVehicleAvailability(env, vehicleId) {
+  let state=await readState(env);
+  if(!state || state.version!==INVENTORY_SCHEMA_VERSION) state=await syncVehicleInventory(env);
+
+  const v=(state.vehicles||[]).find(x=>x.id===vehicleId);
+  if(!v) return {available:false,reason:"not_found"};
+
+  const source=SOURCE_PLUGINS.find(s=>s.id===v.sourceId);
+  if(!source || !v.sourceUrl) return {available:false,reason:"source_unavailable"};
+
+  try{
+    const r=await fetchHtml(v.sourceUrl);
+    if(!r.ok){
+      v.missCount=(v.missCount||0)+1;
+      if(v.missCount>=2) v.status="unavailable";
+      await saveState(env,state);
+      return {available:false,reason:"dealer_page_unreachable",httpStatus:r.status};
+    }
+
+    const fresh=parseDetail(r.html,source,v.sourceUrl,v);
+    const sameVin=!v.vin || !fresh.vin || fresh.vin===v.vin;
+    const cleanAndPriced=Boolean(
+      fresh.year &&
+      fresh.make &&
+      fresh.model &&
+      fresh.mileageMi!=null &&
+      fresh.mileageMi<MAX_MILES &&
+      safeField(fresh.engine) &&
+      safeField(fresh.drivetrain) &&
+      Number(fresh.askingPrice)>0
+    );
+
+    if(fresh.soldSignal || !sameVin || !cleanAndPriced){
+      v.status=fresh.soldSignal?"sold":"unavailable";
+      v.lastAvailabilityCheckAt=now();
+      v.availabilityReason=fresh.soldSignal?"sold_signal":(!sameVin?"vin_mismatch":"incomplete_live_data");
+      await saveState(env,state);
+      return {available:false,reason:v.availabilityReason};
+    }
+
+    Object.assign(v,fresh,{
+      status:"available",
+      missCount:0,
+      lastVerifiedAt:now(),
+      lastAvailabilityCheckAt:now(),
+      availabilityReason:"dealer_verified"
+    });
+    await saveState(env,state);
+
+    return {
+      available:true,
+      reason:"dealer_verified",
+      vehicleId:v.id,
+      vin:v.vin||null,
+      sourceId:v.sourceId,
+      sourceNameInternal:v.sourceNameInternal||source.name,
+      sourceUrl:v.sourceUrl,
+      askingPrice:Number(v.askingPrice)||null,
+      lastVerifiedAt:v.lastVerifiedAt,
+      reservationMode:source.reservationMode||"manual"
+    };
+  }catch{
+    return {available:false,reason:"verification_error"};
+  }
+}
+
+export async function requestDealerReservation(env, vehicleId, customer={}) {
+  const check=await checkVehicleAvailability(env,vehicleId);
+  if(!check.available) return {...check,reservationStatus:"unavailable"};
+
+  const source=SOURCE_PLUGINS.find(s=>s.id===check.sourceId);
+  const mode=source?.reservationMode||"manual";
+
+  // Scraping proves current listing availability but does not grant ROVIQ authority
+  // to place a dealer hold. Until a dealer-specific API is configured, create an
+  // internal case and require explicit dealer confirmation.
+  if(mode!=="api"){
+    return {
+      ...check,
+      reservationStatus:"dealer_confirmation_pending",
+      reservationMode:"manual",
+      requiresDealerConfirmation:true
+    };
+  }
+
+  return {
+    ...check,
+    reservationStatus:"dealer_confirmation_pending",
+    reservationMode:"api_not_configured",
+    requiresDealerConfirmation:true
+  };
+}
+
+
 export async function getInventoryDiagnostics(env) {
   const state=await getInventoryAdmin(env);
   const vehicles=state.vehicles||[];
