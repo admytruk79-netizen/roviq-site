@@ -7,7 +7,11 @@ const SOURCE_PLUGINS = [
     name: "CARR Chevrolet",
     inventoryUrls: [
       "https://www.carrchevrolet.com/used-inventory/index.htm",
-      "https://www.carrchevrolet.com/certified-inventory/index.htm"
+      "https://www.carrchevrolet.com/used-inventory/index.htm?make=Chevrolet&model=Silverado+1500",
+      "https://www.carrchevrolet.com/used-inventory/index.htm?make=Chevrolet&model=Silverado+2500+HD",
+      "https://www.carrchevrolet.com/certified-inventory/index.htm",
+      "https://www.carrchevrolet.com/certified-inventory/index.htm?make=Chevrolet&model=Silverado+1500",
+      "https://www.carrchevrolet.com/certified-inventory/index.htm?make=Chevrolet&model=Silverado+2500+HD"
     ],
     baseUrl: "https://www.carrchevrolet.com"
   },
@@ -204,7 +208,8 @@ export async function syncVehicleInventory(env) {
 
 export async function getVehicleInventory(env) {
   let state=await readState(env);
-  if(!state) state=await syncVehicleInventory(env);
+  const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
+  if(!state || !Number.isFinite(age) || age > 30*60*1000) state=await syncVehicleInventory(env);
   const vehicles=(state.vehicles||[]).filter(v=>v.status==="available"&&v.mileageMi<MAX_MILES).sort((a,b)=>a.mileageMi-b.mileageMi).map(v=>({
     id:v.id,year:v.year,make:v.make,model:v.model,trim:v.trim||"",mileageMi:v.mileageMi,
     engine:v.engine||"Specification pending",drivetrain:v.drivetrain||"4WD/AWD",
