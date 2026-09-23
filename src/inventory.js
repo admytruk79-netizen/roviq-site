@@ -269,16 +269,18 @@ export async function syncVehicleInventory(env) {
     }
   }
 
-  const vehicles=[];
-  let checks=0;
-  for (const [url,metaInfo] of candidates) {
-    if (checks >= 90 && !metaInfo.previous?.id) continue;
+  const candidateEntries = [...candidates.entries()]
+    .sort((a,b) => Number(Boolean(b[1].previous?.id)) - Number(Boolean(a[1].previous?.id)))
+    .slice(0,72);
+
+  async function inspectCandidate(entry) {
+    const [url,metaInfo] = entry;
     const source = SOURCE_PLUGINS.find(s=>s.id===metaInfo.sourceId) || SOURCE_PLUGINS.find(s=>url.startsWith(s.baseUrl));
-    if (!source) continue;
+    if (!source) return null;
     const prev=metaInfo.previous||{};
     let v={...prev,sourceId:source.id,sourceNameInternal:source.name,sourceUrl:url};
+
     try {
-      checks++;
       if (sourceHealth[source.id]) sourceHealth[source.id].detailChecks++;
       const r=await fetchHtml(url);
       if (!r.ok) {
@@ -293,7 +295,12 @@ export async function syncVehicleInventory(env) {
           v.status=v.missCount>=2?"sold":(prev.status||"available");
           if(v.status==="sold" && !v.soldAt) v.soldAt=now();
         } else {
-          v.missCount=0; v.status="available"; v.lastVerifiedAt=now(); v.firstSeenAt=prev.firstSeenAt||now();
+          v.missCount=0;
+          v.status="available";
+          v.lastVerifiedAt=now();
+          v.firstSeenAt=prev.firstSeenAt||now();
+          v.unavailableAt=null;
+          v.soldAt=null;
         }
       }
     } catch {
@@ -302,16 +309,41 @@ export async function syncVehicleInventory(env) {
       v.status=v.missCount>=2?"unavailable":(prev.status||"available");
       if(v.status==="unavailable" && !v.unavailableAt) v.unavailableAt=now();
     }
-    if(!v.year||!v.make||!v.model||v.mileageMi==null) continue;
-    if(v.mileageMi>=MAX_MILES) continue;
-    if(!/^(Chevrolet|GMC|Ford)$/i.test(v.make)) continue;
-    if(!/(Silverado|Sierra|F-?150)/i.test(v.model)) continue;
+
+    if(!v.year||!v.make||!v.model||v.mileageMi==null) return null;
+    if(v.mileageMi>=MAX_MILES) return null;
+    if(!/^(Chevrolet|GMC|Ford)$/i.test(v.make)) return null;
+    if(!/(Silverado|Sierra|F-?150)/i.test(v.model)) return null;
     v.id=stableId(v);
-    vehicles.push(v);
+    return v;
   }
 
-  const cutoff = Date.now() - 30*24*60*60*1000;
-  const retainedVehicles = vehicles.filter(v => {
+  const vehicles=[];
+  const concurrency=6;
+  for(let i=0;i<candidateEntries.length;i+=concurrency){
+    const batch=candidateEntries.slice(i,i+concurrency);
+    const results=await Promise.all(batch.map(inspectCandidate));
+    vehicles.push(...results.filter(Boolean));
+  }
+
+  // The same VIN can appear through multiple SRP/detail URL variants.
+  // Keep one canonical record, preferring available, recently verified, image-rich records.
+  const deduped=new Map();
+  for(const v of vehicles){
+    const key=v.vin ? "vin:"+v.vin : "url:"+v.sourceUrl;
+    const existing=deduped.get(key);
+    if(!existing){ deduped.set(key,v); continue; }
+    const score=x =>
+      (x.status==="available"?100:0) +
+      (x.directImage?20:0) +
+      (x.engine?5:0) +
+      (x.lastVerifiedAt?Math.min(10,Math.max(0,10-(Date.now()-Date.parse(x.lastVerifiedAt))/86400000)):0);
+    if(score(v)>score(existing)) deduped.set(key,v);
+  }
+  const uniqueVehicles=[...deduped.values()];
+
+  const cutoff = Date.now() - 30*24*60*60*1000;  const cutoff = Date.now() - 30*24*60*60*1000;
+  const retainedVehicles = uniqueVehicles.filter(v => {
     const retired = v.soldAt || v.unavailableAt;
     return !retired || Date.parse(retired) >= cutoff;
   });
@@ -344,6 +376,50 @@ export async function getVehicleInventory(env) {
 
 export async function getInventoryAdmin(env) {
   let state=await readState(env); if(!state) state=await syncVehicleInventory(env); return state;
+}
+
+export async function getInventoryDiagnostics(env) {
+  const state=await getInventoryAdmin(env);
+  const vehicles=state.vehicles||[];
+  const available=vehicles.filter(v=>v.status==="available");
+  const nowMs=Date.now();
+  const issues=[];
+  const seenVin=new Set();
+
+  for(const v of available){
+    if(v.vin){
+      if(seenVin.has(v.vin)) issues.push({severity:"warn",vehicleId:v.id,type:"duplicate_vin",message:"Duplicate VIN in available inventory"});
+      seenVin.add(v.vin);
+    }
+    if(!v.directImage) issues.push({severity:"warn",vehicleId:v.id,type:"missing_image",message:"No cached source image URL"});
+    if(!v.engine) issues.push({severity:"warn",vehicleId:v.id,type:"missing_engine",message:"Engine specification missing"});
+    if(!v.drivetrain) issues.push({severity:"warn",vehicleId:v.id,type:"missing_drivetrain",message:"Drivetrain specification missing"});
+    if(!v.lastVerifiedAt) issues.push({severity:"warn",vehicleId:v.id,type:"never_verified",message:"Vehicle has not completed a successful verification"});
+    else if(nowMs-Date.parse(v.lastVerifiedAt)>3*60*60*1000) issues.push({severity:"warn",vehicleId:v.id,type:"stale",message:"Vehicle has not been verified in more than 3 hours"});
+    if(v.mileageMi>=MAX_MILES) issues.push({severity:"error",vehicleId:v.id,type:"mileage_filter",message:"Vehicle exceeds public mileage limit"});
+  }
+
+  const sourceIssues=(state.sources||[]).flatMap(s=>{
+    const out=[];
+    if(Number(s.inventoryPagesOk||0)===0) out.push({severity:"error",sourceId:s.id,type:"source_unreachable",message:s.name+" returned no healthy inventory page"});
+    else if(Number(s.discovered||0)===0 && Number(s.availableVehicles||0)===0) out.push({severity:"warn",sourceId:s.id,type:"source_empty",message:s.name+" is reachable but yielded no matching vehicles"});
+    if(Number(s.detailChecks||0)>0 && Number(s.detailFailures||0)/Number(s.detailChecks||1)>0.5) out.push({severity:"warn",sourceId:s.id,type:"detail_failure_rate",message:s.name+" has a high detail-page failure rate"});
+    return out;
+  });
+
+  return {
+    generatedAt:now(),
+    syncedAt:state.syncedAt,
+    counts:{
+      total:vehicles.length,
+      available:available.length,
+      sold:vehicles.filter(v=>v.status==="sold").length,
+      unavailable:vehicles.filter(v=>v.status==="unavailable").length,
+      withImages:available.filter(v=>Boolean(v.directImage)).length,
+      sources:(state.sources||[]).length
+    },
+    issues:[...sourceIssues,...issues]
+  };
 }
 
 export async function getVehicleImageResponse(request,env) {
