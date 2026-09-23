@@ -2,7 +2,7 @@ import { getPricingConfig, publicPricing } from "./pricing.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 12;
+const INVENTORY_SCHEMA_VERSION = 13;
 
 const SOURCE_PLUGINS = [
   {
@@ -130,7 +130,7 @@ const SEEDS = [
     sourceUrl: "https://www.beavertongmc.com/used-%2BPortland-2022-Chevrolet-Silverado%2B1500-Custom%2BTrail%2BBoss-3GCPDCEK5NG636138",
     year: 2022, make: "Chevrolet", model: "Silverado 1500", trim: "Custom Trail Boss",
     mileageMi: 47074, engine: "2.7L Turbo", drivetrain: "4WD", transmission: "Automatic",
-    fuel: "Gasoline", exterior: "Summit White", interior: "Jet Black cloth", vin: "3GCPDCEK5NG636138"
+    fuel: "Gasoline", exterior: "Summit White", interior: "Jet Black cloth", vin: "3GCPDCEK5NG636138", askingPrice: 33240
   },
   {
     id: "ROVIQ-US-BGMC-407865",
@@ -138,7 +138,7 @@ const SEEDS = [
     sourceUrl: "https://www.beavertongmc.com/used-%2BPortland-2026-Chevrolet-Silverado%2BEV-Trail%2BBoss%2B%2B%2BMax%2BRange-1GC405EL2TU407865",
     year: 2026, make: "Chevrolet", model: "Silverado EV", trim: "Trail Boss Max Range",
     mileageMi: 4119, engine: "Dual-motor electric", drivetrain: "AWD", transmission: "Single-speed",
-    fuel: "Electric", exterior: "Riptide Blue Metallic", interior: "Black / Artemis", vin: "1GC405EL2TU407865"
+    fuel: "Electric", exterior: "Riptide Blue Metallic", interior: "Black / Artemis", vin: "1GC405EL2TU407865", askingPrice: 72240
   },
   {
     id: "ROVIQ-US-BGMC-403489",
@@ -146,7 +146,7 @@ const SEEDS = [
     sourceUrl: "https://www.beavertongmc.com/used-%2BPortland-2026-Chevrolet-Silverado%2BEV-LT%2B%2B%2BMax%2BRange-1GC400EL9TU403489",
     year: 2026, make: "Chevrolet", model: "Silverado EV", trim: "LT Max Range",
     mileageMi: 4005, engine: "Dual-motor electric", drivetrain: "AWD", transmission: "Single-speed",
-    fuel: "Electric", exterior: "Summit White", interior: "Black Evotex", vin: "1GC400EL9TU403489"
+    fuel: "Electric", exterior: "Summit White", interior: "Black Evotex", vin: "1GC400EL9TU403489", askingPrice: 71740
   },
   {
     id: "ROVIQ-US-BGMC-412397",
@@ -343,7 +343,6 @@ function isRenderableVehicle(v) {
     v.status==="available" &&
     v.mileageMi!=null &&
     v.mileageMi<MAX_MILES &&
-    v.directImage &&
     v.year &&
     v.make &&
     v.model &&
