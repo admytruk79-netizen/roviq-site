@@ -8,7 +8,7 @@ import { contactPage } from "./pages/contact.js";
 import { ukrainePage } from "./pages/ukraine.js";
 import { getVehicleInventory, getVehicleImageResponse, syncVehicleInventory } from "./inventory.js";
 import { createBooking, listBookings, updateBooking, bookingsAdminPage } from "./booking.js";
-import { vehicleAdminPage, syncNow } from "./admin-vehicles.js";
+import { vehicleAdminPage, diagnosticsPage, syncNow } from "./admin-vehicles.js";
 import { pricingAdminPage, savePricing } from "./admin-pricing.js";
 import {
   handleAdminGet,
@@ -114,6 +114,11 @@ export default {
       if (path === "/admin/vehicles") {
         if (!(await isAuthed(request, env))) return Response.redirect("/admin", 302);
         if (method === "GET") return new Response(await vehicleAdminPage(env), { headers: { "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" } });
+        return new Response("Method not allowed", { status: 405 });
+      }
+      if (path === "/admin/vehicles/diagnostics") {
+        if (!(await isAuthed(request, env))) return Response.redirect("/admin", 302);
+        if (method === "GET") return new Response(await diagnosticsPage(env), { headers: secureHeaders({ "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" }) });
         return new Response("Method not allowed", { status: 405 });
       }
       if (path === "/admin/vehicles/sync" && method === "POST") {
