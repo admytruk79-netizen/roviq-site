@@ -2,7 +2,7 @@ import { getPricingConfig, publicPricing } from "./pricing.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 2 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 6;
+const INVENTORY_SCHEMA_VERSION = 7;
 
 const SOURCE_PLUGINS = [
   {
@@ -348,8 +348,7 @@ function isPublicReady(v) {
     v.make &&
     v.model &&
     safeField(v.engine) &&
-    safeField(v.drivetrain) &&
-    Number(v.askingPrice)>0
+    safeField(v.drivetrain)
   );
 }
 
@@ -453,7 +452,7 @@ export async function syncVehicleInventory(env) {
     v.transmission=safeField(v.transmission);
     v.exterior=safeField(v.exterior);
     v.interior=safeField(v.interior);
-    if(!v.year||!v.make||!v.model||v.mileageMi==null||!v.engine||!v.drivetrain||!Number(v.askingPrice)) {
+    if(!v.year||!v.make||!v.model||v.mileageMi==null||!v.engine||!v.drivetrain) {
       if (sourceHealth[source.id]) sourceHealth[source.id].rejectedMissingCore++;
       v.status = "incomplete";
       v.incompleteReason = "missing_core";
