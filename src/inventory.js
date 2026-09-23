@@ -2,7 +2,7 @@ import { getPricingConfig, publicPricing } from "./pricing.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 2 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 7;
+const INVENTORY_SCHEMA_VERSION = 8;
 
 const SOURCE_PLUGINS = [
   {
@@ -327,8 +327,11 @@ function parseDetail(html, source, url, previous={}) {
   const interior=safeField(rawInterior,safeField(previous.interior,"See details"));
   const fuel=safeField(structured.fuel)||(/\b(EV|electric|dual[- ]motor)\b/i.test(combined)?"Electric":(/duramax|diesel/i.test(combined+" "+(engine||""))?"Diesel":safeField(previous.fuel,"Gasoline")));
 
-  const labeledPrice=first(html,/(?:Sale Price|Internet Price|Dealer Price|Our Price|Price)\s*[:\-]?\s*\$\s*([1-9][0-9,]{3,7})\b/i);
-  const askingPrice=structured.price||numericAttr(html,["data-price","data-sale-price","data-vehicle-price","data-internet-price"])||num(labeledPrice)||null;
+  const parsedPrice =
+    extractAskingPrice(html, structured.price) ||
+    numericAttr(html,["data-price","data-sale-price","data-vehicle-price","data-internet-price","data-msrp","data-final-price"]);
+  const previousPrice=Number(previous.askingPrice||0);
+  const askingPrice=parsedPrice || (previousPrice>=1000 && previousPrice<=250000 ? previousPrice : null);
   const soldSignal=/\b(sold|no longer available|vehicle unavailable|removed from inventory)\b/i.test(combined);
 
   return {...previous,sourceId:source.id,sourceNameInternal:source.name,sourceUrl:url,year,make,model,mileageMi:mileage,vin,directImage:image,engine,drivetrain,transmission,exterior,interior,fuel,askingPrice,soldSignal};
