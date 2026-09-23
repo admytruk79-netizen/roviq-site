@@ -599,18 +599,17 @@ export async function checkVehicleAvailability(env, vehicleId) {
 
     const fresh=parseDetail(r.html,source,v.sourceUrl,v);
     const sameVin=!v.vin || !fresh.vin || fresh.vin===v.vin;
-    const cleanAndPriced=Boolean(
+    const cleanVehicle=Boolean(
       fresh.year &&
       fresh.make &&
       fresh.model &&
       fresh.mileageMi!=null &&
       fresh.mileageMi<MAX_MILES &&
       safeField(fresh.engine) &&
-      safeField(fresh.drivetrain) &&
-      Number(fresh.askingPrice)>0
+      safeField(fresh.drivetrain)
     );
 
-    if(fresh.soldSignal || !sameVin || !cleanAndPriced){
+    if(fresh.soldSignal || !sameVin || !cleanVehicle){
       v.status=fresh.soldSignal?"sold":"unavailable";
       v.lastAvailabilityCheckAt=now();
       v.availabilityReason=fresh.soldSignal?"sold_signal":(!sameVin?"vin_mismatch":"incomplete_live_data");
