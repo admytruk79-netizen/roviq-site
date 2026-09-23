@@ -83,6 +83,12 @@ export default {
       if (path.startsWith("/ukraine/image/") && method === "GET") return getVehicleImageResponse(request, env);
       if (path === "/ukraine/book" && method === "POST") return createBooking(request, env);
 
+      if (path === "/api/vehicles" && method === "GET") {
+        return Response.json(await getVehicleInventory(env), {
+          headers: { "cache-control": "no-store", "access-control-allow-origin": "*" }
+        });
+      }
+
       if (path === "/admin/vehicles") {
         if (!(await isAuthed(request, env))) return Response.redirect("/admin", 302);
         if (method === "GET") return new Response(await vehicleAdminPage(env), { headers: { "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" } });
