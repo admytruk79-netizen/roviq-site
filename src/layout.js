@@ -1,4 +1,4 @@
-import { CSS } from "./styles-dark.js";
+import { CSS } from "./styles.js";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
