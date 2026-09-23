@@ -2,7 +2,7 @@ import { getPricingConfig, publicPricing } from "./pricing.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 2 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 5;
+const INVENTORY_SCHEMA_VERSION = 6;
 
 const SOURCE_PLUGINS = [
   {
@@ -169,6 +169,30 @@ function meta(html, key) {
   return clean((html.match(a)||html.match(b)||[])[1]||"") || null;
 }
 function first(html, re) { const m = html.match(re); return m ? clean(m[1]||m[0]) : null; }
+function safeField(value, fallback=null) {
+  const v=clean(String(value||""));
+  if(!v) return fallback;
+  if(v.length>90) return fallback;
+  if(/[<>{}=#]/.test(v)) return fallback;
+  if(/\b(?:class|data-|style|href|src|icon-img|thumbnail|container|images--mod|javascript)\b/i.test(v)) return fallback;
+  if(/^(?:none|null|undefined|color|engine|transmission|drivetrain|interior|exterior)[\"']?$/i.test(v)) return fallback;
+  return v;
+}
+function attrValue(html, names) {
+  for(const name of names){
+    const escaped=String(name).replace(/[.*+?^$\{\}()|[\]\\]/g,"\\function first(html, re) { const m = html.match(re); return m ? clean(m[1]||m[0]) : null; }
+");
+    const re=new RegExp(escaped+'\\s*=\\s*["\\']([^"\\']+)["\\']',"i");
+    const m=html.match(re);
+    const v=safeField(m?.[1]||null);
+    if(v) return v;
+  }
+  return null;
+}
+function numericAttr(html, names) {
+  const v=attrValue(html,names);
+  return v ? num(v) : null;
+}
 function fieldValue(v, fallback=null) {
   const s=clean(String(v??""));
   if(!s) return fallback;
@@ -248,26 +272,29 @@ function parseJsonLdVehicle(html) {
   for(const match of scripts){
     try{
       const parsed=JSON.parse(match[1].trim());
-      const nodes=Array.isArray(parsed)?parsed:(parsed && parsed["@graph"]?parsed["@graph"]:[parsed]);
-      for(const node of nodes){
+      const queue=Array.isArray(parsed)?[...parsed]:[parsed];
+      while(queue.length){
+        const node=queue.shift();
         if(!node || typeof node!=="object") continue;
+        if(Array.isArray(node["@graph"])) queue.push(...node["@graph"]);
         const type=Array.isArray(node["@type"])?node["@type"].join(" "):String(node["@type"]||"");
         if(!/(Vehicle|Car|Product)/i.test(type)) continue;
         const mileageRaw=node.mileageFromOdometer?.value ?? node.mileageFromOdometer ?? null;
         const imageRaw=Array.isArray(node.image)?node.image[0]:node.image;
+        const offers=Array.isArray(node.offers)?node.offers[0]:node.offers;
+        const offerPrice=offers?.price ?? offers?.lowPrice ?? offers?.priceSpecification?.price ?? null;
         return {
-          name: node.name || null,
-          sku: node.sku || null,
-          vin: node.vehicleIdentificationNumber || node.vin || null,
-          mileageMi: num(mileageRaw),
-          image: typeof imageRaw==="string" ? imageRaw : (imageRaw?.url || null),
-          color: node.color || null,
-          fuel: node.fuelType || null,
-          transmission: node.vehicleTransmission || null,
-          drivetrain: node.driveWheelConfiguration || null,
-          engine: node.vehicleEngine?.name || node.vehicleEngine?.engineType || node.engine?.name || null,
-          interior: node.vehicleInteriorColor || null,
-          price: node.offers?.price || (Array.isArray(node.offers)?node.offers[0]?.price:null) || null
+          name:safeField(node.name||null),
+          sku:safeField(node.sku||null),
+          vin:safeField(node.vehicleIdentificationNumber||node.vin||null),
+          mileageMi:num(mileageRaw),
+          image:typeof imageRaw==="string"?imageRaw:(imageRaw?.url||null),
+          color:safeField(node.color||null),
+          fuel:safeField(node.fuelType||null),
+          transmission:safeField(node.vehicleTransmission||null),
+          drivetrain:safeField(node.driveWheelConfiguration||null),
+          engine:safeField(node.vehicleEngine?.name||node.vehicleEngine?.engineDisplacement||null),
+          price:num(offerPrice)
         };
       }
     }catch{}
@@ -276,45 +303,54 @@ function parseJsonLdVehicle(html) {
 }
 
 function parseDetail(html, source, url, previous={}) {
-  const text = clean(html.slice(0, 600000));
-  const title = meta(html,"og:title") || first(html,/<title[^>]*>([\s\S]*?)<\/title>/i) || "";
+  const text=clean(html.slice(0,600000));
+  const title=meta(html,"og:title")||first(html,/<title[^>]*>([\s\S]*?)<\/title>/i)||"";
   const structured=parseJsonLdVehicle(html);
-  const combined = title+" "+(structured.name||"")+" "+text;
+  const combined=title+" "+(structured.name||"")+" "+text;
 
-  const year = Number((combined.match(/\b(20\d{2})\b/)||[])[1] || previous.year || 0) || null;
-  const make = ((combined.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1] || previous.make || "").replace(/^./,c=>c.toUpperCase());
-  const model = ((combined.match(/\b(Silverado(?:\s+1500(?:\s+LTD)?|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|Sierra(?:\s+1500|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|F-?150(?:\s+Lightning)?)\b/i)||[])[1] || previous.model || "").replace(/\s+/g," ").replace(/^F150$/i,"F-150");
-  const mileage = structured.mileageMi ?? num(first(html,/(?:Odometer|Mileage)[^0-9]{0,80}([0-9][0-9,.]{0,10}\s*(?:mi|miles?))/i) || (combined.match(/\b([0-9][0-9,]{2,6})\s*(?:mi|miles?)\b/i)||[])[1]) ?? previous.mileageMi;
-  const vin = structured.vin || ((combined.match(/\b([A-HJ-NPR-Z0-9]{17})\b/)||[])[1] || previous.vin || null);
-  const image = structured.image || extractImage(html) || previous.directImage || null;
-  const engine = fieldValue(structured.engine) || fieldValue(first(html,/(?:Engine|Engine Type)\s*[:\-]?\s*([^<\n]{2,90})/i)) || fieldValue(previous.engine);
-  const drivetrain = fieldValue(structured.drivetrain) || fieldValue(first(html,/(?:Drivetrain|Drive Type)\s*[:\-]?\s*([^<\n]{2,50})/i)) || fieldValue(previous.drivetrain);
-  const transmission = fieldValue(structured.transmission) || fieldValue(first(html,/Transmission\s*[:\-]?\s*([^<\n]{2,70})/i)) || fieldValue(previous.transmission) || "Automatic";
-  const exterior = fieldValue(structured.color) || fieldValue(first(html,/Exterior(?: Color)?\s*[:\-]?\s*([^<\n]{2,70})/i)) || fieldValue(previous.exterior) || "See photo";
-  const interior = fieldValue(structured.interior) || fieldValue(first(html,/Interior(?: Color)?\s*[:\-]?\s*([^<\n]{2,70})/i)) || fieldValue(previous.interior) || "See details";
-  const fuel = /\b(EV|electric|dual[- ]motor)\b/i.test(combined) ? "Electric" : (/duramax|diesel/i.test(combined+" "+(engine||"")) ? "Diesel" : previous.fuel || "Gasoline");
-  const askingPrice = extractAskingPrice(html, structured.price) ?? previous.askingPrice ?? null;
-  const soldSignal = /\b(sold|no longer available|vehicle unavailable|removed from inventory)\b/i.test(combined);
+  const year=Number((combined.match(/\b(20\d{2})\b/)||[])[1]||previous.year||0)||null;
+  const make=((combined.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||previous.make||"").replace(/^./,x=>x.toUpperCase());
+  const model=((combined.match(/\b(Silverado(?:\s+1500(?:\s+LTD)?|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|Sierra(?:\s+1500|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|F-?150(?:\s+Lightning)?)\b/i)||[])[1]||previous.model||"").replace(/\s+/g," ").replace(/^F150$/i,"F-150");
+  const mileage=structured.mileageMi ?? num(first(html,/(?:Odometer|Mileage)\s*[:\-]?\s*([0-9][0-9,.]{0,10}\s*(?:mi|miles?))/i)||(combined.match(/\b([0-9][0-9,]{2,6})\s*(?:mi|miles?)\b/i)||[])[1]) ?? previous.mileageMi;
+  const vin=structured.vin||((combined.match(/\b([A-HJ-NPR-Z0-9]{17})\b/)||[])[1]||previous.vin||null);
+  const image=structured.image||extractImage(html)||previous.directImage||null;
 
-  return { ...previous, sourceId:source.id, sourceNameInternal:source.name, sourceUrl:url, year, make, model, mileageMi:mileage, vin, directImage:image, engine, drivetrain, transmission, exterior, interior, fuel, askingPrice, soldSignal };
+  const rawEngine=structured.engine||attrValue(html,["data-engine","data-engine-description","data-engine-type"])||first(html,/(?:Engine|Engine Type)\s*[:\-]?\s*([^<\n]{2,90})/i);
+  const rawDrivetrain=structured.drivetrain||attrValue(html,["data-drivetrain","data-drive-type","data-drive"])||first(html,/(?:Drivetrain|Drive Type)\s*[:\-]?\s*([^<\n]{2,50})/i);
+  const rawTransmission=structured.transmission||attrValue(html,["data-transmission"])||first(html,/Transmission\s*[:\-]?\s*([^<\n]{2,70})/i);
+  const rawExterior=structured.color||attrValue(html,["data-extcolor","data-exterior-color","data-exterior"])||first(html,/Exterior(?: Color)?\s*[:\-]?\s*([^<\n]{2,70})/i);
+  const rawInterior=attrValue(html,["data-intcolor","data-interior-color","data-interior"])||first(html,/Interior(?: Color)?\s*[:\-]?\s*([^<\n]{2,70})/i);
+
+  const engine=safeField(rawEngine,safeField(previous.engine));
+  const drivetrain=safeField(rawDrivetrain,safeField(previous.drivetrain));
+  const transmission=safeField(rawTransmission,safeField(previous.transmission,"Automatic"));
+  const exterior=safeField(rawExterior,safeField(previous.exterior,"See photo"));
+  const interior=safeField(rawInterior,safeField(previous.interior,"See details"));
+  const fuel=safeField(structured.fuel)||(/\b(EV|electric|dual[- ]motor)\b/i.test(combined)?"Electric":(/duramax|diesel/i.test(combined+" "+(engine||""))?"Diesel":safeField(previous.fuel,"Gasoline")));
+
+  const labeledPrice=first(html,/(?:Sale Price|Internet Price|Dealer Price|Our Price|Price)\s*[:\-]?\s*\$\s*([1-9][0-9,]{3,7})\b/i);
+  const askingPrice=structured.price||numericAttr(html,["data-price","data-sale-price","data-vehicle-price","data-internet-price"])||num(labeledPrice)||null;
+  const soldSignal=/\b(sold|no longer available|vehicle unavailable|removed from inventory)\b/i.test(combined);
+
+  return {...previous,sourceId:source.id,sourceNameInternal:source.name,sourceUrl:url,year,make,model,mileageMi:mileage,vin,directImage:image,engine,drivetrain,transmission,exterior,interior,fuel,askingPrice,soldSignal};
 }
 
 function isPublicReady(v) {
-  const verifiedAt = v?.lastVerifiedAt ? Date.parse(v.lastVerifiedAt) : NaN;
-  const recentlyVerified = Number.isFinite(verifiedAt) && (Date.now() - verifiedAt) <= LIVE_VERIFICATION_MAX_AGE_MS;
+  const verifiedAt=v?.lastVerifiedAt?Date.parse(v.lastVerifiedAt):NaN;
+  const recentlyVerified=Number.isFinite(verifiedAt)&&(Date.now()-verifiedAt)<=LIVE_VERIFICATION_MAX_AGE_MS;
   return Boolean(
     v &&
-    v.status === "available" &&
+    v.status==="available" &&
     recentlyVerified &&
-    v.mileageMi != null &&
-    v.mileageMi < MAX_MILES &&
+    v.mileageMi!=null &&
+    v.mileageMi<MAX_MILES &&
     v.directImage &&
     v.year &&
     v.make &&
     v.model &&
-    fieldValue(v.engine) &&
-    fieldValue(v.drivetrain) &&
-    fieldValue(v.transmission)
+    safeField(v.engine) &&
+    safeField(v.drivetrain) &&
+    Number(v.askingPrice)>0
   );
 }
 
@@ -413,7 +449,12 @@ export async function syncVehicleInventory(env) {
     }
 
     v.id=stableId(v);
-    if(!v.year||!v.make||!v.model||v.mileageMi==null) {
+    v.engine=safeField(v.engine);
+    v.drivetrain=safeField(v.drivetrain);
+    v.transmission=safeField(v.transmission);
+    v.exterior=safeField(v.exterior);
+    v.interior=safeField(v.interior);
+    if(!v.year||!v.make||!v.model||v.mileageMi==null||!v.engine||!v.drivetrain||!Number(v.askingPrice)) {
       if (sourceHealth[source.id]) sourceHealth[source.id].rejectedMissingCore++;
       v.status = "incomplete";
       v.incompleteReason = "missing_core";
