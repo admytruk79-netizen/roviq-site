@@ -458,24 +458,17 @@ export async function syncVehicleInventory(env) {
 }
 
 export async function getVehicleInventory(env) {
-  let state=await readState(env);
-  const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
-
-  if(!state || state.version !== INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age > 30*60*1000) {
-    try { state=await syncVehicleInventory(env); } catch {}
-  }
-
-  if(!state) {
-    state={version:INVENTORY_SCHEMA_VERSION,syncedAt:null,maxMileage:MAX_MILES,sources:[],vehicles:[]};
-  }
-
+  const state=await readState(env);
   const pricingConfig=await getPricingConfig(env);
-  let visible=(state.vehicles||[]).filter(isPublicReady).sort((a,b)=>a.mileageMi-b.mileageMi);
+
+  let visible=(state?.vehicles||[])
+    .filter(isPublicReady)
+    .sort((a,b)=>a.mileageMi-b.mileageMi);
 
   if (!visible.length) {
     visible=SEEDS
-      .filter(v=>v.mileageMi<MAX_MILES && v.directImage && v.year && v.make && v.model)
-      .map(v=>({...v,status:"available",lastVerifiedAt:state.syncedAt||null}));
+      .filter(v=>v.mileageMi<MAX_MILES && v.year && v.make && v.model)
+      .map(v=>({...v,status:"available",lastVerifiedAt:state?.syncedAt||null}));
   }
 
   const vehicles=visible.map(v=>({
@@ -487,7 +480,7 @@ export async function getVehicleInventory(env) {
     pricing:publicPricing(v,pricingConfig)
   }));
 
-  return {syncedAt:state.syncedAt,maxMileage:MAX_MILES,vehicles};
+  return {syncedAt:state?.syncedAt||null,maxMileage:MAX_MILES,vehicles};
 }
 
 export async function getPublicInventoryHealth(env) {
