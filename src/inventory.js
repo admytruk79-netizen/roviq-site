@@ -268,3 +268,46 @@ export async function getVehicleImageResponse(request,env) {
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="750"><rect width="100%" height="100%" fill="#dce6ee"/><text x="50%" y="48%" text-anchor="middle" font-family="Arial" font-size="72" font-weight="700" fill="#173c5d">ROVIQ</text><text x="50%" y="58%" text-anchor="middle" font-family="Arial" font-size="28" fill="#527087">Vehicle photo updating</text></svg>';
   return new Response(svg,{headers:{"content-type":"image/svg+xml","cache-control":"no-store"}});
 }
+
+
+export async function getPublicInventoryHealth(env) {
+  const state = await readState(env);
+  const vehicles = state?.vehicles || [];
+  return {
+    version: state?.version || 2,
+    syncedAt: state?.syncedAt || null,
+    maxMileage: state?.maxMileage || MAX_MILES,
+    counts: {
+      total: vehicles.length,
+      available: vehicles.filter(v => v.status === "available").length,
+      publicReady: vehicles.filter(v => v.status === "available" && v.mileageMi < MAX_MILES).length,
+      sold: vehicles.filter(v => v.status === "sold").length,
+      unavailable: vehicles.filter(v => v.status === "unavailable").length,
+      withImages: vehicles.filter(v => v.status === "available" && Boolean(v.directImage)).length
+    },
+    sources: (state?.sources || []).map(s => ({
+      id: s.id,
+      healthy: true
+    }))
+  };
+}
+
+export async function getInventoryDiagnostics(env) {
+  const state = await readState(env);
+  const vehicles = state?.vehicles || [];
+  const available = vehicles.filter(v => v.status === "available");
+  return {
+    generatedAt: now(),
+    syncedAt: state?.syncedAt || null,
+    counts: {
+      total: vehicles.length,
+      available: available.length,
+      sold: vehicles.filter(v => v.status === "sold").length,
+      unavailable: vehicles.filter(v => v.status === "unavailable").length,
+      withImages: available.filter(v => Boolean(v.directImage)).length,
+      publicReady: available.filter(v => v.mileageMi < MAX_MILES).length,
+      sources: (state?.sources || []).length
+    },
+    issues: []
+  };
+}
