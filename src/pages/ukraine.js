@@ -54,7 +54,7 @@ return `<style>
 @media(max-width:860px){.uk-grid{grid-template-columns:1fr}.price-box{grid-template-columns:1fr}.uk-specs{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.book-grid{grid-template-columns:1fr}}
 
-</style><section class="uk-wrap"><div class="uk-hero"><div class="uk-kicker">ROVIQ • LIVE U.S. VEHICLE APP</div><h1>Trucks selected for Ukraine.</h1><p>Live Chevrolet Silverado and GMC Sierra inventory under 60,000 miles. Source pricing and dealer identity stay private.</p><div class="uk-note"><strong>Inventory-linked.</strong> Dealer feeds are checked automatically. Sold/disappeared vehicles are removed after verification.</div><div class="uk-live">● Last inventory sync: ${synced}</div></div>
+</style><div class="uk-wrap"><div class="uk-hero"><div class="uk-kicker">ROVIQ • LIVE U.S. VEHICLE APP</div><h1>Trucks selected for Ukraine.</h1><p>Live Chevrolet Silverado and GMC Sierra inventory under 60,000 miles. Source pricing and dealer identity stay private.</p><div class="uk-note"><strong>Inventory-linked.</strong> Dealer feeds are checked automatically. Sold/disappeared vehicles are removed after verification.</div><div class="uk-live">● Last inventory sync: ${synced}</div></div>
 ${bookingId?`<div class="success"><strong>Request received.</strong> ROVIQ booking ID: ${bookingId}</div>`:""}
 ${vehicles.length?`<div class="uk-grid">${vehicles.map(card).join("")}</div>`:`<div class="uk-empty">Inventory sync is initializing.</div>`}
-<div class="uk-foot">ROVIQ re-verifies vehicle history, title status, export eligibility and logistics before commitment.</div></section>`}
+<div class="uk-foot">ROVIQ re-verifies vehicle history, title status, export eligibility and logistics before commitment.</div></div>`}
