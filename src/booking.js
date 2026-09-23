@@ -3,7 +3,11 @@ const BOOKINGS_KEY = "vehicle_bookings:v1";
 function esc(s=""){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 async function read(env){const raw=env.CONTENT?await env.CONTENT.get(BOOKINGS_KEY):null;if(!raw)return[];try{return JSON.parse(raw)}catch{return[]}}
 async function write(env,items){if(env.CONTENT)await env.CONTENT.put(BOOKINGS_KEY,JSON.stringify(items))}
-function id(){return "RB-"+Date.now().toString(36).toUpperCase()+"-"+crypto.randomUUID().slice(0,6).toUpperCase()}\nfunction emailOk(v){return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(v)&&v.length<=160}\nfunction clip(v,n){return String(v||"").trim().slice(0,n)}\nfunction clientIp(request){return request.headers.get("cf-connecting-ip")||request.headers.get("x-forwarded-for")||"unknown"}\nasync function rateLimit(request,env){if(!env.CONTENT)return true;const bucket=Math.floor(Date.now()/(10*60*1000));const key="booking_rate:"+clientIp(request)+":"+bucket;const raw=await env.CONTENT.get(key);const count=Number(raw||0);if(count>=5)return false;await env.CONTENT.put(key,String(count+1),{expirationTtl:900});return true;}
+function id(){return "RB-"+Date.now().toString(36).toUpperCase()+"-"+crypto.randomUUID().slice(0,6).toUpperCase()}
+function emailOk(v){return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(v)&&v.length<=160}
+function clip(v,n){return String(v||"").trim().slice(0,n)}
+function clientIp(request){return request.headers.get("cf-connecting-ip")||request.headers.get("x-forwarded-for")||"unknown"}
+async function rateLimit(request,env){if(!env.CONTENT)return true;const bucket=Math.floor(Date.now()/(10*60*1000));const key="booking_rate:"+clientIp(request)+":"+bucket;const raw=await env.CONTENT.get(key);const count=Number(raw||0);if(count>=5)return false;await env.CONTENT.put(key,String(count+1),{expirationTtl:900});return true;}
 
 export async function createBooking(request,env){
   const form=await request.formData();
@@ -12,10 +16,13 @@ export async function createBooking(request,env){
   const email=String(form.get("email")||"").trim();
   const phone=String(form.get("phone")||"").trim();
   const destination=String(form.get("destination")||"Ukraine").trim();
-  const note=String(form.get("note")||"").trim();
+  const note=clip(form.get("note"),1200);
+  if(!(await rateLimit(request,env))) return new Response("Too many requests. Please try again later.",{status:429});
   if(!vehicleId||!name||!email) return new Response("Vehicle, name and email are required.",{status:400});
+  if(!emailOk(email)) return new Response("Please enter a valid email address.",{status:400});
+  const safeName=clip(name,120), safePhone=clip(phone,80), safeDestination=clip(destination,120), safeVehicleId=clip(vehicleId,120);
   const items=await read(env);
-  const booking={id:id(),vehicleId,name,email,phone,destination,note,status:"new",createdAt:new Date().toISOString()};
+  const booking={id:id(),vehicleId:safeVehicleId,name:safeName,email:clip(email,160),phone:safePhone,destination:safeDestination,note,status:"new",createdAt:new Date().toISOString()};
   items.unshift(booking);
   await write(env,items.slice(0,500));
   if(env.BOOKING_WEBHOOK_URL){
