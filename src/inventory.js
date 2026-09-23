@@ -5,14 +5,29 @@ const SOURCE_PLUGINS = [
   {
     id: "carr",
     name: "CARR Chevrolet",
-    inventoryUrl: "https://www.carrchevrolet.com/used-inventory/index.htm",
+    inventoryUrls: [
+      "https://www.carrchevrolet.com/used-inventory/index.htm",
+      "https://www.carrchevrolet.com/certified-inventory/index.htm"
+    ],
     baseUrl: "https://www.carrchevrolet.com"
   },
   {
     id: "ron-tonkin-chevrolet",
     name: "Ron Tonkin Chevrolet",
-    inventoryUrl: "https://www.rontonkinchevrolet.com/used-vehicles/",
+    inventoryUrls: [
+      "https://www.rontonkinchevrolet.com/used-vehicles/"
+    ],
     baseUrl: "https://www.rontonkinchevrolet.com"
+  },
+  {
+    id: "damerow-ford",
+    name: "Damerow Ford",
+    inventoryUrls: [
+      "https://www.damerowford.com/inventory/used-vehicles/models-Ford-F--150/srp-page-1/srp-sort-models--asc/",
+      "https://www.damerowford.com/inventory/used-vehicles/used/",
+      "https://www.damerowford.com/inventory/pre-owned-super-store/"
+    ],
+    baseUrl: "https://www.damerowford.com"
   }
 ];
 
@@ -77,7 +92,7 @@ async function fetchHtml(url) {
 }
 
 function looksLikeListing(url) {
-  return /(silverado|sierra)/i.test(url) && /(used|preowned|pre-owned|vehicle|inventory)/i.test(url);
+  return /(silverado|sierra|f-?150)/i.test(url) && /(used|preowned|pre-owned|vehicle|inventory)/i.test(url);
 }
 
 function discover(html, source) {
@@ -98,8 +113,8 @@ function parseDetail(html, source, url, previous={}) {
   const combined = title+" "+text;
 
   const year = Number((combined.match(/\b(20\d{2})\b/)||[])[1] || previous.year || 0) || null;
-  const make = ((combined.match(/\b(Chevrolet|GMC)\b/i)||[])[1] || previous.make || "").replace(/^./,c=>c.toUpperCase());
-  const model = ((combined.match(/\b(Silverado(?:\s+1500(?:\s+LTD)?|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|Sierra(?:\s+1500|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?)\b/i)||[])[1] || previous.model || "").replace(/\s+/g," ");
+  const make = ((combined.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1] || previous.make || "").replace(/^./,c=>c.toUpperCase());
+  const model = ((combined.match(/\b(Silverado(?:\s+1500(?:\s+LTD)?|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|Sierra(?:\s+1500|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|F-?150(?:\s+Lightning)?)\b/i)||[])[1] || previous.model || "").replace(/\s+/g," ").replace(/^F150$/i,"F-150");
   const mileage = num(first(html,/(?:Odometer|Mileage)[^0-9]{0,80}([0-9][0-9,.]{0,10}\s*(?:mi|miles?))/i) || (combined.match(/\b([0-9][0-9,]{2,6})\s*(?:mi|miles?)\b/i)||[])[1]) ?? previous.mileageMi;
   const vin = ((combined.match(/\b([A-HJ-NPR-Z0-9]{17})\b/)||[])[1] || previous.vin || null);
   const image = extractImage(html) || previous.directImage || null;
@@ -136,17 +151,21 @@ export async function syncVehicleInventory(env) {
   for (const seed of SEEDS) candidates.set(seed.sourceUrl,{sourceId:seed.sourceId,previous:byUrl[seed.sourceUrl]||seed});
 
   for (const source of SOURCE_PLUGINS) {
-    try {
-      const r=await fetchHtml(source.inventoryUrl);
-      if (!r.ok) continue;
-      for (const url of discover(r.html,source)) if(!candidates.has(url)) candidates.set(url,{sourceId:source.id,previous:byUrl[url]||{}});
-    } catch {}
+    for (const inventoryUrl of (source.inventoryUrls || [])) {
+      try {
+        const r=await fetchHtml(inventoryUrl);
+        if (!r.ok) continue;
+        for (const url of discover(r.html,source)) {
+          if(!candidates.has(url)) candidates.set(url,{sourceId:source.id,previous:byUrl[url]||{}});
+        }
+      } catch {}
+    }
   }
 
   const vehicles=[];
   let checks=0;
   for (const [url,metaInfo] of candidates) {
-    if (checks >= 36 && !metaInfo.previous?.id) continue;
+    if (checks >= 90 && !metaInfo.previous?.id) continue;
     const source = SOURCE_PLUGINS.find(s=>s.id===metaInfo.sourceId) || SOURCE_PLUGINS.find(s=>url.startsWith(s.baseUrl));
     if (!source) continue;
     const prev=metaInfo.previous||{};
@@ -172,12 +191,13 @@ export async function syncVehicleInventory(env) {
     }
     if(!v.year||!v.make||!v.model||v.mileageMi==null) continue;
     if(v.mileageMi>=MAX_MILES) continue;
-    if(!/^(Chevrolet|GMC)$/i.test(v.make)||!/(Silverado|Sierra)/i.test(v.model)) continue;
+    if(!/^(Chevrolet|GMC|Ford)$/i.test(v.make)) continue;
+    if(!/(Silverado|Sierra|F-?150)/i.test(v.model)) continue;
     v.id=stableId(v);
     vehicles.push(v);
   }
 
-  const state={version:1,maxMileage:MAX_MILES,syncedAt:now(),sources:SOURCE_PLUGINS.map(({id,name})=>({id,name})),vehicles};
+  const state={version:2,maxMileage:MAX_MILES,syncedAt:now(),sources:SOURCE_PLUGINS.map(({id,name})=>({id,name})),vehicles};
   await saveState(env,state);
   return state;
 }
