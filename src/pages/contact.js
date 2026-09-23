@@ -1,7 +1,7 @@
 import { escapeHtml } from "../layout.js";
 
 export function contactPage(c) {
-  const email = "admytruk79@gmail.com";
+  const email = "admytruk@proton.me";
   return `
 <section class="hero section--tight"><div class="container"><span class="eyebrow">Contact</span><h1>Get in touch</h1><p class="lead">Partnerships, investment, press, brochure requests, project questions and general enquiries.</p></div></section>
 <section class="section"><div class="container"><div class="contact-page-grid"><div><h2>Contact ROVIQ</h2><p>Use the form or email us directly at <a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a>.</p><p>Choose the enquiry type so your message is clear from the start.</p></div><form id="contactForm" class="contact-form">
