@@ -5,7 +5,7 @@ import { stationPage } from "./pages/station.js";
 import { connectionPage } from "./pages/connection.js";
 import { aboutPage } from "./pages/about.js";
 import { contactPage } from "./pages/contact.js";
-import { ukrainePage, handleUkraineVehicleImage } from "./pages/ukraine.js";
+import { ukrainePage } from "./pages/ukraine.js";
 import { getVehicleInventory, getVehicleImageResponse, getPublicInventoryHealth, syncVehicleInventory } from "./inventory.js";
 import { createBooking, listBookings, updateBooking, bookingsAdminPage } from "./booking.js";
 import { vehicleAdminPage, diagnosticsPage, syncNow } from "./admin-vehicles.js";
@@ -92,7 +92,7 @@ export default {
       if (path === "/admin/reset-field" && method === "POST") return handleAdminResetField(request, env);
       if (path === "/admin/upload" && method === "POST") return handleAdminUpload(request, env);
       if (path.startsWith("/uploads/") && method === "GET") return handleUploadedAsset(request, env);
-      if (path.startsWith("/ukraine/image/") && method === "GET") return handleUkraineVehicleImage(request);
+      if (path.startsWith("/ukraine/image/") && method === "GET") return getVehicleImageResponse(request, env);
       if (path === "/ukraine/book" && method === "POST") return createBooking(request, env);
 
       if (path === "/api/vehicles" && method === "GET") {
@@ -143,7 +143,9 @@ export default {
       const page = PAGES[path];
       if (page && method === "GET") {
         const content = await loadAllContent(env);
-        const body = page.render(content);
+        const inventory = path === "/ukraine" ? await getVehicleInventory(env) : null;
+        const bookingId = path === "/ukraine" ? url.searchParams.get("booking") : null;
+        const body = path === "/ukraine" ? page.render(content, inventory, bookingId) : page.render(content);
         const html = renderPage({
           title: page.title,
           description: page.description,
