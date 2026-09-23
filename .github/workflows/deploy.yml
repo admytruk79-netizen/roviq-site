@@ -1,28 +1,43 @@
-name: Deploy Qremyn / Qremyn Station Worker
+name: Deploy ROVIQ Worker
 
-# Manual-only. Cloudflare's own deploy integration already deploys this
-# repo automatically on every push to main — see the "roviq-site" Worker
-# in the dashboard. This workflow is a CLI-based alternative for
-# anyone who'd rather deploy via GitHub Actions instead; it needs
-# CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID as repo secrets before it
-# will succeed (README has details). It no longer runs on push so it can't
-# fail silently in the background if those secrets are never set.
 on:
+  push:
+    branches: [main]
   workflow_dispatch: {}
+
+concurrency:
+  group: roviq-production
+  cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
+
+      - name: Verify Cloudflare deployment credentials
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CF_API_TOKEN" ] || [ -z "$CF_ACCOUNT_ID" ]; then
+            echo "::error::Missing CLOUDFLARE_API_TOKEN and/or CLOUDFLARE_ACCOUNT_ID repository secrets. Live Worker was NOT deployed."
+            exit 1
+          fi
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
+          cache: npm
+
       - run: npm ci
+
       - name: Deploy with Wrangler
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "3.114.17"
+          wranglerVersion: "4.121.0"
           command: deploy
