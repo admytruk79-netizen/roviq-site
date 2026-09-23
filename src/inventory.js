@@ -1,4 +1,5 @@
-import { getPricingConfig, publicPricing } from "./pricing.js";
+import { getPricingConfig } from "./pricing.js";
+import { syncVehicleCosting, publicCosting } from "./costing-db.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
@@ -573,6 +574,8 @@ export async function getVehicleInventory(env) {
     state=await syncVehicleInventory(env);
   }
   const pricingConfig=await getPricingConfig(env);
+  const costingRows=await syncVehicleCosting(env,state.vehicles||[],pricingConfig);
+  const costingById=new Map(costingRows.map(r=>[r.vehicleId,r]));
   let publicVehicles=(state.vehicles||[]).filter(isPublicReady);
   if(publicVehicles.length===0){
     publicVehicles=(state.vehicles||[]).filter(isRenderableVehicle);
@@ -588,7 +591,7 @@ export async function getVehicleInventory(env) {
     transmission:v.transmission||"Automatic",fuel:v.fuel||"Gasoline",exterior:v.exterior||"See photo",
     interior:v.interior||"See details",vinPublic:v.vin?"••••••"+v.vin.slice(-6):"ROVIQ",
     imagePath:"/ukraine/image/"+encodeURIComponent(v.id),lastVerifiedAt:v.lastVerifiedAt,
-    pricing:publicPricing(v,pricingConfig)
+    pricing:publicCosting(costingById.get(v.id))
   }));
   return {syncedAt:state.syncedAt,maxMileage:MAX_MILES,vehicles};
 }
