@@ -1,6 +1,6 @@
 import { requestDealerReservation } from "./inventory.js";
 
-const BOOKINGS_KEY = "vehicle_bookings:v2";
+const BOOKINGS_KEY = "vehicle_bookings:v1";
 const BOOKING_STATUSES = [
   "reservation_requested",
   "dealer_confirmation_pending",
