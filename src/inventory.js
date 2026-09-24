@@ -194,6 +194,25 @@ const SOURCE_PLUGINS = [
     baseUrl: "https://www.bmwofsalem.com"
   },
   {
+    id: "kendall-eugene-fleet",
+    name: "Kendall Ford of Eugene",
+    inventoryUrls: [
+      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=1",
+      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=2",
+      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=3",
+      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=4",
+      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=5",
+      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=6",
+      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=7",
+      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=8",
+      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=9",
+      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=10",
+      "https://oregon-fleet-sales.kendallford.com/Pickup?filters=Chassis.Condition%3AUsed&filters=Chassis.Make%3AFord"
+    ],
+    baseUrl: "https://oregon-fleet-sales.kendallford.com",
+    fleetInventory: true
+  },
+  {
     id: "kendall-ford-vancouver",
     name: "Kendall Ford of Vancouver",
     inventoryUrls: [
@@ -547,6 +566,48 @@ function looksLikeListing(url) {
   return /(silverado|sierra|f-?150)/i.test(url) && /(used|preowned|pre-owned|vehicle|inventory)/i.test(url);
 }
 
+function discoverFleetInventory(html, source, inventoryUrl) {
+  const out=new Map();
+  const vinRe=/\b([A-HJ-NPR-Z0-9]{17})\b/gi;
+  let m;
+  while((m=vinRe.exec(html))){
+    const vin=m[1].toUpperCase();
+    const start=Math.max(0,m.index-5000);
+    const end=Math.min(html.length,m.index+5000);
+    const raw=html.slice(start,end);
+    const text=clean(raw);
+    if(!/\bFord\s+F-?150\b/i.test(text)) continue;
+    const year=Number((text.match(/\b(20\d{2})\s+Ford\s+F-?150\b/i)||[])[1]||0)||null;
+    if(!year) continue;
+    const trim=safeField((text.match(/Vehicle Trim\s+([A-Za-z0-9 -]{1,35})/i)||[])[1]||null);
+    const drivetrain=safeField((text.match(/Drivetrain\s+(4WD|AWD|RWD|2WD|FWD)/i)||[])[1]||null);
+    const transmission=safeField((text.match(/Transmission\s+([^$|]{2,35}?)(?:\s+Color|\s+Vehicle Trim|\s+See More Details|$)/i)||[])[1]||null);
+    const fuel=safeField((text.match(/Fuel Type\s+(Gasoline|Diesel|Hybrid|Electric|Flex Fuel)/i)||[])[1]||null);
+    const color=safeField((text.match(/Color\s+([^$|]{2,35}?)(?:\s+Vehicle Trim|\s+See More Details|$)/i)||[])[1]||null);
+    const usedMileage=num((text.match(/Mileage\s+([0-9,]+)\b/i)||[])[1]);
+    const isUsed=/Condition%3AUsed/i.test(inventoryUrl);
+    const mileageMi=usedMileage!=null ? usedMileage : (isUsed ? null : 0);
+    if(mileageMi==null || mileageMi>=MAX_MILES) continue;
+    const price=num((text.match(/(?:Price\*?|Sale Price|Total Price)\s*\|?\s*\$\s*([0-9,]+)/i)||[])[1]) ||
+      num((text.match(/MSRP\s*\|?\s*\$\s*([0-9,]+)/i)||[])[1]);
+    const directImage=extractImage(raw);
+    const url=inventoryUrl+"#"+vin;
+    out.set(url,{url,hints:{
+      year,make:"Ford",model:"F-150",trim:trim||"",
+      mileageMi,vin,
+      ...(drivetrain?{drivetrain}:{}),
+      ...(transmission?{transmission}:{}),
+      ...(fuel?{fuel}:{}),
+      ...(color?{exterior:color}:{}),
+      ...(price>=1000&&price<=250000?{askingPrice:price}:{}),
+      ...(directImage?{directImage}:{}),
+      status:"available",sourceId:source.id,sourceNameInternal:source.name,firstSeenAt:now()
+    }});
+    if(out.size>=180) break;
+  }
+  return [...out.values()];
+}
+
 function discoverLlmInventory(html, source) {
   const out=new Map();
   for(const match of html.matchAll(/<li\b[^>]*class=["'][^"']*vehicle-item[^"']*["'][^>]*>([\s\S]*?)<\/li>/gi)){
@@ -839,7 +900,7 @@ export async function syncVehicleInventory(env) {
         if (!r.ok) { health.inventoryPagesFailed++; continue; }
         health.inventoryPagesOk++;
         health.lastSuccessAt = now();
-        const found = discover(r.html,source);
+        const found = discover(r.html,source,inventoryUrl);
         health.discovered += found.length;
         for (const item of found) {
           const url=item.url;
