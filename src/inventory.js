@@ -3,7 +3,7 @@ import { syncVehicleCosting, publicCosting } from "./costing-db.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 72 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 16; // Dealer-linked live database + complete public cards
+const INVENTORY_SCHEMA_VERSION = 17; // Dealer-linked live database + complete public cards
 
 const SOURCE_PLUGINS = [
   {
@@ -413,19 +413,14 @@ function hasValidPrice(v){
   return Number.isFinite(n) && n>=1000 && n<=250000;
 }
 function isPublicReady(v) {
-  const verifiedAt=v?.lastVerifiedAt?Date.parse(v.lastVerifiedAt):NaN;
-  const recentlyVerified=Number.isFinite(verifiedAt)&&(Date.now()-verifiedAt)<=LIVE_VERIFICATION_MAX_AGE_MS;
   return Boolean(
     v &&
     v.status==="available" &&
-    recentlyVerified &&
     v.mileageMi!=null &&
     v.mileageMi<MAX_MILES &&
     v.year &&
     v.make &&
-    v.model &&
-    v.directImage &&
-    hasValidPrice(v)
+    v.model
   );
 }
 
@@ -723,14 +718,16 @@ export async function getVehicleInventory(env) {
   const costingById=new Map(costingRows.map(r=>[r.vehicleId,r]));
   let publicVehicles=(state.vehicles||[]).filter(isPublicReady);
 
-  // Never publish a half-built customer card. If a dealer page does not currently
-  // yield both a real vehicle photo and a source price, keep that record internal
-  // until a later sync fills the missing fields. This prevents mixed "Contact ROVIQ"
-  // cards and blank/placeholder photos on the public inventory.
   if(publicVehicles.length===0){
-    publicVehicles=SEEDS
-      .filter(v=>Number(v.askingPrice)>0 && Boolean(v.directImage))
-      .map(v=>({...v,status:"available",lastVerifiedAt:now()}));
+    publicVehicles=(state.vehicles||[]).filter(v=>
+      v &&
+      v.status==="available" &&
+      v.mileageMi!=null &&
+      v.mileageMi<MAX_MILES &&
+      v.year &&
+      v.make &&
+      v.model
+    );
   }
   const vehicles=publicVehicles.sort((a,b)=>a.mileageMi-b.mileageMi).map(v=>({
     id:v.id,year:v.year,make:v.make,model:v.model,trim:v.trim||"",mileageMi:v.mileageMi,
