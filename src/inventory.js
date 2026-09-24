@@ -4,7 +4,7 @@ const INVENTORY_KEY = "vehicle_inventory:v1";
 const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 22; // Force refresh after dealer-source recovery
+const INVENTORY_SCHEMA_VERSION = 23; // Refresh expanded new + used dealer inventory
 
 const SOURCE_PLUGINS = [
   {
@@ -43,6 +43,11 @@ const SOURCE_PLUGINS = [
     id: "beaverton-gmc",
     name: "Buick GMC of Beaverton",
     inventoryUrls: [
+      "https://www.beavertongmc.com/searchnew.aspx",
+      "https://www.beavertongmc.com/searchnew.aspx?pt=2",
+      "https://www.beavertongmc.com/searchnew.aspx?pt=3",
+      "https://www.beavertongmc.com/searchnew.aspx?pt=4",
+      "https://www.beavertongmc.com/searchnew.aspx?pt=5",
       "https://www.beavertongmc.com/searchused.aspx",
       "https://www.beavertongmc.com/searchused.aspx?pt=2",
       "https://www.beavertongmc.com/searchused.aspx?pt=3",
@@ -50,6 +55,7 @@ const SOURCE_PLUGINS = [
     ],
     baseUrl: "https://www.beavertongmc.com",
     detailPatterns: [
+      /\/new-.*sierra/i,
       /\/used-.*(?:silverado|sierra)/i
     ]
   },
@@ -57,13 +63,15 @@ const SOURCE_PLUGINS = [
     id: "damerow-ford",
     name: "Damerow Ford",
     inventoryUrls: [
-      "https://www.damerowford.com/inventory/used-vehicles/models-Ford-F--150/",
-      "https://www.damerowford.com/inventory/used-vehicles/models-Ford-F--150/?page=2",
-      "https://www.damerowford.com/inventory/used-vehicles/models-Ford-F--150/?page=3"
+      "https://www.damerowford.com/inventory/truck-month/models-Ford/",
+      "https://www.damerowford.com/inventory/used-vehicles/used/models-Ford-F--150/srp-sort-price--desc/",
+      "https://www.damerowford.com/inventory/used-vehicles/used/models-Ford-F--150/srp-sort-price--desc/?page=2",
+      "https://www.damerowford.com/inventory/used-vehicles/used/models-Ford-F--150/srp-sort-price--desc/?page=3"
     ],
     baseUrl: "https://www.damerowford.com",
     detailPatterns: [
-      /\/inventory\/(?:certified-)?used-.*f-?150/i
+      /\/inventory\/(?:new|certified-used|used)-.*f-?150/i,
+      /\/inventory\/.*f-?150/i
     ]
   },
   {
@@ -97,12 +105,17 @@ const SOURCE_PLUGINS = [
     id: "auto-town-gmc",
     name: "Auto Town GMC",
     inventoryUrls: [
+      "https://www.autotowngmc.com/searchnew.aspx",
+      "https://www.autotowngmc.com/searchnew.aspx?pt=2",
+      "https://www.autotowngmc.com/searchnew.aspx?pt=3",
+      "https://www.autotowngmc.com/searchnew.aspx?pt=4",
       "https://www.autotowngmc.com/searchused.aspx",
       "https://www.autotowngmc.com/searchused.aspx?pt=2",
       "https://www.autotowngmc.com/searchused.aspx?pt=3"
     ],
     baseUrl: "https://www.autotowngmc.com",
     detailPatterns: [
+      /\/new-.*sierra/i,
       /\/used-.*(?:silverado|sierra)/i
     ]
   },
@@ -126,6 +139,40 @@ const SOURCE_PLUGINS = [
     name: "BMW of Salem",
     inventoryUrls: ["https://www.bmwofsalem.com/used-inventory/used-ford-salem-or.htm"],
     baseUrl: "https://www.bmwofsalem.com"
+  },
+  {
+    id: "dicks-canby-ford",
+    name: "Dick's Canby Ford",
+    inventoryUrls: [
+      "https://www.dickscanbyford.com/searchnew.aspx",
+      "https://www.dickscanbyford.com/searchnew.aspx?pt=2",
+      "https://www.dickscanbyford.com/searchnew.aspx?pt=3",
+      "https://www.dickscanbyford.com/searchnew.aspx?pt=4",
+      "https://www.dickscanbyford.com/searchused.aspx",
+      "https://www.dickscanbyford.com/searchused.aspx?pt=2",
+      "https://www.dickscanbyford.com/searchused.aspx?pt=3"
+    ],
+    baseUrl: "https://www.dickscanbyford.com",
+    detailPatterns: [
+      /\/new-.*f-?150/i,
+      /\/used-.*f-?150/i
+    ]
+  },
+  {
+    id: "northwest-chevrolet",
+    name: "Northwest Chevrolet",
+    inventoryUrls: [
+      "https://www.northwestchevrolet.com/searchnew.aspx",
+      "https://www.northwestchevrolet.com/searchnew.aspx?pt=2",
+      "https://www.northwestchevrolet.com/searchnew.aspx?pt=3",
+      "https://www.northwestchevrolet.com/searchused.aspx",
+      "https://www.northwestchevrolet.com/searchused.aspx?pt=2"
+    ],
+    baseUrl: "https://www.northwestchevrolet.com",
+    detailPatterns: [
+      /\/new-.*silverado/i,
+      /\/used-.*silverado/i
+    ]
   },
   {
     id: "landmark-ford",
@@ -429,7 +476,9 @@ function discover(html, source) {
     const hintYear=Number((contextText.match(/\b(20\d{2})\b/)||[])[1]||0)||null;
     const hintMake=((contextText.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||"");
     const hintModel=((contextText.match(/\b(Silverado(?:\s+1500(?:\s+LTD)?|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|Sierra(?:\s+1500|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|F-?150(?:\s+Lightning)?)\b/i)||[])[1]||"");
-    const hintMileage=num((contextText.match(/\b([0-9][0-9,]{2,6})\s*(?:mi|miles?)\b/i)||[])[1]);
+    const parsedHintMileage=num((contextText.match(/\b([0-9][0-9,]{2,6})\s*(?:mi|miles?)\b/i)||[])[1]);
+    const newVehicleUrl=/(?:\/new[-\/]|\/inventory\/new-)/i.test(url);
+    const hintMileage=parsedHintMileage!=null ? parsedHintMileage : (newVehicleUrl ? 0 : null);
     const hintDrivetrain=safeField((contextText.match(/\b(4WD|4x4|4×4|AWD|RWD|2WD)\b/i)||[])[1]||null);
     const hintEngine=safeField(
       (contextText.match(/\b((?:2\.7L|3\.0L|5\.0L|5\.3L|6\.2L|6\.6L)[^|,;<]{0,45}(?:TurboMax|Duramax|EcoTec3|V8|V-8|diesel|turbo|engine)?)\b/i)||[])[1]||null
