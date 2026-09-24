@@ -4,18 +4,19 @@ const INVENTORY_KEY = "vehicle_inventory:v1";
 const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 21; // Publish only freshly discovered dealer inventory
+const INVENTORY_SCHEMA_VERSION = 22; // Force refresh after dealer-source recovery
 
 const SOURCE_PLUGINS = [
   {
     id: "carr",
     name: "CARR Chevrolet",
     inventoryUrls: [
-      "https://www.carrchevrolet.com/sitemap.htm",
-      "https://www.carrchevrolet.com/test-new-cars-widget.htm",
-      "https://www.carrchevrolet.com/truck-country/index.htm",
+      "https://www.carrchevrolet.com/showroom/2026/Chevrolet/Silverado%201500/Truck.htm",
+      "https://www.carrchevrolet.com/showroom/2026/Chevrolet/Silverado%202500%20HD/Truck.htm",
+      "https://www.carrchevrolet.com/showroom/2026/Chevrolet/Silverado%203500%20HD/Truck.htm",
       "https://www.carrchevrolet.com/used-inventory/index.htm",
-      "https://www.carrchevrolet.com/certified-inventory/index.htm"
+      "https://www.carrchevrolet.com/certified-inventory/index.htm",
+      "https://www.carrchevrolet.com/sitemap.htm"
     ],
     baseUrl: "https://www.carrchevrolet.com",
     detailPatterns: [
@@ -29,12 +30,10 @@ const SOURCE_PLUGINS = [
     id: "ron-tonkin-chevrolet",
     name: "Ron Tonkin Chevrolet",
     inventoryUrls: [
-      "https://www.rontonkinchevrolet.com/used-vehicles/",
-      "https://www.rontonkinchevrolet.com/used-vehicles/page/2/",
-      "https://www.rontonkinchevrolet.com/used-vehicles/page/3/",
-      "https://www.rontonkinchevrolet.com/used-vehicles/page/4/"
+      "https://www.tonkinchevrolet.com/llm/inventory/?limit=100",
+      "https://www.tonkinchevrolet.com/llm/inventory/?limit=100&page=2"
     ],
-    baseUrl: "https://www.rontonkinchevrolet.com",
+    baseUrl: "https://www.tonkinchevrolet.com",
     detailPatterns: [
       /\/inventory\/(?:certified-)?used-.*silverado/i,
       /\/used-.*silverado/i
@@ -127,6 +126,61 @@ const SOURCE_PLUGINS = [
     name: "BMW of Salem",
     inventoryUrls: ["https://www.bmwofsalem.com/used-inventory/used-ford-salem-or.htm"],
     baseUrl: "https://www.bmwofsalem.com"
+  },
+  {
+    id: "landmark-ford",
+    name: "Landmark Ford",
+    inventoryUrls: [
+      "https://www.landmarkford.com/used-vehicles/?_dFR%5Bmodel%5D%5B0%5D=F-150",
+      "https://www.landmarkford.com/used-vehicles/page/2/?_dFR%5Bmodel%5D%5B0%5D=F-150"
+    ],
+    baseUrl: "https://www.landmarkford.com",
+    detailPatterns: [/\/inventory\/(?:certified-)?used-.*f-?150/i]
+  },
+  {
+    id: "tonkin-hillsboro-ford",
+    name: "Tonkin Hillsboro Ford",
+    inventoryUrls: [
+      "https://www.tonkinhillsboroford.com/used-vehicles/?_dFR%5Bmodel%5D%5B0%5D=F-150",
+      "https://www.tonkinhillsboroford.com/used-vehicles/page/2/?_dFR%5Bmodel%5D%5B0%5D=F-150"
+    ],
+    baseUrl: "https://www.tonkinhillsboroford.com",
+    detailPatterns: [/\/inventory\/(?:certified-)?used-.*f-?150/i]
+  },
+  {
+    id: "weston-gmc",
+    name: "Weston Buick GMC",
+    inventoryUrls: [
+      "https://www.westonbuickgmc.com/searchused.aspx?make=GMC&model=Sierra%201500",
+      "https://www.westonbuickgmc.com/searchused.aspx?make=GMC&model=Sierra%201500&pt=2"
+    ],
+    baseUrl: "https://www.westonbuickgmc.com",
+    detailPatterns: [/\/used-.*sierra/i]
+  },
+  {
+    id: "royal-moore-gmc",
+    name: "Royal Moore Buick GMC",
+    inventoryUrls: [
+      "https://www.royalmooregmc.com/used-vehicles/?_dFR%5Bmodel%5D%5B0%5D=Sierra%201500",
+      "https://www.royalmooregmc.com/used-vehicles/page/2/?_dFR%5Bmodel%5D%5B0%5D=Sierra%201500"
+    ],
+    baseUrl: "https://www.royalmooregmc.com",
+    detailPatterns: [/\/inventory\/(?:certified-)?used-.*sierra/i]
+  },
+  {
+    id: "mcloughlin-chevrolet",
+    name: "McLoughlin Chevrolet",
+    inventoryUrls: ["https://www.mcloughlinchevy.com/used-trucks-for-sale-near-portland-or.html"],
+    baseUrl: "https://www.mcloughlinchevy.com"
+  },
+  {
+    id: "westlie-ford",
+    name: "Westlie Ford",
+    inventoryUrls: [
+      "https://www.westlieford.com/llm/inventory/?limit=100",
+      "https://www.westlieford.com/llm/inventory/?limit=100&page=2"
+    ],
+    baseUrl: "https://www.westlieford.com"
   }
 ];
 
@@ -285,7 +339,31 @@ function looksLikeListing(url) {
   return /(silverado|sierra|f-?150)/i.test(url) && /(used|preowned|pre-owned|vehicle|inventory)/i.test(url);
 }
 
+function discoverLlmInventory(html, source) {
+  const out=new Map();
+  for(const match of html.matchAll(/<li\b[^>]*class=["'][^"']*vehicle-item[^"']*["'][^>]*>([\s\S]*?)<\/li>/gi)){
+    const item=match[1];
+    const titleTag=(item.match(/<a\b(?=[^>]*class=["'][^"']*vehicle-title)[^>]*>/i)||[])[0]||"";
+    const url=abs((titleTag.match(/href=["']([^"']+)/i)||[])[1],source.baseUrl);
+    if(!url || !/\/inventory\/(?:used|certified-used)-/i.test(url) || !looksLikeListing(url)) continue;
+    const name=clean((item.match(/itemprop=["']name["'][^>]*>([^<]+)/i)||[])[1]||"");
+    const year=Number((name.match(/\b20\d{2}\b/)||[])[0])||null;
+    const make=(name.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||null;
+    const model=(name.match(/\b(Silverado(?:\s+\d{4}\s*HD|\s+\d{4}HD|\s+EV)?|Sierra(?:\s+\d{4}\s*HD|\s+\d{4}HD)?|F-?150)\b/i)||[])[1]||null;
+    const mileage=num((item.match(/itemprop=["']value["'][^>]*>([^<]+)/i)||[])[1]);
+    const price=num((item.match(/itemprop=["']price["'][^>]*content=["']([0-9,.]+)/i)||[])[1]);
+    const vin=(item.match(/itemprop=["']vehicleIdentificationNumber["'][^>]*content=["']([A-HJ-NPR-Z0-9]{17})/i)||[])[1]||null;
+    if(!year || !make || !model || mileage==null) continue;
+    out.set(url,{url,hints:{year,make,model,mileageMi:mileage,
+      ...(price>=1000&&price<=250000?{askingPrice:price}:{}),...(vin?{vin}:{}),
+      sourceId:source.id,sourceNameInternal:source.name,status:"available",firstSeenAt:now()}});
+    if(out.size>=180) break;
+  }
+  return [...out.values()];
+}
+
 function discover(html, source) {
+  if((source.inventoryUrls||[]).some(u=>/\/llm\/inventory\//.test(u))) return discoverLlmInventory(html,source);
   const out = new Map();
   // Several dealer search pages publish vehicle records in JSON-LD rather
   // than ordinary anchors. Read those records before scanning links.
