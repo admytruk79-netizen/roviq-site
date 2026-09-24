@@ -75,7 +75,7 @@ const PAGES = {
   "/ukraine": {
     render: ukrainePage,
     title: "ROVIQ — U.S. Vehicle Selection for Ukraine",
-    description: "Curated low-mileage U.S. vehicles selected by ROVIQ for export to Ukraine, with verified customer-facing specifications."
+    description: "Dealer-sourced U.S. trucks for Ukraine. Prices, availability, vehicle history and specifications require confirmation before purchase."
   }
 };
 
