@@ -1,0 +1,59 @@
+name: Refresh vehicle inventory
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/inventory.js'
+      - 'scripts/sync-inventory.mjs'
+      - '.github/workflows/sync-inventory.yml'
+  schedule:
+    - cron: '47 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: roviq-inventory-sync
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Fetch dealer inventory and publish to Cloudflare KV
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/sync-inventory.mjs
+
+      - name: Verify customer inventory
+        run: |
+          set -euo pipefail
+          BASE="https://roviq-site.admytruk79.workers.dev"
+          curl -fsS --retry 4 --retry-delay 3 --max-time 120 "$BASE/api/inventory-health" -o /tmp/health.json
+          curl -fsS --retry 4 --retry-delay 3 --max-time 60 "$BASE/api/vehicles" -o /tmp/vehicles.json
+          node - <<'NODE'
+          const fs=require("fs");
+          const h=JSON.parse(fs.readFileSync("/tmp/health.json","utf8"));
+          const v=JSON.parse(fs.readFileSync("/tmp/vehicles.json","utf8"));
+          const vehicles=Array.isArray(v.vehicles)?v.vehicles:[];
+          console.log(JSON.stringify({
+            syncedAt:v.syncedAt||h.syncedAt,
+            databaseRows:v.databaseRows,
+            publicVehicles:vehicles.length,
+            candidateCap:v.candidateCap,
+            counts:h.counts,
+            sources:h.sources
+          },null,2));
+          if(vehicles.length<10) throw new Error("Public inventory below minimum threshold");
+          NODE
