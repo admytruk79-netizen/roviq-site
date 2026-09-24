@@ -1,17 +1,13 @@
 const PRICING_KEY = "vehicle_pricing_config:v1";
 
 export const DEFAULT_PRICING = {
-  marginPercent: 8.5,
-  minimumMargin: 3500,
-  riskReserve: 750,
+  processingFee: 3500,
   shippingLow: 5000,
   shippingHigh: 7000,
-  roundTo: 100,
-  configVersion: 4
+  configVersion: 5
 };
 
 function money(n){ return Math.round(Number(n)||0); }
-function roundUp(n, step){ step=Math.max(1,Number(step)||100); return Math.ceil(n/step)*step; }
 
 export async function getPricingConfig(env){
   if(!env.CONTENT) return {...DEFAULT_PRICING};
@@ -19,36 +15,17 @@ export async function getPricingConfig(env){
   if(!raw) return {...DEFAULT_PRICING};
   try {
     const saved=JSON.parse(raw);
-    const isLegacyDefault =
-      !saved.configVersion &&
-      Number(saved.marginPercent)===9 &&
-      Number(saved.minimumMargin)===3500 &&
-      Number(saved.riskReserve)===750;
-    if(isLegacyDefault){
-      const migrated={...DEFAULT_PRICING};
+    if(Number(saved.configVersion||0)<5 || saved.processingFee==null){
+      const migrated={
+        processingFee:Number(saved.processingFee ?? saved.minimumMargin ?? DEFAULT_PRICING.processingFee)||DEFAULT_PRICING.processingFee,
+        shippingLow:Number(saved.shippingLow ?? DEFAULT_PRICING.shippingLow)||DEFAULT_PRICING.shippingLow,
+        shippingHigh:Number(saved.shippingHigh ?? DEFAULT_PRICING.shippingHigh)||DEFAULT_PRICING.shippingHigh,
+        configVersion:5
+      };
       await env.CONTENT.put(PRICING_KEY,JSON.stringify(migrated));
       return migrated;
     }
-    const wasPreviousShippingDefault =
-      Number(saved.configVersion||0) < 3 &&
-      Number(saved.shippingLow)===3000 &&
-      Number(saved.shippingHigh)===5500;
-    if(wasPreviousShippingDefault){
-      const migrated={...DEFAULT_PRICING,...saved,shippingLow:5000,shippingHigh:7000,configVersion:3};
-      await env.CONTENT.put(PRICING_KEY,JSON.stringify(migrated));
-      return migrated;
-    }
-    const wasPreviousPricingDefault =
-      Number(saved.configVersion||0) < 4 &&
-      Number(saved.marginPercent)===7.5 &&
-      Number(saved.minimumMargin)===3000 &&
-      Number(saved.riskReserve)===500;
-    if(wasPreviousPricingDefault){
-      const migrated={...DEFAULT_PRICING,...saved,marginPercent:8.5,minimumMargin:3500,riskReserve:750,configVersion:4};
-      await env.CONTENT.put(PRICING_KEY,JSON.stringify(migrated));
-      return migrated;
-    }
-    return {...DEFAULT_PRICING,...saved};
+    return {...DEFAULT_PRICING,...saved,configVersion:5};
   } catch {
     return {...DEFAULT_PRICING};
   }
@@ -56,8 +33,8 @@ export async function getPricingConfig(env){
 
 export async function savePricingConfig(env, input){
   const current=await getPricingConfig(env);
-  const next={...current};
-  for(const key of Object.keys(DEFAULT_PRICING)){
+  const next={...current,configVersion:5};
+  for(const key of ["processingFee","shippingLow","shippingHigh"]){
     if(input[key]!==undefined && input[key]!==null && input[key]!==""){
       const n=Number(input[key]);
       if(Number.isFinite(n) && n>=0) next[key]=n;
@@ -68,35 +45,35 @@ export async function savePricingConfig(env, input){
 }
 
 export function calculateVehiclePricing(vehicle, config){
-  const ask=Number(vehicle.askingPrice||0);
-  if(!ask) return {
+  const dealerPrice=money(vehicle.askingPrice||0);
+  const processingFee=money(config.processingFee);
+  const shippingLow=money(config.shippingLow);
+  const shippingHigh=money(config.shippingHigh);
+
+  if(!dealerPrice) return {
     hasPrice:false,
+    dealerPrice:null,
     vehiclePrice:null,
-    shippingLow:money(config.shippingLow),
-    shippingHigh:money(config.shippingHigh),
+    processingFee,
+    subtotal:null,
+    shippingLow,
+    shippingHigh,
     totalLow:null,
     totalHigh:null
   };
 
-  const margin=Math.max(
-    Number(config.minimumMargin)||0,
-    ask*((Number(config.marginPercent)||0)/100)
-  );
-  const vehiclePrice=roundUp(ask+margin+(Number(config.riskReserve)||0),config.roundTo);
-  const shippingLow=money(config.shippingLow);
-  const shippingHigh=money(config.shippingHigh);
+  const subtotal=dealerPrice+processingFee;
   return {
     hasPrice:true,
-    vehiclePrice,
+    dealerPrice,
+    vehiclePrice:dealerPrice,
+    processingFee,
+    subtotal,
     shippingLow,
     shippingHigh,
-    totalLow:vehiclePrice+shippingLow,
-    totalHigh:vehiclePrice+shippingHigh,
-    internal:{
-      acquisitionBaseline:ask,
-      grossMarginBeforeReserve:margin,
-      riskReserve:Number(config.riskReserve)||0
-    }
+    totalLow:subtotal+shippingLow,
+    totalHigh:subtotal+shippingHigh,
+    internal:{acquisitionBaseline:dealerPrice}
   };
 }
 
