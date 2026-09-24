@@ -181,6 +181,12 @@ export default {
       if (page && method === "GET") {
         const content = await loadAllContent(env);
         const inventory = path === "/ukraine" ? searchVehicleInventory(await getVehicleInventory(env),url.searchParams) : null;
+        if(path === "/ukraine"){
+          const syncAge=inventory?.syncedAt ? Date.now()-Date.parse(inventory.syncedAt) : Infinity;
+          if(Number(inventory?.databaseRows||0)<20 || !Number.isFinite(syncAge) || syncAge>15*60*1000){
+            ctx.waitUntil(syncVehicleInventory(env));
+          }
+        }
         const bookingId = path === "/ukraine" ? url.searchParams.get("booking") : null;
         const unavailableId = path === "/ukraine" ? url.searchParams.get("unavailable") : null;
         const body = path === "/ukraine" ? page.render(content, inventory, bookingId, unavailableId,false,url.searchParams) : page.render(content);
