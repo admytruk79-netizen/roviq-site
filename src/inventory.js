@@ -4,7 +4,7 @@ const INVENTORY_KEY = "vehicle_inventory:v1";
 const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 72 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 19; // Refresh after dealer detail parser correction
+const INVENTORY_SCHEMA_VERSION = 20; // Discover the additional dealer sources
 
 const SOURCE_PLUGINS = [
   {
@@ -872,6 +872,7 @@ export async function getVehicleInventory(env) {
   }));
 
   return {
+    version:liveDatabase?.version||state?.version||null,
     syncedAt:liveDatabase?.syncedAt||state?.syncedAt||null,
     maxMileage:MAX_MILES,
     databaseRows:databaseRows.length,
