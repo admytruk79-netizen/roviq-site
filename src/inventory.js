@@ -126,6 +126,46 @@ const SOURCE_PLUGINS = [
     baseUrl: "https://www.bmwofsalem.com"
   },
   {
+    id: "landmark-ford",
+    name: "Landmark Ford",
+    inventoryUrls: [
+      "https://www.landmarkford.com/used-vehicles/?_dFR%5Bmodel%5D%5B0%5D=F-150",
+      "https://www.landmarkford.com/used-vehicles/page/2/?_dFR%5Bmodel%5D%5B0%5D=F-150"
+    ],
+    baseUrl: "https://www.landmarkford.com",
+    detailPatterns: [/\/inventory\/(?:certified-)?used-.*f-?150/i]
+  },
+  {
+    id: "tonkin-hillsboro-ford",
+    name: "Tonkin Hillsboro Ford",
+    inventoryUrls: [
+      "https://www.tonkinhillsboroford.com/used-vehicles/?_dFR%5Bmodel%5D%5B0%5D=F-150",
+      "https://www.tonkinhillsboroford.com/used-vehicles/page/2/?_dFR%5Bmodel%5D%5B0%5D=F-150"
+    ],
+    baseUrl: "https://www.tonkinhillsboroford.com",
+    detailPatterns: [/\/inventory\/(?:certified-)?used-.*f-?150/i]
+  },
+  {
+    id: "weston-gmc",
+    name: "Weston Buick GMC",
+    inventoryUrls: [
+      "https://www.westonbuickgmc.com/searchused.aspx?make=GMC&model=Sierra%201500",
+      "https://www.westonbuickgmc.com/searchused.aspx?make=GMC&model=Sierra%201500&pt=2"
+    ],
+    baseUrl: "https://www.westonbuickgmc.com",
+    detailPatterns: [/\/used-.*sierra/i]
+  },
+  {
+    id: "royal-moore-gmc",
+    name: "Royal Moore Buick GMC",
+    inventoryUrls: [
+      "https://www.royalmooregmc.com/used-vehicles/?_dFR%5Bmodel%5D%5B0%5D=Sierra%201500",
+      "https://www.royalmooregmc.com/used-vehicles/page/2/?_dFR%5Bmodel%5D%5B0%5D=Sierra%201500"
+    ],
+    baseUrl: "https://www.royalmooregmc.com",
+    detailPatterns: [/\/inventory\/(?:certified-)?used-.*sierra/i]
+  },
+  {
     id: "mcloughlin-chevrolet",
     name: "McLoughlin Chevrolet",
     inventoryUrls: ["https://www.mcloughlinchevy.com/used-trucks-for-sale-near-portland-or.html"],
