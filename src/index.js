@@ -81,7 +81,9 @@ const PAGES = {
 
 export default {
   async scheduled(controller, env, ctx) {
-    ctx.waitUntil(syncVehicleInventory(env));
+    // Dealer refresh runs from the GitHub runner, which can reach dealer inventory
+    // endpoints reliably and publishes the verified snapshot to Cloudflare KV.
+    return;
   },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -182,10 +184,8 @@ export default {
         const content = await loadAllContent(env);
         const inventory = path === "/ukraine" ? searchVehicleInventory(await getVehicleInventory(env),url.searchParams) : null;
         if(path === "/ukraine"){
-          const syncAge=inventory?.syncedAt ? Date.now()-Date.parse(inventory.syncedAt) : Infinity;
-          if(Number(inventory?.version||0)<20 || Number(inventory?.databaseRows||0)<20 || !Number.isFinite(syncAge) || syncAge>15*60*1000){
-            ctx.waitUntil(syncVehicleInventory(env));
-          }
+          // Serve the last verified external-sync snapshot. Do not scrape dealers
+          // from the Cloudflare request path; blocked dealer egress can shrink KV.
         }
         const bookingId = path === "/ukraine" ? url.searchParams.get("booking") : null;
         const unavailableId = path === "/ukraine" ? url.searchParams.get("unavailable") : null;
