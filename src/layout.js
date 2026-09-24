@@ -5,7 +5,7 @@ const NAV_LINKS = [
   { href: "/roviq", label: "Platform" },
   { href: "/station", label: "Station" },
   { href: "/#vehicle-local", label: "Vehicle Local" },
-  { href: "/ukraine", label: "Ukraine Vehicles" },
+  { href: "/ukraine", label: "Live Inventory" },
   { href: "/about", label: "About" },
   { href: "/#team", label: "Team" },
   { href: "/contact", label: "Contact" }
