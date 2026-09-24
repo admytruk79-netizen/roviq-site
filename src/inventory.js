@@ -3,7 +3,7 @@ import { syncVehicleCosting, publicCosting } from "./costing-db.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 72 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 15; // Dealer-linked live database + complete public cards
+const INVENTORY_SCHEMA_VERSION = 16; // Dealer-linked live database + complete public cards
 
 const SOURCE_PLUGINS = [
   {
@@ -648,8 +648,49 @@ export async function syncVehicleInventory(env) {
   })).filter(isRenderableVehicle);
 
   const mergedByUrl=new Map(discoveredRows.map(v=>[v.sourceUrl,v]));
-  for(const v of retainedVehicles) mergedByUrl.set(v.sourceUrl,{...(mergedByUrl.get(v.sourceUrl)||{}),...v});
-  const liveDatabaseRows=[...mergedByUrl.values()].slice(0,180);
+  for(const v of retainedVehicles){
+    const discovered=mergedByUrl.get(v.sourceUrl);
+    if(!discovered){
+      mergedByUrl.set(v.sourceUrl,v);
+      continue;
+    }
+
+    // SRP discovery is authoritative for "currently in dealer inventory".
+    // A VDP/detail parser may fail to enrich engine/drivetrain without meaning
+    // the vehicle disappeared. Do not let an "incomplete" enrichment result
+    // overwrite a live, customer-usable dealer discovery row.
+    const explicitRemoval = v.status==="sold" || v.status==="unavailable" || v.status==="filtered";
+    const discoveredCustomerReady = Boolean(
+      discovered.year &&
+      discovered.make &&
+      discovered.model &&
+      discovered.mileageMi!=null &&
+      discovered.mileageMi<MAX_MILES &&
+      discovered.directImage &&
+      hasValidPrice(discovered)
+    );
+
+    if(v.status==="incomplete" && discoveredCustomerReady){
+      mergedByUrl.set(v.sourceUrl,{
+        ...discovered,
+        ...v,
+        status:"available",
+        incompleteReason:null,
+        enrichmentPending:true,
+        lastDiscoveredAt:discovered.lastDiscoveredAt||now(),
+        lastVerifiedAt:v.lastVerifiedAt||discovered.lastVerifiedAt||now()
+      });
+    } else {
+      mergedByUrl.set(v.sourceUrl,{
+        ...discovered,
+        ...v,
+        status:explicitRemoval ? v.status : (v.status||discovered.status||"available")
+      });
+    }
+  }
+  const liveDatabaseRows=[...mergedByUrl.values()]
+    .filter(v=>v.status!=="sold" && v.status!=="unavailable")
+    .slice(0,180);
 
   const finalVehicles=liveDatabaseRows.length>0 ? liveDatabaseRows : emergencySeeds;
   const state={
