@@ -472,9 +472,12 @@ function hasValidPrice(v){
   return Number.isFinite(n) && n>=1000 && n<=250000;
 }
 function isPublicReady(v) {
+  const discoveredAt=Date.parse(v?.lastDiscoveredAt||"");
+  const freshDiscovery=Number.isFinite(discoveredAt) && (Date.now()-discoveredAt)<=LIVE_VERIFICATION_MAX_AGE_MS;
   return Boolean(
     v &&
     v.status==="available" &&
+    freshDiscovery &&
     v.mileageMi!=null &&
     v.mileageMi<MAX_MILES &&
     v.year &&
@@ -508,10 +511,11 @@ async function saveLiveDatabase(env, database) {
 
 export async function syncVehicleInventory(env) {
   const old = await readState(env);
-  const oldVehicles = old?.vehicles || SEEDS.map(v=>({...v,status:"available",missCount:0,firstSeenAt:now()}));
+  const oldVehicles = old?.vehicles || [];
   const byUrl = Object.fromEntries(oldVehicles.map(v=>[v.sourceUrl,v]));
-  const candidates = new Map(oldVehicles.map(v=>[v.sourceUrl,{sourceId:v.sourceId,previous:v}]));
-  for (const seed of SEEDS) candidates.set(seed.sourceUrl,{sourceId:seed.sourceId,previous:byUrl[seed.sourceUrl]||seed});
+  // Only URLs discovered from dealer inventory pages in this sync enter the live database.
+  // Previous rows are used only to enrich rediscovered vehicles; seeds never count as live inventory.
+  const candidates = new Map();
 
   const previousSources = Object.fromEntries((old?.sources || []).map(s => [s.id, s]));
   const sourceHealth = {};
@@ -743,16 +747,6 @@ export async function syncVehicleInventory(env) {
     return preserved;
   }
 
-  // Emergency floor for a previously-corrupted/empty store: retain source-linked seed vehicles
-  // rather than rendering a blank customer page. They remain subject to live re-verification.
-  const emergencySeeds=SEEDS.map(v=>({
-    ...v,
-    status:"available",
-    missCount:0,
-    firstSeenAt:v.firstSeenAt||now(),
-    lastVerifiedAt:v.lastVerifiedAt||now()
-  })).filter(isRenderableVehicle);
-
   const mergedByUrl=new Map(discoveredRows.map(v=>[v.sourceUrl,v]));
   for(const v of retainedVehicles){
     const discovered=mergedByUrl.get(v.sourceUrl);
@@ -798,7 +792,7 @@ export async function syncVehicleInventory(env) {
     .filter(v=>v.status!=="sold" && v.status!=="unavailable")
     .slice(0,180);
 
-  const finalVehicles=liveDatabaseRows.length>0 ? liveDatabaseRows : emergencySeeds;
+  const finalVehicles=liveDatabaseRows;
   const state={
     version:INVENTORY_SCHEMA_VERSION,
     maxMileage:MAX_MILES,
@@ -838,10 +832,6 @@ export async function getVehicleInventory(env) {
     id:v.id||stableId(v),
     status:v.status||"available"
   }));
-
-  if(databaseRows.length===0){
-    databaseRows=SEEDS.map(v=>({...v,status:"available",lastVerifiedAt:null}));
-  }
 
   const pricingConfig=await getPricingConfig(env);
   const costingRows=await syncVehicleCosting(env,databaseRows,pricingConfig);
