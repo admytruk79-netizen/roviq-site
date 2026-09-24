@@ -848,16 +848,7 @@ export async function getVehicleInventory(env) {
   const costingById=new Map(costingRows.map(r=>[r.vehicleId,r]));
 
   const publicVehicles=databaseRows
-    .filter(v=>
-      v &&
-      v.status!=="sold" &&
-      v.status!=="unavailable" &&
-      v.status!=="filtered" &&
-      v.year &&
-      v.make &&
-      v.model &&
-      (v.mileageMi==null || v.mileageMi<MAX_MILES)
-    )
+    .filter(isPublicReady)
     .sort((a,b)=>(a.mileageMi??999999)-(b.mileageMi??999999))
     .slice(0,180);
 
