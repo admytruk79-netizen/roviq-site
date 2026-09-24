@@ -19,8 +19,8 @@ export async function syncVehicleCosting(env, vehicles, config){
   for(const v of (vehicles||[])){
     if(!v?.id) continue;
     const prior=byId.get(v.id)||{};
-    const acquisitionPrice=Number(v.askingPrice||prior.acquisitionPrice||0) || null;
-    if(!acquisitionPrice && !prior.acquisitionPrice) continue;
+    const acquisitionPrice=Number(v.askingPrice||prior.acquisitionPrice||prior.dealerPrice||0) || null;
+    if(!acquisitionPrice && !prior.acquisitionPrice && !prior.dealerPrice) continue;
 
     const input={...v,askingPrice:acquisitionPrice};
     const calc=calculateVehiclePricing(input,config);
@@ -29,13 +29,11 @@ export async function syncVehicleCosting(env, vehicles, config){
       vin:v.vin||prior.vin||null,
       sourceId:v.sourceId||prior.sourceId||null,
       acquisitionPrice,
-      marginPercent:Number(config.marginPercent)||0,
-      minimumMargin:Number(config.minimumMargin)||0,
-      riskReserve:Number(config.riskReserve)||0,
+      dealerPrice:calc.dealerPrice,
+      processingFee:Number(config.processingFee)||0,
       shippingLow:Number(config.shippingLow)||0,
       shippingHigh:Number(config.shippingHigh)||0,
-      roundTo:Number(config.roundTo)||100,
-      roviqVehiclePrice:calc.vehiclePrice,
+      customerSubtotal:calc.subtotal,
       deliveredLow:calc.totalLow,
       deliveredHigh:calc.totalHigh,
       updatedAt:now(),
@@ -47,9 +45,7 @@ export async function syncVehicleCosting(env, vehicles, config){
   return rows;
 }
 
-export async function getVehicleCosting(env){
-  return read(env);
-}
+export async function getVehicleCosting(env){ return read(env); }
 
 export async function getCostingMap(env){
   const rows=await read(env);
@@ -57,15 +53,23 @@ export async function getCostingMap(env){
 }
 
 export function publicCosting(record){
-  if(!record || !Number(record.roviqVehiclePrice)) return {
+  const dealerPrice=Number(record?.dealerPrice||record?.acquisitionPrice||0);
+  if(!record || !dealerPrice) return {
     hasPrice:false,
+    dealerPrice:null,
     vehiclePrice:null,
+    processingFee:Number(record?.processingFee||0),
+    subtotal:null,
     shippingLow:Number(record?.shippingLow||0),
     shippingHigh:Number(record?.shippingHigh||0)
   };
+  const processingFee=Number(record.processingFee||0);
   return {
     hasPrice:true,
-    vehiclePrice:Number(record.roviqVehiclePrice),
+    dealerPrice,
+    vehiclePrice:dealerPrice,
+    processingFee,
+    subtotal:dealerPrice+processingFee,
     shippingLow:Number(record.shippingLow||0),
     shippingHigh:Number(record.shippingHigh||0)
   };
