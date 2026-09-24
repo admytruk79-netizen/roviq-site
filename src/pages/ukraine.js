@@ -1,6 +1,7 @@
 import { bookingForm } from "../booking.js";
 
 function km(mi){return Math.round(mi*1.60934).toLocaleString("en-US")}
+function esc(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function priceLabel(pricing){return pricing?.hasPrice && Number.isFinite(pricing.vehiclePrice) ? "&#36;"+pricing.vehiclePrice.toLocaleString("en-US") : "Request current price"}
 function shippingLabel(pricing){return pricing?.hasPrice && Number.isFinite(pricing.shippingLow) && Number.isFinite(pricing.shippingHigh) ? "&#36;"+pricing.shippingLow.toLocaleString("en-US")+"–&#36;"+pricing.shippingHigh.toLocaleString("en-US") : "Request shipping quote"}
 function card(v){return `
@@ -8,7 +9,8 @@ function card(v){return `
 <div class="uk-photo"><img src="${v.imagePath}" alt="${v.year} ${v.make} ${v.model}" loading="eager" fetchpriority="high" decoding="async"><div class="uk-badge">${v.mileageMi<10000?"ULTRA-LOW MILEAGE":"UNDER 60,000 MILES"}</div></div>
 <div class="uk-info"><div class="uk-id">${v.id} • U.S. DEALER LISTING</div><h2>${v.year} ${v.make} ${v.model}</h2><div class="uk-sub">${v.trim||""}${v.trim?" • ":""}${v.drivetrain} • ${v.engine}</div>
 <div class="price-box"><div><span>ROVIQ vehicle price</span><strong>${priceLabel(v.pricing)}</strong><small>Dealer acquisition + ROVIQ coordination margin</small></div><div><span>Estimated shipping to Rijeka</span><strong>${shippingLabel(v.pricing)}</strong><small><a href="/contact">Contact ROVIQ for the final delivered quote</a></small></div></div>\n<div class="uk-specs"><div class="uk-spec"><span>Mileage</span><strong>${v.mileageMi.toLocaleString("en-US")} mi / ${km(v.mileageMi)} km</strong></div><div class="uk-spec"><span>Engine</span><strong>${v.engine}</strong></div><div class="uk-spec"><span>Drivetrain</span><strong>${v.drivetrain}</strong></div><div class="uk-spec"><span>Transmission</span><strong>${v.transmission}</strong></div><div class="uk-spec"><span>Fuel</span><strong>${v.fuel}</strong></div><div class="uk-spec"><span>Exterior</span><strong>${v.exterior}</strong></div><div class="uk-spec"><span>Interior</span><strong>${v.interior}</strong></div><div class="uk-spec"><span>Vehicle ID</span><strong>${v.vinPublic}</strong></div></div>
-<details class="reserve"><summary>Reserve / request this vehicle</summary>${bookingForm(v)}</details>
+${v.dealerUrl?`<div class="dealer-action"><a class="uk-btn primary" href="${esc(v.dealerUrl)}" target="_blank" rel="noopener noreferrer">Open at ${esc(v.dealerName||"dealership")} ↗</a><small>Use the dealer’s booking or contact options on its vehicle page. Availability and any hold are confirmed by the dealer.</small></div>`:""}
+<details class="reserve"><summary>Request help from ROVIQ</summary>${bookingForm(v)}</details>
 </div></article>`}
 
 export function ukrainePage(content,inventory,bookingId,unavailableId){
@@ -43,6 +45,7 @@ return `<style>
 .uk-spec span{display:block;font-size:9px;text-transform:uppercase;font-weight:800;color:#8193a4;margin-bottom:4px}
 .uk-spec strong{font-size:12px;color:#e6edf1}
 .reserve{margin-top:17px;border-top:1px solid rgba(200,146,69,.18);padding-top:14px}
+.dealer-action{display:flex;flex-wrap:wrap;align-items:center;gap:9px 14px;margin-top:17px}.dealer-action small{display:block;flex:1 1 220px;color:#aebdc8;font-size:12px;line-height:1.45}
 .reserve summary{cursor:pointer;font-weight:800;color:#e1b770}
 .book-panel{padding-top:14px}
 .book-panel p{font-size:12px;color:#9ba8b3}
