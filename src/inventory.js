@@ -114,6 +114,18 @@ const SOURCE_PLUGINS = [
       "https://www.motorpdx.com/ford-for-sale"
     ],
     baseUrl: "https://www.motorpdx.com"
+  },
+  {
+    id: "doherty-ford",
+    name: "Doherty Ford",
+    inventoryUrls: ["https://www.doherty-ford.com/used-inventory/index.htm"],
+    baseUrl: "https://www.doherty-ford.com"
+  },
+  {
+    id: "bmw-of-salem",
+    name: "BMW of Salem",
+    inventoryUrls: ["https://www.bmwofsalem.com/used-inventory/used-ford-salem-or.htm"],
+    baseUrl: "https://www.bmwofsalem.com"
   }
 ];
 
@@ -284,8 +296,10 @@ function discover(html, source) {
         const node=queue.shift();
         if(!node || typeof node!=="object") continue;
         if(Array.isArray(node["@graph"])) queue.push(...node["@graph"]);
+        if(node.about && typeof node.about==="object") queue.push(...(Array.isArray(node.about)?node.about:[node.about]));
         if(Array.isArray(node.itemListElement)) queue.push(...node.itemListElement);
         if(Array.isArray(node.offers?.itemOffered)) queue.push(...node.offers.itemOffered);
+        else if(node.offers?.itemOffered && typeof node.offers.itemOffered==="object") queue.push(node.offers.itemOffered);
         if(node.item && typeof node.item==="object") queue.push(node.item);
         const rawUrl=node.url||node.offers?.url;
         const url=rawUrl && abs(rawUrl,source.baseUrl);
@@ -299,11 +313,15 @@ function discover(html, source) {
         const price=num(rawPrice);
         const mileage=num(node.mileageFromOdometer?.value??node.mileageFromOdometer);
         const vin=node.vehicleIdentificationNumber||node.identifier;
+        const engine=safeField(typeof node.vehicleEngine==="string"?node.vehicleEngine:node.vehicleEngine?.name||node.vehicleEngine?.engineDisplacement?.value);
+        const drivetrain=safeField(node.driveWheelConfiguration);
         const prior=out.get(url)||{};
         out.set(url,{...prior,...(year?{year}:{}),...(make?{make}:{}),...(model?{model}:{}),
           ...(typeof image==="string"?{directImage:image}:{}),
           ...(price>=1000&&price<=250000?{askingPrice:price}:{}),
           ...(mileage!=null?{mileageMi:mileage}:{}),
+          ...(engine?{engine}:{}),
+          ...(drivetrain?{drivetrain}:{}),
           ...(typeof vin==="string"&&/^[A-HJ-NPR-Z0-9]{17}$/i.test(vin)?{vin}:{}),
           status:"available",sourceId:source.id,sourceNameInternal:source.name,
           firstSeenAt:prior.firstSeenAt||now()});
@@ -859,8 +877,6 @@ export async function getVehicleInventory(env) {
     vinPublic:v.vin?"••••••"+v.vin.slice(-6):"ROVIQ",
     imagePath:"/ukraine/image/"+encodeURIComponent(v.id),
     lastVerifiedAt:v.lastVerifiedAt||v.lastDiscoveredAt||null,
-    dealerUrl:v.sourceUrl||null,
-    dealerName:v.sourceNameInternal||null,
     pricing:publicCosting(costingById.get(v.id))
   }));
 
