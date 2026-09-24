@@ -471,6 +471,16 @@ function stableId(v) {
   return "ROVIQ-US-"+Math.abs(h);
 }
 
+function dealerListingUrl(v) {
+  const source=SOURCE_PLUGINS.find(s=>s.id===v.sourceId);
+  if(!source || !v.sourceUrl) return null;
+  try {
+    const listing=new URL(v.sourceUrl);
+    const dealer=new URL(source.baseUrl);
+    return listing.protocol==="https:" && listing.hostname===dealer.hostname ? listing.href : null;
+  } catch { return null; }
+}
+
 async function readState(env) {
   const raw = env.CONTENT ? await env.CONTENT.get(INVENTORY_KEY) : null;
   if (!raw) return null;
@@ -784,6 +794,8 @@ export async function getVehicleInventory(env) {
     transmission:v.transmission||"Automatic",fuel:v.fuel||"Gasoline",exterior:v.exterior||"See photo",
     interior:v.interior||"See details",vinPublic:v.vin?"••••••"+v.vin.slice(-6):"ROVIQ",
     imagePath:"/ukraine/image/"+encodeURIComponent(v.id),lastVerifiedAt:v.lastVerifiedAt,
+    dealerUrl:dealerListingUrl(v),
+    dealerName:SOURCE_PLUGINS.find(s=>s.id===v.sourceId)?.name||null,
     pricing:publicCosting(costingById.get(v.id))
   }));
   return {syncedAt:state.syncedAt,maxMileage:MAX_MILES,vehicles};
