@@ -2,8 +2,8 @@ import { getPricingConfig } from "./pricing.js";
 import { syncVehicleCosting, publicCosting } from "./costing-db.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
-const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 13;
+const LIVE_VERIFICATION_MAX_AGE_MS = 72 * 60 * 60 * 1000;
+const INVENTORY_SCHEMA_VERSION = 14;
 
 const SOURCE_PLUGINS = [
   {
@@ -254,17 +254,35 @@ function looksLikeListing(url) {
 }
 
 function discover(html, source) {
-  const out = new Set();
+  const out = new Map();
   const re = /href=["']([^"']+)["']/gi;
   let m;
   while ((m = re.exec(html))) {
     const u = abs(m[1], source.baseUrl);
     if (!u) continue;
-    const customMatch=(source.detailPatterns||[]).some(p=>p.test(u));
-    if (customMatch || looksLikeListing(u)) out.add(u.split("#")[0]);
-    if (out.size >= 40) break;
+    const url=u.split("#")[0];
+    const customMatch=(source.detailPatterns||[]).some(p=>p.test(url));
+    if (!(customMatch || looksLikeListing(url))) continue;
+
+    // Dealer search-result pages often expose price/photo even when the VDP hides them
+    // behind client-side rendering or anti-bot middleware. Capture those hints here so
+    // the public card can still be complete after the detail-page verification succeeds.
+    const start=Math.max(0,m.index-4500), end=Math.min(html.length,m.index+9000);
+    const context=html.slice(start,end);
+    const hintImage=extractImage(context);
+    const hintPrice=extractAskingPrice(context) ||
+      numericAttr(context,["data-price","data-sale-price","data-vehicle-price","data-internet-price","data-msrp","data-final-price"]);
+    const hintVin=((clean(context).match(/\b([A-HJ-NPR-Z0-9]{17})\b/)||[])[1]||null);
+    const existing=out.get(url)||{};
+    out.set(url,{
+      ...existing,
+      ...(hintImage?{directImage:hintImage}:{}),
+      ...(hintPrice?{askingPrice:hintPrice}:{}),
+      ...(hintVin?{vin:hintVin}:{})
+    });
+    if (out.size >= 80) break;
   }
-  return [...out];
+  return [...out.entries()].map(([url,hints])=>({url,hints}));
 }
 
 function parseJsonLdVehicle(html) {
@@ -352,6 +370,10 @@ function isRenderableVehicle(v) {
   );
 }
 
+function hasValidPrice(v){
+  const n=Number(v?.askingPrice||0);
+  return Number.isFinite(n) && n>=1000 && n<=250000;
+}
 function isPublicReady(v) {
   const verifiedAt=v?.lastVerifiedAt?Date.parse(v.lastVerifiedAt):NaN;
   const recentlyVerified=Number.isFinite(verifiedAt)&&(Date.now()-verifiedAt)<=LIVE_VERIFICATION_MAX_AGE_MS;
@@ -365,7 +387,9 @@ function isPublicReady(v) {
     v.make &&
     v.model &&
     safeField(v.engine) &&
-    safeField(v.drivetrain)
+    safeField(v.drivetrain) &&
+    v.directImage &&
+    hasValidPrice(v)
   );
 }
 
@@ -415,8 +439,15 @@ export async function syncVehicleInventory(env) {
         health.lastSuccessAt = now();
         const found = discover(r.html,source);
         health.discovered += found.length;
-        for (const url of found) {
-          if(!candidates.has(url)) candidates.set(url,{sourceId:source.id,previous:byUrl[url]||{}});
+        for (const item of found) {
+          const url=item.url;
+          const prior=byUrl[url]||{};
+          const hinted={...prior,...item.hints};
+          if(!candidates.has(url)) candidates.set(url,{sourceId:source.id,previous:hinted});
+          else {
+            const existing=candidates.get(url);
+            candidates.set(url,{...existing,sourceId:existing.sourceId||source.id,previous:{...(existing.previous||{}),...item.hints}});
+          }
         }
       } catch { health.inventoryPagesFailed++; }
     }
@@ -424,7 +455,7 @@ export async function syncVehicleInventory(env) {
 
   const candidateEntries = [...candidates.entries()]
     .sort((a,b) => Number(Boolean(b[1].previous?.id)) - Number(Boolean(a[1].previous?.id)))
-    .slice(0,72);
+    .slice(0,180);
 
   async function inspectCandidate(entry) {
     const [url,metaInfo] = entry;
@@ -491,7 +522,7 @@ export async function syncVehicleInventory(env) {
   }
 
   const vehicles=[];
-  const concurrency=6;
+  const concurrency=10;
   for(let i=0;i<candidateEntries.length;i+=concurrency){
     const batch=candidateEntries.slice(i,i+concurrency);
     const results=await Promise.all(batch.map(inspectCandidate));
@@ -507,7 +538,8 @@ export async function syncVehicleInventory(env) {
     if(!existing){ deduped.set(key,v); continue; }
     const score=x =>
       (x.status==="available"?100:0) +
-      (x.directImage?20:0) +
+      (x.directImage?25:0) +
+      (hasValidPrice(x)?25:0) +
       (x.engine?5:0) +
       (x.lastVerifiedAt?Math.min(10,Math.max(0,10-(Date.now()-Date.parse(x.lastVerifiedAt))/86400000)):0);
     if(score(v)>score(existing)) deduped.set(key,v);
@@ -577,12 +609,14 @@ export async function getVehicleInventory(env) {
   const costingRows=await syncVehicleCosting(env,state.vehicles||[],pricingConfig);
   const costingById=new Map(costingRows.map(r=>[r.vehicleId,r]));
   let publicVehicles=(state.vehicles||[]).filter(isPublicReady);
-  if(publicVehicles.length===0){
-    publicVehicles=(state.vehicles||[]).filter(isRenderableVehicle);
-  }
+
+  // Never publish a half-built customer card. If a dealer page does not currently
+  // yield both a real vehicle photo and a source price, keep that record internal
+  // until a later sync fills the missing fields. This prevents mixed "Contact ROVIQ"
+  // cards and blank/placeholder photos on the public inventory.
   if(publicVehicles.length===0){
     publicVehicles=SEEDS
-      .filter(v=>Number(v.askingPrice)>0)
+      .filter(v=>Number(v.askingPrice)>0 && Boolean(v.directImage))
       .map(v=>({...v,status:"available",lastVerifiedAt:now()}));
   }
   const vehicles=publicVehicles.sort((a,b)=>a.mileageMi-b.mileageMi).map(v=>({
@@ -614,7 +648,9 @@ export async function getPublicInventoryHealth(env) {
       publicReady: vehicles.filter(isPublicReady).length,
       sold: vehicles.filter(v=>v.status==="sold").length,
       unavailable: vehicles.filter(v=>v.status==="unavailable").length,
-      withImages: vehicles.filter(v=>v.status==="available" && Boolean(v.directImage)).length
+      withImages: vehicles.filter(v=>v.status==="available" && Boolean(v.directImage)).length,
+      withPrices: vehicles.filter(v=>v.status==="available" && hasValidPrice(v)).length,
+      customerReady: vehicles.filter(isPublicReady).length
     },
     sources: (state.sources||[]).map(s=>({
       id:s.id,
@@ -772,6 +808,8 @@ export async function getInventoryDiagnostics(env) {
       unavailable:vehicles.filter(v=>v.status==="unavailable").length,
       withImages:available.filter(v=>Boolean(v.directImage)).length,
       publicReady:available.filter(isPublicReady).length,
+      withPrices:available.filter(hasValidPrice).length,
+      customerReady:available.filter(isPublicReady).length,
       sources:(state.sources||[]).length
     },
     issues:[...sourceIssues,...issues]
