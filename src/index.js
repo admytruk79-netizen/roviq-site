@@ -6,7 +6,7 @@ import { connectionPage } from "./pages/connection.js";
 import { aboutPage } from "./pages/about.js";
 import { contactPage } from "./pages/contact.js";
 import { ukrainePage } from "./pages/ukraine.js";
-import { getVehicleInventory, getVehicleImageResponse, getPublicInventoryHealth, syncVehicleInventory } from "./inventory.js";
+import { getVehicleInventory, searchVehicleInventory, getVehicleImageResponse, getPublicInventoryHealth, syncVehicleInventory } from "./inventory.js";
 import { createBooking, listBookings, updateBooking, bookingsAdminPage } from "./booking.js";
 import { vehicleAdminPage, syncNow } from "./admin-vehicles.js";
 import { pricingAdminPage, savePricing } from "./admin-pricing.js";
@@ -101,9 +101,20 @@ export default {
       if (path.startsWith("/uploads/") && method === "GET") return handleUploadedAsset(request, env);
       if (path.startsWith("/ukraine/image/") && method === "GET") return getVehicleImageResponse(request, env);
       if (path === "/ukraine/book" && method === "POST") return createBooking(request, env);
+      if (path === "/ukraine/request" && method === "GET") {
+        const inventory=await getVehicleInventory(env);
+        const selected=inventory.vehicles.find(v=>v.id===url.searchParams.get("vehicle"))||(!url.searchParams.has("vehicle")?inventory.vehicles[0]:null);
+        const content=await loadAllContent(env);
+        const body=ukrainePage(content,{...inventory,vehicles:selected?[selected]:[]},null,null,true);
+        return new Response(renderPage({
+          title:"ROVIQ — Request a Vehicle",
+          description:"Request a vehicle from ROVIQ's U.S. inventory for Ukraine.",
+          activePath:"/ukraine",body
+        }),{status:selected||!inventory.vehicles.length?200:404,headers:secureHeaders({"content-type":"text/html;charset=UTF-8","cache-control":"no-store"})});
+      }
 
       if (path === "/api/vehicles" && method === "GET") {
-        return Response.json(await getVehicleInventory(env), {
+        return Response.json(searchVehicleInventory(await getVehicleInventory(env),url.searchParams), {
           headers: secureHeaders({ "cache-control": "no-store", "access-control-allow-origin": "*" })
         });
       }
@@ -169,10 +180,10 @@ export default {
       const page = PAGES[path];
       if (page && method === "GET") {
         const content = await loadAllContent(env);
-        const inventory = path === "/ukraine" ? await getVehicleInventory(env) : null;
+        const inventory = path === "/ukraine" ? searchVehicleInventory(await getVehicleInventory(env),url.searchParams) : null;
         const bookingId = path === "/ukraine" ? url.searchParams.get("booking") : null;
         const unavailableId = path === "/ukraine" ? url.searchParams.get("unavailable") : null;
-        const body = path === "/ukraine" ? page.render(content, inventory, bookingId, unavailableId) : page.render(content);
+        const body = path === "/ukraine" ? page.render(content, inventory, bookingId, unavailableId,false,url.searchParams) : page.render(content);
         const html = renderPage({
           title: page.title,
           description: page.description,
