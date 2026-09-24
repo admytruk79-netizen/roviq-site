@@ -272,6 +272,7 @@ function extractImage(html) {
 async function fetchHtml(url) {
   const r = await fetch(url, {
     redirect:"follow",
+    signal:AbortSignal.timeout(12000),
     headers:{
       "user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
       "accept":"text/html,application/xhtml+xml"
@@ -519,6 +520,7 @@ export async function syncVehicleInventory(env) {
 
   const previousSources = Object.fromEntries((old?.sources || []).map(s => [s.id, s]));
   const sourceHealth = {};
+  const inventoryPages=[];
   for (const source of SOURCE_PLUGINS) {
     const health = sourceHealth[source.id] = {
       id: source.id,
@@ -534,10 +536,14 @@ export async function syncVehicleInventory(env) {
       rejectedMileage: 0,
       rejectedMakeModel: 0
     };
-    for (const inventoryUrl of (source.inventoryUrls || [])) {
+    for (const inventoryUrl of (source.inventoryUrls || [])) inventoryPages.push({source,inventoryUrl,health});
+  }
+  // Bound total duration when a dealer blocks requests or leaves a socket open.
+  for(let i=0;i<inventoryPages.length;i+=6){
+    await Promise.all(inventoryPages.slice(i,i+6).map(async ({source,inventoryUrl,health})=>{
       try {
         const r=await fetchHtml(inventoryUrl);
-        if (!r.ok) { health.inventoryPagesFailed++; continue; }
+        if (!r.ok) { health.inventoryPagesFailed++; return; }
         health.inventoryPagesOk++;
         health.lastSuccessAt = now();
         const found = discover(r.html,source);
@@ -553,7 +559,7 @@ export async function syncVehicleInventory(env) {
           }
         }
       } catch { health.inventoryPagesFailed++; }
-    }
+    }));
   }
 
   // Balance the 180-vehicle catalogue across every healthy source instead of
@@ -810,6 +816,14 @@ export async function syncVehicleInventory(env) {
     .slice(0,180);
 
   const finalVehicles=liveDatabaseRows;
+  for(const source of sources){
+    const matching=finalVehicles.filter(v=>v.sourceId===source.id);
+    source.availableVehicles=matching.filter(v=>v.status==="available").length;
+    source.publicReadyVehicles=matching.filter(isPublicReady).length;
+    source.incompleteVehicles=matching.filter(v=>v.status==="incomplete").length;
+    source.filteredVehicles=matching.filter(v=>v.status==="filtered").length;
+    source.totalVehicles=matching.length;
+  }
   const state={
     version:INVENTORY_SCHEMA_VERSION,
     maxMileage:MAX_MILES,
@@ -904,12 +918,7 @@ export function searchVehicleInventory(inventory, params) {
 }
 
 export async function getPublicInventoryHealth(env) {
-  let state=await readState(env);
-  const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
-  const hasRenderableStoredInventory=Boolean((state?.vehicles||[]).some(isRenderableVehicle));
-  if(!state || state.version!==INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age > 30*60*1000 || !hasRenderableStoredInventory) {
-    state=await syncVehicleInventory(env);
-  }
+  const state=(await readState(env))||{vehicles:[],sources:[]};
   const vehicles=state.vehicles||[];
   return {
     version: state.version,
@@ -946,12 +955,7 @@ export async function getPublicInventoryHealth(env) {
 }
 
 export async function getInventoryAdmin(env) {
-  let state=await readState(env);
-  const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
-  if(!state || state.version!==INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age>15*60*1000 || Number(state.databaseRows||0)<20){
-    state=await syncVehicleInventory(env);
-  }
-  return state;
+  return (await readState(env))||{vehicles:[],sources:[]};
 }
 
 export async function checkVehicleAvailability(env, vehicleId) {
