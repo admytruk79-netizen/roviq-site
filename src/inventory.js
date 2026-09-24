@@ -3,7 +3,7 @@ import { syncVehicleCosting, publicCosting } from "./costing-db.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 72 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 14; // Public inventory v14: price + photo completeness
+const INVENTORY_SCHEMA_VERSION = 15; // Dealer-linked live database + complete public cards
 
 const SOURCE_PLUGINS = [
   {
@@ -11,6 +11,10 @@ const SOURCE_PLUGINS = [
     name: "CARR Chevrolet",
     inventoryUrls: [
       "https://www.carrchevrolet.com/used-inventory/index.htm",
+      "https://www.carrchevrolet.com/used-inventory/index.htm?start=18",
+      "https://www.carrchevrolet.com/used-inventory/index.htm?start=36",
+      "https://www.carrchevrolet.com/used-inventory/index.htm?start=54",
+      "https://www.carrchevrolet.com/used-inventory/index.htm?start=72",
       "https://www.carrchevrolet.com/used-inventory/index.htm?make=Chevrolet&model=Silverado+1500",
       "https://www.carrchevrolet.com/used-inventory/index.htm?make=Chevrolet&model=Silverado+2500+HD",
       "https://www.carrchevrolet.com/certified-inventory/index.htm",
@@ -23,7 +27,10 @@ const SOURCE_PLUGINS = [
     id: "ron-tonkin-chevrolet",
     name: "Ron Tonkin Chevrolet",
     inventoryUrls: [
-      "https://www.rontonkinchevrolet.com/used-vehicles/"
+      "https://www.rontonkinchevrolet.com/used-vehicles/",
+      "https://www.rontonkinchevrolet.com/used-vehicles/page/2/",
+      "https://www.rontonkinchevrolet.com/used-vehicles/page/3/",
+      "https://www.rontonkinchevrolet.com/used-vehicles/page/4/"
     ],
     baseUrl: "https://www.rontonkinchevrolet.com",
     detailPatterns: [
@@ -35,7 +42,10 @@ const SOURCE_PLUGINS = [
     id: "beaverton-gmc",
     name: "Buick GMC of Beaverton",
     inventoryUrls: [
-      "https://www.beavertongmc.com/searchused.aspx"
+      "https://www.beavertongmc.com/searchused.aspx",
+      "https://www.beavertongmc.com/searchused.aspx?Page=2",
+      "https://www.beavertongmc.com/searchused.aspx?Page=3",
+      "https://www.beavertongmc.com/searchused.aspx?Page=4"
     ],
     baseUrl: "https://www.beavertongmc.com",
     detailPatterns: [
@@ -46,7 +56,9 @@ const SOURCE_PLUGINS = [
     id: "damerow-ford",
     name: "Damerow Ford",
     inventoryUrls: [
-      "https://www.damerowford.com/inventory/used-vehicles/models-Ford-F--150/"
+      "https://www.damerowford.com/inventory/used-vehicles/models-Ford-F--150/",
+      "https://www.damerowford.com/inventory/used-vehicles/models-Ford-F--150/?page=2",
+      "https://www.damerowford.com/inventory/used-vehicles/models-Ford-F--150/?page=3"
     ],
     baseUrl: "https://www.damerowford.com",
     detailPatterns: [
@@ -57,7 +69,9 @@ const SOURCE_PLUGINS = [
     id: "northside-ford",
     name: "Northside Ford",
     inventoryUrls: [
-      "https://www.northsideford.net/inventory/used-vehicles/models-Ford-F--150/"
+      "https://www.northsideford.net/inventory/used-vehicles/models-Ford-F--150/",
+      "https://www.northsideford.net/inventory/used-vehicles/models-Ford-F--150/?page=2",
+      "https://www.northsideford.net/inventory/used-vehicles/models-Ford-F--150/?page=3"
     ],
     baseUrl: "https://www.northsideford.net",
     detailPatterns: [
@@ -69,7 +83,9 @@ const SOURCE_PLUGINS = [
     id: "courtesy-ford",
     name: "Courtesy Ford",
     inventoryUrls: [
-      "https://www.courtesyford.com/used-vehicles/"
+      "https://www.courtesyford.com/used-vehicles/",
+      "https://www.courtesyford.com/used-vehicles/page/2/",
+      "https://www.courtesyford.com/used-vehicles/page/3/"
     ],
     baseUrl: "https://www.courtesyford.com",
     detailPatterns: [
@@ -80,7 +96,9 @@ const SOURCE_PLUGINS = [
     id: "auto-town-gmc",
     name: "Auto Town GMC",
     inventoryUrls: [
-      "https://www.autotowngmc.com/searchused.aspx"
+      "https://www.autotowngmc.com/searchused.aspx",
+      "https://www.autotowngmc.com/searchused.aspx?Page=2",
+      "https://www.autotowngmc.com/searchused.aspx?Page=3"
     ],
     baseUrl: "https://www.autotowngmc.com",
     detailPatterns: [
@@ -269,16 +287,36 @@ function discover(html, source) {
     // the public card can still be complete after the detail-page verification succeeds.
     const start=Math.max(0,m.index-4500), end=Math.min(html.length,m.index+9000);
     const context=html.slice(start,end);
+    const contextText=clean(context);
     const hintImage=extractImage(context);
     const hintPrice=extractAskingPrice(context) ||
       numericAttr(context,["data-price","data-sale-price","data-vehicle-price","data-internet-price","data-msrp","data-final-price"]);
-    const hintVin=((clean(context).match(/\b([A-HJ-NPR-Z0-9]{17})\b/)||[])[1]||null);
+    const hintVin=((contextText.match(/\b([A-HJ-NPR-Z0-9]{17})\b/)||[])[1]||null);
+    const hintYear=Number((contextText.match(/\b(20\d{2})\b/)||[])[1]||0)||null;
+    const hintMake=((contextText.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||"");
+    const hintModel=((contextText.match(/\b(Silverado(?:\s+1500(?:\s+LTD)?|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|Sierra(?:\s+1500|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|F-?150(?:\s+Lightning)?)\b/i)||[])[1]||"");
+    const hintMileage=num((contextText.match(/\b([0-9][0-9,]{2,6})\s*(?:mi|miles?)\b/i)||[])[1]);
+    const hintDrivetrain=safeField((contextText.match(/\b(4WD|4x4|4×4|AWD|RWD|2WD)\b/i)||[])[1]||null);
+    const hintEngine=safeField(
+      (contextText.match(/\b((?:2\.7L|3\.0L|5\.0L|5\.3L|6\.2L|6\.6L)[^|,;<]{0,45}(?:TurboMax|Duramax|EcoTec3|V8|V-8|diesel|turbo|engine)?)\b/i)||[])[1]||null
+    );
     const existing=out.get(url)||{};
     out.set(url,{
       ...existing,
       ...(hintImage?{directImage:hintImage}:{}),
       ...(hintPrice?{askingPrice:hintPrice}:{}),
-      ...(hintVin?{vin:hintVin}:{})
+      ...(hintVin?{vin:hintVin}:{}),
+      ...(hintYear?{year:hintYear}:{}),
+      ...(hintMake?{make:hintMake.replace(/^./,x=>x.toUpperCase())}:{}),
+      ...(hintModel?{model:hintModel.replace(/\s+/g," ").replace(/^F150$/i,"F-150")}:{}),
+      ...(hintMileage!=null?{mileageMi:hintMileage}:{}),
+      ...(hintDrivetrain?{drivetrain:hintDrivetrain}:{}),
+      ...(hintEngine?{engine:hintEngine}:{}),
+      status:"available",
+      lastVerifiedAt:now(),
+      firstSeenAt:existing.firstSeenAt||now(),
+      sourceNameInternal:source.name,
+      sourceId:source.id
     });
     if (out.size >= 80) break;
   }
@@ -386,8 +424,6 @@ function isPublicReady(v) {
     v.year &&
     v.make &&
     v.model &&
-    safeField(v.engine) &&
-    safeField(v.drivetrain) &&
     v.directImage &&
     hasValidPrice(v)
   );
@@ -456,6 +492,25 @@ export async function syncVehicleInventory(env) {
   const candidateEntries = [...candidates.entries()]
     .sort((a,b) => Number(Boolean(b[1].previous?.id)) - Number(Boolean(a[1].previous?.id)))
     .slice(0,180);
+
+  // Persist the live dealer discovery set itself, not only the subset whose VDP
+  // detail page happens to parse perfectly in this run. This is the actual dealer-
+  // linked inventory database; detail verification enriches these rows afterward.
+  const discoveredRows=candidateEntries.map(([url,metaInfo])=>{
+    const source=SOURCE_PLUGINS.find(s=>s.id===metaInfo.sourceId)||SOURCE_PLUGINS.find(s=>url.startsWith(s.baseUrl));
+    const prior=metaInfo.previous||{};
+    const row={
+      ...prior,
+      sourceId:source?.id||prior.sourceId||null,
+      sourceNameInternal:source?.name||prior.sourceNameInternal||null,
+      sourceUrl:url,
+      status:prior.status||"available",
+      firstSeenAt:prior.firstSeenAt||now(),
+      lastDiscoveredAt:now()
+    };
+    row.id=stableId(row);
+    return row;
+  });
 
   async function inspectCandidate(entry) {
     const [url,metaInfo] = entry;
@@ -592,8 +647,20 @@ export async function syncVehicleInventory(env) {
     lastVerifiedAt:v.lastVerifiedAt||now()
   })).filter(isRenderableVehicle);
 
-  const finalVehicles=usableNew.length>0 ? retainedVehicles : emergencySeeds;
-  const state={version:INVENTORY_SCHEMA_VERSION,maxMileage:MAX_MILES,syncedAt:now(),sources,vehicles:finalVehicles};
+  const mergedByUrl=new Map(discoveredRows.map(v=>[v.sourceUrl,v]));
+  for(const v of retainedVehicles) mergedByUrl.set(v.sourceUrl,{...(mergedByUrl.get(v.sourceUrl)||{}),...v});
+  const liveDatabaseRows=[...mergedByUrl.values()].slice(0,180);
+
+  const finalVehicles=liveDatabaseRows.length>0 ? liveDatabaseRows : emergencySeeds;
+  const state={
+    version:INVENTORY_SCHEMA_VERSION,
+    maxMileage:MAX_MILES,
+    syncedAt:now(),
+    candidateCap:180,
+    databaseRows:finalVehicles.length,
+    sources,
+    vehicles:finalVehicles
+  };
   await saveState(env,state);
   return state;
 }
@@ -602,7 +669,7 @@ export async function getVehicleInventory(env) {
   let state=await readState(env);
   const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
   const hasRenderableStoredInventory=Boolean((state?.vehicles||[]).some(isRenderableVehicle));
-  if(!state || !Number.isFinite(age) || age > 30*60*1000 || !hasRenderableStoredInventory) {
+  if(!state || state.version!==INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age > 15*60*1000 || !hasRenderableStoredInventory || Number(state.databaseRows||0)<20) {
     state=await syncVehicleInventory(env);
   }
   const pricingConfig=await getPricingConfig(env);
@@ -673,7 +740,12 @@ export async function getPublicInventoryHealth(env) {
 }
 
 export async function getInventoryAdmin(env) {
-  let state=await readState(env); if(!state) state=await syncVehicleInventory(env); return state;
+  let state=await readState(env);
+  const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
+  if(!state || state.version!==INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age>15*60*1000 || Number(state.databaseRows||0)<20){
+    state=await syncVehicleInventory(env);
+  }
+  return state;
 }
 
 export async function checkVehicleAvailability(env, vehicleId) {
