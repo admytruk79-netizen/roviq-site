@@ -3,7 +3,7 @@ import { syncVehicleCosting, publicCosting } from "./costing-db.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 72 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 17; // Dealer-linked live database + complete public cards
+const INVENTORY_SCHEMA_VERSION = 18; // Dealer-linked live database + complete public cards
 
 const SOURCE_PLUGINS = [
   {
@@ -702,10 +702,18 @@ export async function syncVehicleInventory(env) {
 }
 
 export async function getVehicleInventory(env) {
-  // Public inventory reads must never block on live dealer scraping.
-  // Serve the last stored snapshot immediately; scheduled/admin sync refreshes it separately.
   let state=await readState(env);
-  if(!state || !Array.isArray(state.vehicles)) {
+  const storedCount=Array.isArray(state?.vehicles)?state.vehicles.length:0;
+  const databaseCount=Number(state?.databaseRows||storedCount||0);
+
+  // Do not keep serving an under-populated snapshot forever.
+  // If the dealer-linked database is missing or has fewer than 20 rows,
+  // rebuild it from the configured dealer sources before rendering.
+  if(!state || !Array.isArray(state.vehicles) || databaseCount<20){
+    state=await syncVehicleInventory(env);
+  }
+
+  if(!state || !Array.isArray(state.vehicles)){
     state={
       version:INVENTORY_SCHEMA_VERSION,
       syncedAt:null,
@@ -713,6 +721,7 @@ export async function getVehicleInventory(env) {
       vehicles:SEEDS.map(v=>({...v,status:"available",lastVerifiedAt:null}))
     };
   }
+
   const pricingConfig=await getPricingConfig(env);
   const costingRows=await syncVehicleCosting(env,state.vehicles||[],pricingConfig);
   const costingById=new Map(costingRows.map(r=>[r.vehicleId,r]));
