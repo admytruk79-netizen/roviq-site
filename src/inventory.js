@@ -3,7 +3,7 @@ import { syncVehicleCosting, publicCosting } from "./costing-db.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
 const MAX_MILES = 60000;
-const LIVE_VERIFICATION_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const INVENTORY_SCHEMA_VERSION = 21; // Publish only freshly discovered dealer inventory
 
 const SOURCE_PLUGINS = [
@@ -697,7 +697,7 @@ export async function syncVehicleInventory(env) {
   // Keep each sync under Cloudflare's external-subrequest ceiling.
   // Discovery already consumes ~30 dealer requests, so enrich a rotating batch
   // of 12 VDPs per run. Every run republishes the full discovery database first.
-  const detailBatchSize=12;
+  const detailBatchSize=24;
   const previousCursor=Number(old?.detailCursor||0);
   const start=candidateEntries.length ? (previousCursor % candidateEntries.length) : 0;
   const detailEntries=candidateEntries.length
