@@ -146,6 +146,12 @@ export default {
         if (method === "GET") return new Response(await vehicleAdminPage(env), { headers: { "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" } });
         return new Response("Method not allowed", { status: 405 });
       }
+      if (path === "/api/inventory-refresh" && method === "POST") {
+        const token = request.headers.get("x-roviq-sync-token") || "";
+        if (!env.INVENTORY_SYNC_TOKEN || token !== env.INVENTORY_SYNC_TOKEN) return new Response("Unauthorized", { status: 401 });
+        const state = await syncVehicleInventory(env);
+        return Response.json({ ok:true, syncedAt:state.syncedAt, databaseRows:state.databaseRows, sources:state.sources?.map(s=>({id:s.id,discovered:s.discovered,publicReadyVehicles:s.publicReadyVehicles}))||[] }, { headers: secureHeaders({ "cache-control":"no-store" }) });
+      }
       if (path === "/admin/vehicles/sync" && method === "POST") {
         if (!(await isAuthed(request, env))) return new Response("Unauthorized", { status: 401 });
         return syncNow(env);
