@@ -493,6 +493,25 @@ export async function syncVehicleInventory(env) {
     .sort((a,b) => Number(Boolean(b[1].previous?.id)) - Number(Boolean(a[1].previous?.id)))
     .slice(0,180);
 
+  // Persist the live dealer discovery set itself, not only the subset whose VDP
+  // detail page happens to parse perfectly in this run. This is the actual dealer-
+  // linked inventory database; detail verification enriches these rows afterward.
+  const discoveredRows=candidateEntries.map(([url,metaInfo])=>{
+    const source=SOURCE_PLUGINS.find(s=>s.id===metaInfo.sourceId)||SOURCE_PLUGINS.find(s=>url.startsWith(s.baseUrl));
+    const prior=metaInfo.previous||{};
+    const row={
+      ...prior,
+      sourceId:source?.id||prior.sourceId||null,
+      sourceNameInternal:source?.name||prior.sourceNameInternal||null,
+      sourceUrl:url,
+      status:prior.status||"available",
+      firstSeenAt:prior.firstSeenAt||now(),
+      lastDiscoveredAt:now()
+    };
+    row.id=stableId(row);
+    return row;
+  });
+
   async function inspectCandidate(entry) {
     const [url,metaInfo] = entry;
     const source = SOURCE_PLUGINS.find(s=>s.id===metaInfo.sourceId) || SOURCE_PLUGINS.find(s=>url.startsWith(s.baseUrl));
@@ -628,8 +647,20 @@ export async function syncVehicleInventory(env) {
     lastVerifiedAt:v.lastVerifiedAt||now()
   })).filter(isRenderableVehicle);
 
-  const finalVehicles=usableNew.length>0 ? retainedVehicles : emergencySeeds;
-  const state={version:INVENTORY_SCHEMA_VERSION,maxMileage:MAX_MILES,syncedAt:now(),sources,vehicles:finalVehicles};
+  const mergedByUrl=new Map(discoveredRows.map(v=>[v.sourceUrl,v]));
+  for(const v of retainedVehicles) mergedByUrl.set(v.sourceUrl,{...(mergedByUrl.get(v.sourceUrl)||{}),...v});
+  const liveDatabaseRows=[...mergedByUrl.values()].slice(0,180);
+
+  const finalVehicles=liveDatabaseRows.length>0 ? liveDatabaseRows : emergencySeeds;
+  const state={
+    version:INVENTORY_SCHEMA_VERSION,
+    maxMileage:MAX_MILES,
+    syncedAt:now(),
+    candidateCap:180,
+    databaseRows:finalVehicles.length,
+    sources,
+    vehicles:finalVehicles
+  };
   await saveState(env,state);
   return state;
 }
