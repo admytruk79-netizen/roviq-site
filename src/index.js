@@ -183,7 +183,7 @@ export default {
         const inventory = path === "/ukraine" ? searchVehicleInventory(await getVehicleInventory(env),url.searchParams) : null;
         if(path === "/ukraine"){
           const syncAge=inventory?.syncedAt ? Date.now()-Date.parse(inventory.syncedAt) : Infinity;
-          if(Number(inventory?.databaseRows||0)<20 || !Number.isFinite(syncAge) || syncAge>15*60*1000){
+          if(Number(inventory?.version||0)<20 || Number(inventory?.databaseRows||0)<20 || !Number.isFinite(syncAge) || syncAge>15*60*1000){
             ctx.waitUntil(syncVehicleInventory(env));
           }
         }
