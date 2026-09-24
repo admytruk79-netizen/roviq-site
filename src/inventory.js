@@ -1198,12 +1198,7 @@ export function searchVehicleInventory(inventory, params) {
 }
 
 export async function getPublicInventoryHealth(env) {
-  let state=await readState(env);
-  const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
-  const hasRenderableStoredInventory=Boolean((state?.vehicles||[]).some(isRenderableVehicle));
-  if(!state || state.version!==INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age > 30*60*1000 || !hasRenderableStoredInventory) {
-    state=await syncVehicleInventory(env);
-  }
+  const state=(await readState(env))||{version:INVENTORY_SCHEMA_VERSION,syncedAt:null,maxMileage:MAX_MILES,sources:[],vehicles:[]};
   const vehicles=state.vehicles||[];
   return {
     version: state.version,
@@ -1240,12 +1235,15 @@ export async function getPublicInventoryHealth(env) {
 }
 
 export async function getInventoryAdmin(env) {
-  let state=await readState(env);
-  const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
-  if(!state || state.version!==INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age>15*60*1000 || Number(state.databaseRows||0)<20){
-    state=await syncVehicleInventory(env);
-  }
-  return state;
+  return (await readState(env))||{
+    version:INVENTORY_SCHEMA_VERSION,
+    maxMileage:MAX_MILES,
+    syncedAt:null,
+    candidateCap:180,
+    databaseRows:0,
+    sources:[],
+    vehicles:[]
+  };
 }
 
 export async function checkVehicleAvailability(env, vehicleId) {
