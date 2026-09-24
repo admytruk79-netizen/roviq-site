@@ -1,21 +1,21 @@
 import { bookingForm } from "../booking.js";
 
 function km(mi){return Math.round(mi*1.60934).toLocaleString("en-US")}
-function esc(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function priceLabel(pricing){return pricing?.hasPrice && Number.isFinite(pricing.vehiclePrice) ? "&#36;"+pricing.vehiclePrice.toLocaleString("en-US") : "Request current price"}
 function shippingLabel(pricing){return pricing?.hasPrice && Number.isFinite(pricing.shippingLow) && Number.isFinite(pricing.shippingHigh) ? "&#36;"+pricing.shippingLow.toLocaleString("en-US")+"–&#36;"+pricing.shippingHigh.toLocaleString("en-US") : "Request shipping quote"}
-function card(v){return `
+function esc(value){return String(value||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function card(v,formPage=false){return `
 <article class="uk-card">
 <div class="uk-photo"><img src="${v.imagePath}" alt="${v.year} ${v.make} ${v.model}" loading="eager" fetchpriority="high" decoding="async"><div class="uk-badge">${v.mileageMi<10000?"ULTRA-LOW MILEAGE":"UNDER 60,000 MILES"}</div></div>
 <div class="uk-info"><div class="uk-id">${v.id} • U.S. DEALER LISTING</div><h2>${v.year} ${v.make} ${v.model}</h2><div class="uk-sub">${v.trim||""}${v.trim?" • ":""}${v.drivetrain} • ${v.engine}</div>
 <div class="price-box"><div><span>ROVIQ vehicle price</span><strong>${priceLabel(v.pricing)}</strong><small>Dealer acquisition + ROVIQ coordination margin</small></div><div><span>Estimated shipping to Rijeka</span><strong>${shippingLabel(v.pricing)}</strong><small><a href="/contact">Contact ROVIQ for the final delivered quote</a></small></div></div>\n<div class="uk-specs"><div class="uk-spec"><span>Mileage</span><strong>${v.mileageMi.toLocaleString("en-US")} mi / ${km(v.mileageMi)} km</strong></div><div class="uk-spec"><span>Engine</span><strong>${v.engine}</strong></div><div class="uk-spec"><span>Drivetrain</span><strong>${v.drivetrain}</strong></div><div class="uk-spec"><span>Transmission</span><strong>${v.transmission}</strong></div><div class="uk-spec"><span>Fuel</span><strong>${v.fuel}</strong></div><div class="uk-spec"><span>Exterior</span><strong>${v.exterior}</strong></div><div class="uk-spec"><span>Interior</span><strong>${v.interior}</strong></div><div class="uk-spec"><span>Vehicle ID</span><strong>${v.vinPublic}</strong></div></div>
-${v.dealerUrl?`<div class="dealer-action"><a class="uk-btn primary" href="${esc(v.dealerUrl)}" target="_blank" rel="noopener noreferrer">Open at ${esc(v.dealerName||"dealership")} ↗</a><small>Use the dealer’s booking or contact options on its vehicle page. Availability and any hold are confirmed by the dealer.</small></div>`:""}
-<details class="reserve"><summary>Request help from ROVIQ</summary>${bookingForm(v)}</details>
+${formPage ? bookingForm(v) : `<a class="uk-btn primary" style="margin-top:17px" href="/ukraine/request?vehicle=${encodeURIComponent(v.id)}">Open vehicle request form →</a>`}
 </div></article>`}
 
-export function ukrainePage(content,inventory,bookingId,unavailableId){
+export function ukrainePage(content,inventory,bookingId,unavailableId,formPage=false,filters=new URLSearchParams()){
 const vehicles=inventory?.vehicles||[];
 const synced=inventory?.syncedAt?new Date(inventory.syncedAt).toLocaleString("en-US",{timeZone:"America/Los_Angeles",dateStyle:"medium",timeStyle:"short"}):"initializing";
+const selected=(name,value)=>filters.get(name)===value?" selected":"";
 return `<style>
 .uk-wrap{position:relative;max-width:1220px;margin:0 auto;padding:20px 20px 56px;color:#dce4e9;overflow:hidden;isolation:isolate}
 .uk-wrap::before,.uk-wrap::after{content:"";position:fixed;pointer-events:none;z-index:-1;filter:blur(26px);opacity:.28;animation:ukDrift 12s ease-in-out infinite alternate}
@@ -27,6 +27,7 @@ return `<style>
 .uk-hero p{font-size:.96rem;line-height:1.5;color:#c3cdd4;margin:0;max-width:760px}
 .uk-note{margin-top:12px;padding:11px 13px;border-left:3px solid #c89245;background:#0d1b28;border-radius:8px;color:#d7e0e6;font-size:12px;box-shadow:0 10px 28px rgba(0,0,0,.16)}
 .uk-live{margin-top:9px;font-size:11px;color:#9ba8b3}.uk-standards{margin:14px 0 18px;padding:13px 14px;border:1px solid rgba(200,146,69,.28);border-radius:10px;background:#0a1723;color:#d7e0e6;font-size:12px;line-height:1.55}.uk-standards strong{color:#e1b770}
+.uk-search{display:flex;gap:9px;flex-wrap:wrap;margin:16px 0 22px}.uk-search input,.uk-search select{min-height:43px;padding:9px 12px;border:1px solid rgba(200,146,69,.4);border-radius:9px;background:#0b1d2b;color:#eef3f6;font:inherit}.uk-search input{flex:2 1 210px}.uk-search select{flex:1 1 140px}.uk-search button{padding:9px 17px;border:1px solid #c89245;border-radius:9px;background:#c89245;color:#07131f;font-weight:800}.uk-search a{align-self:center;color:#e1b770}
 .uk-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
 .uk-card{position:relative;background:#0c1a27;border:1px solid rgba(200,146,69,.28);border-radius:18px;overflow:hidden;box-shadow:0 18px 45px rgba(0,0,0,.24);animation:ukFade .55s ease both,ukGlow 4.5s ease-in-out infinite alternate}
 .uk-photo{position:relative;background:linear-gradient(110deg,#0a1722 8%,#132637 18%,#0a1722 33%);background-size:200% 100%;aspect-ratio:16/10;overflow:hidden;animation:ukShimmer 1.6s linear infinite}
@@ -45,7 +46,6 @@ return `<style>
 .uk-spec span{display:block;font-size:9px;text-transform:uppercase;font-weight:800;color:#8193a4;margin-bottom:4px}
 .uk-spec strong{font-size:12px;color:#e6edf1}
 .reserve{margin-top:17px;border-top:1px solid rgba(200,146,69,.18);padding-top:14px}
-.dealer-action{display:flex;flex-wrap:wrap;align-items:center;gap:9px 14px;margin-top:17px}.dealer-action small{display:block;flex:1 1 220px;color:#aebdc8;font-size:12px;line-height:1.45}
 .reserve summary{cursor:pointer;font-weight:800;color:#e1b770}
 .book-panel{padding-top:14px}
 .book-panel p{font-size:12px;color:#9ba8b3}
@@ -64,7 +64,8 @@ return `<style>
 @media(max-width:860px){.uk-grid{grid-template-columns:1fr}.price-box{grid-template-columns:1fr}.uk-specs{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.book-grid{grid-template-columns:1fr}}
 
-</style><div class="uk-wrap"><div class="uk-hero"><div class="uk-kicker">ROVIQ • LIVE U.S. VEHICLE APP</div><h1>Trucks selected for Ukraine.</h1><p>Live Chevrolet Silverado, GMC Sierra and Ford F-150 inventory under 60,000 miles. Prices and availability require confirmation before purchase.</p><div class="uk-note"><strong>Inventory-linked.</strong> Dealer websites are checked automatically; listings may change or become unavailable.</div><div class="uk-live">● ${vehicles.length} currently listed • Last sync attempt: ${synced}</div><div class="uk-standards"><strong>ROVIQ sourcing standard:</strong> dealership-sourced vehicles must have a clean, non-branded title. Salvage, rebuilt/reconstructed, flood, or major total-loss vehicles are excluded. Title status and vehicle history are re-verified before purchase and export.</div></div>
+</style><div class="uk-wrap"><div class="uk-hero"><div class="uk-kicker">ROVIQ • LIVE U.S. VEHICLE APP</div><h1>${formPage?"Request this vehicle":"Trucks selected for Ukraine."}</h1><p>${formPage?`<a href="/ukraine" style="color:#e1b770">← Back to all vehicles</a>`:"Chevrolet Silverado, GMC Sierra and Ford F-150 listings under 60,000 miles. Prices and availability require confirmation before purchase."}</p><div class="uk-note"><strong>Inventory-linked.</strong> Dealer websites are checked automatically; listings may change or become unavailable.</div><div class="uk-live">● ${vehicles.length} currently listed • Last sync attempt: ${synced}</div><div class="uk-standards"><strong>ROVIQ sourcing standard:</strong> dealership-sourced vehicles must have a clean, non-branded title. Salvage, rebuilt/reconstructed, flood, or major total-loss vehicles are excluded. Title status and vehicle history are re-verified before purchase and export.</div></div>
 ${bookingId?`<div class="success"><strong>Request received.</strong> ROVIQ rechecked the dealer listing. Booking ID: ${bookingId}. Dealer confirmation is still required before the vehicle is secured.</div>`:""}\n${unavailableId?`<div class="success" style="background:#2b1717;border-color:#7a3b3b;color:#ffd9d9"><strong>Vehicle no longer available for reservation.</strong> ROVIQ rechecked ${unavailableId} with the dealer before creating a booking. Please choose another vehicle.</div>`:""}
-${vehicles.length?`<div class="uk-grid">${vehicles.map(card).join("")}</div>`:`<div class="uk-empty">Inventory sync is initializing.</div>`}
+${formPage?"":`<form class="uk-search" method="GET" action="/ukraine" aria-label="Search vehicle inventory"><input type="search" name="q" placeholder="Search year, model, trim or engine" value="${esc(filters.get("q"))}"><select name="make"><option value="">All makes</option><option value="Chevrolet"${selected("make","Chevrolet")}>Chevrolet</option><option value="GMC"${selected("make","GMC")}>GMC</option><option value="Ford"${selected("make","Ford")}>Ford</option></select><select name="fuel"><option value="">All fuel types</option><option value="Gasoline"${selected("fuel","Gasoline")}>Gasoline</option><option value="Diesel"${selected("fuel","Diesel")}>Diesel</option><option value="Electric"${selected("fuel","Electric")}>Electric</option></select><select name="maxMileage"><option value="">Any mileage</option><option value="10000"${selected("maxMileage","10000")}>Under 10,000 mi</option><option value="30000"${selected("maxMileage","30000")}>Under 30,000 mi</option><option value="60000"${selected("maxMileage","60000")}>Under 60,000 mi</option></select><button type="submit">Search</button><a href="/ukraine">Clear</a></form><p style="color:#9ba8b3;font-size:12px">${vehicles.length} of ${inventory?.totalVehicles??vehicles.length} listed vehicles</p>`}
+${vehicles.length?`<div class="uk-grid">${vehicles.map(v=>card(v,formPage)).join("")}</div>`:`<div class="uk-empty">Inventory sync is initializing.</div>`}
 <div class="uk-foot">Shipping is a preliminary Oregon-to-Rijeka estimate and may change after vehicle selection. ROVIQ re-verifies vehicle history, title status, export eligibility and logistics before commitment.</div></div>`}
