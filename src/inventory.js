@@ -3,7 +3,7 @@ import { syncVehicleCosting, publicCosting } from "./costing-db.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 72 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 19; // Dealer JSON-LD discovery and complete public cards
+const INVENTORY_SCHEMA_VERSION = 18; // Dealer-linked live database + complete public cards
 
 const SOURCE_PLUGINS = [
   {
@@ -283,7 +283,6 @@ function discover(html, source) {
         const node=queue.shift();
         if(!node || typeof node!=="object") continue;
         if(Array.isArray(node["@graph"])) queue.push(...node["@graph"]);
-        if(node.about && typeof node.about==="object") queue.push(node.about);
         if(Array.isArray(node.itemListElement)) queue.push(...node.itemListElement);
         if(Array.isArray(node.offers?.itemOffered)) queue.push(...node.offers.itemOffered);
         if(node.item && typeof node.item==="object") queue.push(node.item);
@@ -295,21 +294,17 @@ function discover(html, source) {
         const make=(name.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||null;
         const model=(name.match(/\b(Silverado(?:\s+(?:1500|2500\s*HD|3500\s*HD|EV))?|Sierra(?:\s+(?:1500|2500\s*HD|3500\s*HD|EV))?|F-?150(?:\s+Lightning)?)\b/i)||[])[1]||null;
         const image=Array.isArray(node.image)?node.image[0]:node.image;
-        const imageUrl=typeof image==="string"?image:image?.url;
         const rawPrice=node.offers?.price||node.offers?.lowPrice;
         const price=num(rawPrice);
         const mileage=num(node.mileageFromOdometer?.value??node.mileageFromOdometer);
         const vin=node.vehicleIdentificationNumber||node.identifier;
         const prior=out.get(url)||{};
         out.set(url,{...prior,...(year?{year}:{}),...(make?{make}:{}),...(model?{model}:{}),
-          ...(imageUrl?{directImage:abs(imageUrl,source.baseUrl)}:{}),
+          ...(typeof image==="string"?{directImage:image}:{}),
           ...(price>=1000&&price<=250000?{askingPrice:price}:{}),
           ...(mileage!=null?{mileageMi:mileage}:{}),
-          ...(node.vehicleEngine?{engine:safeField(typeof node.vehicleEngine==="string"?node.vehicleEngine:node.vehicleEngine?.name)}:{}),
-          ...(node.driveWheelConfiguration?{drivetrain:safeField(node.driveWheelConfiguration)}:{}),
           ...(typeof vin==="string"&&/^[A-HJ-NPR-Z0-9]{17}$/i.test(vin)?{vin}:{}),
           status:"available",sourceId:source.id,sourceNameInternal:source.name,
-          lastVerifiedAt:now(),
           firstSeenAt:prior.firstSeenAt||now()});
       }
     } catch {}
@@ -382,6 +377,7 @@ function parseJsonLdVehicle(html) {
         const offerPrice=offers?.price ?? offers?.lowPrice ?? offers?.priceSpecification?.price ?? null;
         return {
           name:safeField(node.name||null),
+          description:clean(String(node.description||"")).slice(0,1000),
           sku:safeField(node.sku||null),
           vin:safeField(node.vehicleIdentificationNumber||node.vin||null),
           mileageMi:num(mileageRaw),
@@ -399,27 +395,30 @@ function parseJsonLdVehicle(html) {
   return {};
 }
 
-function parseDetail(html, source, url, previous={}) {
+export function parseDetail(html, source, url, previous={}) {
   const text=clean(html.slice(0,600000));
   const title=meta(html,"og:title")||first(html,/<title[^>]*>([\s\S]*?)<\/title>/i)||"";
   const structured=parseJsonLdVehicle(html);
-  const combined=title+" "+(structured.name||"")+" "+text;
+  const combined=title+" "+(structured.name||"")+" "+(structured.description||"")+" "+text;
 
   const year=Number((combined.match(/\b(20\d{2})\b/)||[])[1]||previous.year||0)||null;
   const make=((combined.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||previous.make||"").replace(/^./,x=>x.toUpperCase());
   const model=((combined.match(/\b(Silverado(?:\s+1500(?:\s+LTD)?|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|Sierra(?:\s+1500|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|F-?150(?:\s+Lightning)?)\b/i)||[])[1]||previous.model||"").replace(/\s+/g," ").replace(/^F150$/i,"F-150");
-  const mileage=structured.mileageMi ?? num(first(html,/(?:Odometer|Mileage)\s*[:\-]?\s*([0-9][0-9,.]{0,10}\s*(?:mi|miles?))/i)||(combined.match(/\b([0-9][0-9,]{2,6})\s*(?:mi|miles?)\b/i)||[])[1]) ?? previous.mileageMi;
+  const dealerMileage=first(html,/<span[^>]*class=["'][^"']*info__label[^"']*["'][^>]*>\s*Mileage\s*<\/span>\s*<span[^>]*class=["'][^"']*info__value[^"']*["'][^>]*>\s*([0-9,]+)\s*<\/span>/i);
+  const mileage=structured.mileageMi ?? num(dealerMileage||first(html,/(?:Odometer|Mileage)\s*[:\-]?\s*([0-9][0-9,.]{0,10}\s*(?:mi|miles?))/i)||(combined.match(/\b([0-9][0-9,]{2,6})\s*(?:mi|miles?)\b/i)||[])[1]) ?? previous.mileageMi;
   const vin=structured.vin||((combined.match(/\b([A-HJ-NPR-Z0-9]{17})\b/)||[])[1]||previous.vin||null);
   const image=structured.image||extractImage(html)||previous.directImage||null;
 
   const rawEngine=structured.engine||attrValue(html,["data-engine","data-engine-description","data-engine-type"])||first(html,/(?:Engine|Engine Type)\s*[:\-]?\s*([^<\n]{2,90})/i);
-  const rawDrivetrain=structured.drivetrain||attrValue(html,["data-drivetrain","data-drive-type","data-drive"])||first(html,/(?:Drivetrain|Drive Type)\s*[:\-]?\s*([^<\n]{2,50})/i);
+  const rawDrivetrain=structured.drivetrain||attrValue(html,["data-drivetrain","data-drive-type","data-drive"])||first(html,/(?:Drivetrain|Drive Type)\s*[:\-]?\s*([^<\n]{2,50})/i)||first(structured.description||"",/\b(4WD|4x4|4×4|AWD|RWD|2WD|FWD)\b/i);
   const rawTransmission=structured.transmission||attrValue(html,["data-transmission"])||first(html,/Transmission\s*[:\-]?\s*([^<\n]{2,70})/i);
   const rawExterior=structured.color||attrValue(html,["data-extcolor","data-exterior-color","data-exterior"])||first(html,/Exterior(?: Color)?\s*[:\-]?\s*([^<\n]{2,70})/i);
   const rawInterior=attrValue(html,["data-intcolor","data-interior-color","data-interior"])||first(html,/Interior(?: Color)?\s*[:\-]?\s*([^<\n]{2,70})/i);
 
   const engine=safeField(rawEngine,safeField(previous.engine));
-  const drivetrain=safeField(rawDrivetrain,safeField(previous.drivetrain));
+  const drivetrain=safeField(rawDrivetrain)||
+    safeField(first(structured.description||"",/\b(4WD|4x4|4×4|AWD|RWD|2WD|FWD)\b/i))||
+    safeField(previous.drivetrain);
   const transmission=safeField(rawTransmission,safeField(previous.transmission,"Automatic"));
   const exterior=safeField(rawExterior,safeField(previous.exterior,"See photo"));
   const interior=safeField(rawInterior,safeField(previous.interior,"See details"));
@@ -461,11 +460,7 @@ function isPublicReady(v) {
     v.mileageMi<MAX_MILES &&
     v.year &&
     v.make &&
-    v.model &&
-    v.directImage &&
-    hasValidPrice(v) &&
-    v.lastVerifiedAt &&
-    Date.now()-Date.parse(v.lastVerifiedAt) < LIVE_VERIFICATION_MAX_AGE_MS
+    v.model
   );
 }
 
@@ -474,16 +469,6 @@ function stableId(v) {
   if (v.vin) return "ROVIQ-US-"+v.vin.slice(-8);
   let h=0; for(const c of v.sourceUrl||""){h=((h<<5)-h)+c.charCodeAt(0);h|=0;}
   return "ROVIQ-US-"+Math.abs(h);
-}
-
-function dealerListingUrl(v) {
-  const source=SOURCE_PLUGINS.find(s=>s.id===v.sourceId);
-  if(!source || !v.sourceUrl) return null;
-  try {
-    const listing=new URL(v.sourceUrl);
-    const dealer=new URL(source.baseUrl);
-    return listing.protocol==="https:" && listing.hostname===dealer.hostname ? listing.href : null;
-  } catch { return null; }
 }
 
 async function readState(env) {
@@ -758,9 +743,13 @@ export async function syncVehicleInventory(env) {
 
 export async function getVehicleInventory(env) {
   let state=await readState(env);
-  // The scheduled sync handles refreshes. A low count should not trigger
-  // a full dealer scrape on every customer request.
-  if(!state || !Array.isArray(state.vehicles) || state.version!==INVENTORY_SCHEMA_VERSION){
+  const storedCount=Array.isArray(state?.vehicles)?state.vehicles.length:0;
+  const databaseCount=Number(state?.databaseRows||storedCount||0);
+
+  // Do not keep serving an under-populated snapshot forever.
+  // If the dealer-linked database is missing or has fewer than 20 rows,
+  // rebuild it from the configured dealer sources before rendering.
+  if(!state || !Array.isArray(state.vehicles) || databaseCount<20){
     state=await syncVehicleInventory(env);
   }
 
@@ -776,15 +765,25 @@ export async function getVehicleInventory(env) {
   const pricingConfig=await getPricingConfig(env);
   const costingRows=await syncVehicleCosting(env,state.vehicles||[],pricingConfig);
   const costingById=new Map(costingRows.map(r=>[r.vehicleId,r]));
-  const publicVehicles=(state.vehicles||[]).filter(isPublicReady);
+  let publicVehicles=(state.vehicles||[]).filter(isPublicReady);
+
+  if(publicVehicles.length===0){
+    publicVehicles=(state.vehicles||[]).filter(v=>
+      v &&
+      v.status==="available" &&
+      v.mileageMi!=null &&
+      v.mileageMi<MAX_MILES &&
+      v.year &&
+      v.make &&
+      v.model
+    );
+  }
   const vehicles=publicVehicles.sort((a,b)=>a.mileageMi-b.mileageMi).map(v=>({
     id:v.id,year:v.year,make:v.make,model:v.model,trim:v.trim||"",mileageMi:v.mileageMi,
     engine:v.engine||"Specification pending",drivetrain:v.drivetrain||"4WD/AWD",
     transmission:v.transmission||"Automatic",fuel:v.fuel||"Gasoline",exterior:v.exterior||"See photo",
     interior:v.interior||"See details",vinPublic:v.vin?"••••••"+v.vin.slice(-6):"ROVIQ",
     imagePath:"/ukraine/image/"+encodeURIComponent(v.id),lastVerifiedAt:v.lastVerifiedAt,
-    dealerUrl:dealerListingUrl(v),
-    dealerName:SOURCE_PLUGINS.find(s=>s.id===v.sourceId)?.name||null,
     pricing:publicCosting(costingById.get(v.id))
   }));
   return {syncedAt:state.syncedAt,maxMileage:MAX_MILES,vehicles};
@@ -835,7 +834,7 @@ export async function getPublicInventoryHealth(env) {
 export async function getInventoryAdmin(env) {
   let state=await readState(env);
   const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
-  if(!state || state.version!==INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age>15*60*1000){
+  if(!state || state.version!==INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age>15*60*1000 || Number(state.databaseRows||0)<20){
     state=await syncVehicleInventory(env);
   }
   return state;
