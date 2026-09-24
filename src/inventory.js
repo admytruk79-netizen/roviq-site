@@ -82,6 +82,8 @@ const SOURCE_PLUGINS = [
       "https://www.beavertongmc.com/searchnew.aspx?make=GMC&model=Sierra%203500%20HD",
       "https://www.beavertongmc.com/searchused.aspx?make=GMC&model=Sierra%201500",
       "https://www.beavertongmc.com/searchused.aspx?make=GMC&model=Sierra%201500&pt=2",
+      "https://www.beavertongmc.com/searchused.aspx?make=Chevrolet&model=Silverado%20EV",
+      "https://www.beavertongmc.com/searchnew.aspx?make=GMC&model=Sierra%20EV",
       "https://www.beavertongmc.com/searchnew.aspx",
       "https://www.beavertongmc.com/searchnew.aspx?pt=2",
       "https://www.beavertongmc.com/searchnew.aspx?pt=3",
@@ -259,6 +261,9 @@ const SOURCE_PLUGINS = [
       "https://www.dickscanbyford.com/searchnew.aspx?make=Ford&model=F-150&pt=6",
       "https://www.dickscanbyford.com/searchused.aspx?make=Ford&model=F-150",
       "https://www.dickscanbyford.com/searchused.aspx?make=Ford&model=F-150&pt=2",
+      "https://www.dickscanbyford.com/searchnew.aspx?make=Ford&model=F-250",
+      "https://www.dickscanbyford.com/searchused.aspx?make=Ford&model=F-250",
+      "https://www.dickscanbyford.com/searchused.aspx?make=Ford&model=F-150%20Lightning",
       "https://www.dickscanbyford.com/searchused.aspx?make=Ford&model=F-150&pt=3",
       "https://www.dickscanbyford.com/searchnew.aspx",
       "https://www.dickscanbyford.com/searchnew.aspx?pt=2",
@@ -563,7 +568,27 @@ async function fetchHtml(url) {
 }
 
 function looksLikeListing(url) {
-  return /(silverado|sierra|f-?150)/i.test(url) && /(used|preowned|pre-owned|vehicle|inventory)/i.test(url);
+  return /(silverado|sierra|f-?150|f-?250|lightning)/i.test(url) && /(used|preowned|pre-owned|vehicle|inventory)/i.test(url);
+}
+
+function canonicalModel(value) {
+  const s=String(value||"").replace(/[-_]/g," ").replace(/\s+/g," ").trim();
+  if (/\b(?:F\s*150\s*Lightning|Lightning)\b/i.test(s)) return "F-150 Lightning";
+  if (/\bF\s*250\b/i.test(s)) return "F-250";
+  if (/\bF\s*150\b/i.test(s)) return "F-150";
+  if (/\bSilverado\s*EV\b/i.test(s)) return "Silverado EV";
+  if (/\bSierra\s*EV\b/i.test(s)) return "Sierra EV";
+  return String(value||"").replace(/\s+/g," ").trim();
+}
+
+function verifiedFuel(v) {
+  const model=canonicalModel(v.model);
+  if (["F-150 Lightning","Silverado EV","Sierra EV"].includes(model)) return "Electric";
+  // Dealer search pages contain ads for other vehicles; an electric keyword on
+  // the page is not evidence that this particular listing is electric.
+  const fuel=String(v.fuel||"");
+  if (/electric|\bEV\b/i.test(fuel)) return /diesel/i.test(v.engine||"")?"Diesel":"Gasoline";
+  return fuel||"Gasoline";
 }
 
 function discoverFleetInventory(html, source, inventoryUrl) {
@@ -576,8 +601,9 @@ function discoverFleetInventory(html, source, inventoryUrl) {
     const end=Math.min(html.length,m.index+5000);
     const raw=html.slice(start,end);
     const text=clean(raw);
-    if(!/\bFord\s+F-?150\b/i.test(text)) continue;
-    const year=Number((text.match(/\b(20\d{2})\s+Ford\s+F-?150\b/i)||[])[1]||0)||null;
+    if(!/\bFord\s+F-?(?:150|250)\b/i.test(text)) continue;
+    const model=canonicalModel((text.match(/\bFord\s+(F-?(?:150|250)(?:\s+Lightning)?)\b/i)||[])[1]);
+    const year=Number((text.match(/\b(20\d{2})\s+Ford\s+F-?(?:150|250)\b/i)||[])[1]||0)||null;
     if(!year) continue;
     const trim=safeField((text.match(/Vehicle Trim\s+([A-Za-z0-9 -]{1,35})/i)||[])[1]||null);
     const drivetrain=safeField((text.match(/Drivetrain\s+(4WD|AWD|RWD|2WD|FWD)/i)||[])[1]||null);
@@ -593,7 +619,7 @@ function discoverFleetInventory(html, source, inventoryUrl) {
     const directImage=extractImage(raw);
     const url=inventoryUrl+"#"+vin;
     out.set(url,{url,hints:{
-      year,make:"Ford",model:"F-150",trim:trim||"",
+      year,make:"Ford",model,trim:trim||"",
       mileageMi,vin,
       ...(drivetrain?{drivetrain}:{}),
       ...(transmission?{transmission}:{}),
@@ -615,10 +641,10 @@ function discoverLlmInventory(html, source) {
     const titleTag=(item.match(/<a\b(?=[^>]*class=["'][^"']*vehicle-title)[^>]*>/i)||[])[0]||"";
     const url=abs((titleTag.match(/href=["']([^"']+)/i)||[])[1],source.baseUrl);
     const name=clean((item.match(/itemprop=["']name["'][^>]*>([^<]+)/i)||[])[1]||"");
-    if(!url || !/\/inventory\/(?:new|used|certified-used)-/i.test(url) || !/(silverado|sierra|f-?150)/i.test(url+" "+name)) continue;
+    if(!url || !/\/inventory\/(?:new|used|certified-used)-/i.test(url) || !/(silverado|sierra|f-?150|f-?250|lightning)/i.test(url+" "+name)) continue;
     const year=Number((name.match(/\b20\d{2}\b/)||[])[0])||null;
     const make=(name.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||null;
-    const model=(name.match(/\b(Silverado(?:\s+\d{4}\s*HD|\s+\d{4}HD|\s+EV)?|Sierra(?:\s+\d{4}\s*HD|\s+\d{4}HD)?|F-?150)\b/i)||[])[1]||null;
+    const model=canonicalModel((name.match(/\b(Silverado(?:\s+\d{4}\s*HD|\s+\d{4}HD|\s+EV)?|Sierra(?:\s+\d{4}\s*HD|\s+\d{4}HD|\s+EV)?|F-?(?:150|250)(?:\s+Lightning)?)\b/i)||[])[1]);
     const mileage=num((item.match(/itemprop=["']value["'][^>]*>([^<]+)/i)||[])[1]);
     const price=num((item.match(/itemprop=["']price["'][^>]*content=["']([0-9,.]+)/i)||[])[1]);
     const vin=(item.match(/itemprop=["']vehicleIdentificationNumber["'][^>]*content=["']([A-HJ-NPR-Z0-9]{17})/i)||[])[1]||null;
@@ -631,7 +657,8 @@ function discoverLlmInventory(html, source) {
   return [...out.values()];
 }
 
-function discover(html, source) {
+function discover(html, source, inventoryUrl) {
+  if(source.fleetInventory) return discoverFleetInventory(html,source,inventoryUrl);
   if((source.inventoryUrls||[]).some(u=>/\/llm\/inventory\//.test(u))){
     const structured=discoverLlmInventory(html,source);
     if(structured.length) return structured;
@@ -657,10 +684,10 @@ function discover(html, source) {
         const rawUrl=node.url||node.offers?.url;
         const url=rawUrl && abs(rawUrl,source.baseUrl);
         const name=String(node.name||"");
-        if(!url || !/(silverado|sierra|f-?150)/i.test(name+" "+url) || !looksLikeListing(url)) continue;
+        if(!url || !/(silverado|sierra|f-?150|f-?250|lightning)/i.test(name+" "+url) || !looksLikeListing(url)) continue;
         const year=Number((name.match(/\b20\d{2}\b/)||[])[0])||null;
         const make=(name.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||null;
-        const model=(name.match(/\b(Silverado(?:\s+(?:1500|2500\s*HD|3500\s*HD|EV))?|Sierra(?:\s+(?:1500|2500\s*HD|3500\s*HD|EV))?|F-?150(?:\s+Lightning)?)\b/i)||[])[1]||null;
+        const model=canonicalModel((name.match(/\b(Silverado(?:\s+(?:1500|2500\s*HD|3500\s*HD|EV))?|Sierra(?:\s+(?:1500|2500\s*HD|3500\s*HD|EV))?|F-?(?:150|250)(?:\s+Lightning)?)\b/i)||[])[1]);
         const image=Array.isArray(node.image)?node.image[0]:node.image;
         const rawPrice=node.offers?.price||node.offers?.lowPrice;
         const price=num(rawPrice);
@@ -699,15 +726,15 @@ function discover(html, source) {
     const hintImage=extractImage(context);
     const hintPrice=extractAskingPrice(context) ||
       numericAttr(context,["data-price","data-sale-price","data-vehicle-price","data-internet-price","data-msrp","data-final-price"]);
-    const decodedUrl=decodeURIComponent(url.replace(/\+/g," "));
+    const decodedUrl=decodeURIComponent(url).replace(/\+/g," ");
     const hintVin=((contextText.match(/\b([A-HJ-NPR-Z0-9]{17})\b/)||[])[1]||
       (decodedUrl.match(/\b([A-HJ-NPR-Z0-9]{17})\b/i)||[])[1]||null);
     const hintYear=Number((contextText.match(/\b(20\d{2})\b/)||[])[1]||
       (decodedUrl.match(/\b(20\d{2})\b/)||[])[1]||0)||null;
     const hintMake=((contextText.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||
       (decodedUrl.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||"");
-    const hintModel=((contextText.match(/\b(Silverado(?:\s+1500(?:\s+LTD)?|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|Sierra(?:\s+1500|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|F-?150(?:\s+Lightning)?)\b/i)||[])[1]||
-      (decodedUrl.match(/\b(Silverado(?:[\s-]+1500(?:[\s-]+LTD)?|[\s-]+2500[\s-]*HD|[\s-]+3500[\s-]*HD|[\s-]+EV)?|Sierra(?:[\s-]+1500|[\s-]+2500[\s-]*HD|[\s-]+3500[\s-]*HD|[\s-]+EV)?|F-?150(?:[\s-]+Lightning)?)\b/i)||[])[1]||"");
+    const hintModel=((decodedUrl.match(/\b(Silverado(?:[\s-]+1500(?:[\s-]+LTD)?|[\s-]+2500[\s-]*HD|[\s-]+3500[\s-]*HD|[\s-]+EV)?|Sierra(?:[\s-]+1500|[\s-]+2500[\s-]*HD|[\s-]+3500[\s-]*HD|[\s-]+EV)?|F-?(?:150|250)(?:[\s-]+Lightning)?)\b/i)||[])[1]||
+      (contextText.match(/\b(Silverado(?:\s+1500(?:\s+LTD)?|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|Sierra(?:\s+1500|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|F-?(?:150|250)(?:\s+Lightning)?)\b/i)||[])[1]||"");
     const parsedHintMileage=num((contextText.match(/\b([0-9]{1,3}(?:,[0-9]{3})*|[0-9]{1,6})\s*(?:mi|miles?)\b/i)||[])[1]);
     const newVehicleUrl=/(?:\/new[-\/]|\/inventory\/new-)/i.test(url);
     const hintMileage=parsedHintMileage!=null ? parsedHintMileage : (newVehicleUrl ? 0 : null);
@@ -723,7 +750,7 @@ function discover(html, source) {
       ...(hintVin?{vin:hintVin}:{}),
       ...(hintYear?{year:hintYear}:{}),
       ...(hintMake?{make:hintMake.replace(/^./,x=>x.toUpperCase())}:{}),
-      ...(hintModel?{model:hintModel.replace(/\s+/g," ").replace(/^F150$/i,"F-150")}:{}),
+      ...(hintModel?{model:canonicalModel(hintModel)}:{}),
       ...(hintMileage!=null?{mileageMi:hintMileage}:{}),
       ...(hintDrivetrain?{drivetrain:hintDrivetrain}:{}),
       ...(hintEngine?{engine:hintEngine}:{}),
@@ -779,10 +806,11 @@ export function parseDetail(html, source, url, previous={}) {
   const title=meta(html,"og:title")||first(html,/<title[^>]*>([\s\S]*?)<\/title>/i)||"";
   const structured=parseJsonLdVehicle(html);
   const combined=title+" "+(structured.name||"")+" "+(structured.description||"")+" "+text;
+  const identity=decodeURIComponent(url).replace(/\+/g," ")+" "+title+" "+(structured.name||"");
 
   const year=Number((combined.match(/\b(20\d{2})\b/)||[])[1]||previous.year||0)||null;
   const make=((combined.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||previous.make||"").replace(/^./,x=>x.toUpperCase());
-  const model=((combined.match(/\b(Silverado(?:\s+1500(?:\s+LTD)?|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|Sierra(?:\s+1500|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|F-?150(?:\s+Lightning)?)\b/i)||[])[1]||previous.model||"").replace(/\s+/g," ").replace(/^F150$/i,"F-150");
+  const model=canonicalModel((identity.match(/\b(Silverado(?:[\s-]+1500(?:[\s-]+LTD)?|[\s-]+2500[\s-]*HD|[\s-]+3500[\s-]*HD|[\s-]+EV)?|Sierra(?:[\s-]+1500|[\s-]+2500[\s-]*HD|[\s-]+3500[\s-]*HD|[\s-]+EV)?|F-?(?:150|250)(?:[\s-]+Lightning)?)\b/i)||[])[1]||previous.model||"");
   const dealerMileage=first(html,/<span[^>]*class=["'][^"']*info__label[^"']*["'][^>]*>\s*Mileage\s*<\/span>\s*<span[^>]*class=["'][^"']*info__value[^"']*["'][^>]*>\s*([0-9,]+)\s*<\/span>/i);
   const mileage=structured.mileageMi ?? num(dealerMileage||first(html,/(?:Odometer|Mileage)\s*[:\-]?\s*([0-9][0-9,.]{0,10}\s*(?:mi|miles?))/i)||(combined.match(/\b([0-9]{1,3}(?:,[0-9]{3})*|[0-9]{1,6})\s*(?:mi|miles?)\b/i)||[])[1]) ?? previous.mileageMi;
   const vin=structured.vin||((combined.match(/\b([A-HJ-NPR-Z0-9]{17})\b/)||[])[1]||previous.vin||null);
@@ -801,7 +829,7 @@ export function parseDetail(html, source, url, previous={}) {
   const transmission=safeField(rawTransmission,safeField(previous.transmission,"Automatic"));
   const exterior=safeField(rawExterior,safeField(previous.exterior,"See photo"));
   const interior=safeField(rawInterior,safeField(previous.interior,"See details"));
-  const fuel=safeField(structured.fuel)||(/\b(EV|electric|dual[- ]motor)\b/i.test(combined)?"Electric":(/duramax|diesel/i.test(combined+" "+(engine||""))?"Diesel":safeField(previous.fuel,"Gasoline")));
+  const fuel=verifiedFuel({model,engine,fuel:safeField(structured.fuel)||(/duramax|diesel/i.test(engine||"")?"Diesel":safeField(previous.fuel,"Gasoline"))});
 
   const parsedPrice =
     extractAskingPrice(html, structured.price) ||
@@ -1006,7 +1034,9 @@ export async function syncVehicleInventory(env) {
         v.status=prev.status||"available";
         v.lastCheckFailedAt=now();
       } else {
-        v=parseDetail(r.html,source,url,prev);
+        // Fleet rows use an inventory-page fragment as their URL. Parsing the
+        // whole page as a VDP mixes the specs of unrelated trucks.
+        v=source.fleetInventory ? {...v,fuel:verifiedFuel(v),soldSignal:!v.vin||!r.html.includes(v.vin)} : parseDetail(r.html,source,url,prev);
         if(v.soldSignal){
           v.missCount=(prev.missCount||0)+1;
           v.status=v.missCount>=2?"sold":(prev.status||"available");
@@ -1045,7 +1075,7 @@ export async function syncVehicleInventory(env) {
       v.incompleteReason = "mileage";
       return v;
     }
-    if(!/^(Chevrolet|GMC|Ford)$/i.test(v.make) || !/(Silverado|Sierra|F-?150)/i.test(v.model)) {
+    if(!/^(Chevrolet|GMC|Ford)$/i.test(v.make) || !/(Silverado|Sierra|F-?(?:150|250))/i.test(v.model)) {
       if (sourceHealth[source.id]) sourceHealth[source.id].rejectedMakeModel++;
       v.status = "filtered";
       v.incompleteReason = "make_model";
@@ -1223,13 +1253,13 @@ export async function getVehicleInventory(env) {
     id:v.id,
     year:v.year,
     make:v.make,
-    model:v.model,
+    model:canonicalModel(v.model),
     trim:v.trim||"",
     mileageMi:Number.isFinite(Number(v.mileageMi))?Number(v.mileageMi):0,
     engine:v.engine||"Specification updating",
     drivetrain:v.drivetrain||"Specification updating",
     transmission:v.transmission||"Automatic",
-    fuel:v.fuel||"Gasoline",
+    fuel:verifiedFuel(v),
     exterior:v.exterior||"See dealer listing",
     interior:v.interior||"See dealer listing",
     vinPublic:v.vin?"••••••"+v.vin.slice(-6):"ROVIQ",
@@ -1250,14 +1280,18 @@ export async function getVehicleInventory(env) {
 
 export function searchVehicleInventory(inventory, params) {
   const q=String(params.get("q")||"").trim().toLowerCase().slice(0,80);
+  const normalizedQ=q.replace(/[-\s]/g,"");
+  const model=String(params.get("model")||"").trim();
   const make=String(params.get("make")||"").trim().toLowerCase();
   const fuel=String(params.get("fuel")||"").trim().toLowerCase();
   const maxMileage=Number(params.get("maxMileage"));
   const sort=String(params.get("sort")||"year_desc");
   const vehicles=(inventory.vehicles||[]).filter(v=>{
-    if(q && ![v.year,v.make,v.model,v.trim,v.engine,v.fuel,v.id].join(" ").toLowerCase().includes(q)) return false;
+    const searchable=[v.year,v.make,v.model,v.trim,v.engine,v.fuel,v.id].join(" ").toLowerCase();
+    if(q && !searchable.includes(q) && !searchable.replace(/[-\s]/g,"").includes(normalizedQ)) return false;
+    if(model && canonicalModel(v.model)!==canonicalModel(model)) return false;
     if(make && String(v.make).toLowerCase()!==make) return false;
-    if(fuel && String(v.fuel).toLowerCase()!==fuel) return false;
+    if(fuel && !String(v.fuel).toLowerCase().startsWith(fuel)) return false;
     if(params.has("maxMileage") && Number.isFinite(maxMileage) && maxMileage>=0 && v.mileageMi>maxMileage) return false;
     return true;
   });
@@ -1340,7 +1374,7 @@ export async function checkVehicleAvailability(env, vehicleId) {
       return {available:false,reason:"dealer_page_unreachable",httpStatus:r.status};
     }
 
-    const fresh=parseDetail(r.html,source,v.sourceUrl,v);
+    const fresh=source.fleetInventory ? {...v,soldSignal:!v.vin||!r.html.includes(v.vin)} : parseDetail(r.html,source,v.sourceUrl,v);
     const sameVin=!v.vin || !fresh.vin || fresh.vin===v.vin;
     const cleanVehicle=Boolean(
       fresh.year &&
