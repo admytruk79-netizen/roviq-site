@@ -28,12 +28,10 @@ const SOURCE_PLUGINS = [
     id: "ron-tonkin-chevrolet",
     name: "Ron Tonkin Chevrolet",
     inventoryUrls: [
-      "https://www.rontonkinchevrolet.com/used-vehicles/",
-      "https://www.rontonkinchevrolet.com/used-vehicles/page/2/",
-      "https://www.rontonkinchevrolet.com/used-vehicles/page/3/",
-      "https://www.rontonkinchevrolet.com/used-vehicles/page/4/"
+      "https://www.tonkinchevrolet.com/llm/inventory/?limit=100",
+      "https://www.tonkinchevrolet.com/llm/inventory/?limit=100&page=2"
     ],
-    baseUrl: "https://www.rontonkinchevrolet.com",
+    baseUrl: "https://www.tonkinchevrolet.com",
     detailPatterns: [
       /\/inventory\/(?:certified-)?used-.*silverado/i,
       /\/used-.*silverado/i
@@ -126,6 +124,21 @@ const SOURCE_PLUGINS = [
     name: "BMW of Salem",
     inventoryUrls: ["https://www.bmwofsalem.com/used-inventory/used-ford-salem-or.htm"],
     baseUrl: "https://www.bmwofsalem.com"
+  },
+  {
+    id: "mcloughlin-chevrolet",
+    name: "McLoughlin Chevrolet",
+    inventoryUrls: ["https://www.mcloughlinchevy.com/used-trucks-for-sale-near-portland-or.html"],
+    baseUrl: "https://www.mcloughlinchevy.com"
+  },
+  {
+    id: "westlie-ford",
+    name: "Westlie Ford",
+    inventoryUrls: [
+      "https://www.westlieford.com/llm/inventory/?limit=100",
+      "https://www.westlieford.com/llm/inventory/?limit=100&page=2"
+    ],
+    baseUrl: "https://www.westlieford.com"
   }
 ];
 
@@ -285,7 +298,30 @@ function looksLikeListing(url) {
   return /(silverado|sierra|f-?150)/i.test(url) && /(used|preowned|pre-owned|vehicle|inventory)/i.test(url);
 }
 
+function discoverLlmInventory(html, source) {
+  const out=new Map();
+  for(const match of html.matchAll(/<li\b[^>]*class=["'][^"']*vehicle-item[^"']*["'][^>]*>([\s\S]*?)<\/li>/gi)){
+    const item=match[1];
+    const titleTag=(item.match(/<a\b(?=[^>]*class=["'][^"']*vehicle-title)[^>]*>/i)||[])[0]||"";
+    const url=abs((titleTag.match(/href=["']([^"']+)/i)||[])[1],source.baseUrl);
+    if(!url || !/\/inventory\/used-/i.test(url) || !looksLikeListing(url)) continue;
+    const name=clean((item.match(/itemprop=["']name["'][^>]*>([^<]+)/i)||[])[1]||"");
+    const year=Number((name.match(/\b20\d{2}\b/)||[])[0])||null;
+    const make=(name.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||null;
+    const model=(name.match(/\b(Silverado(?:\s+\d{4}\s*HD|\s+\d{4}HD|\s+EV)?|Sierra(?:\s+\d{4}\s*HD|\s+\d{4}HD)?|F-?150)\b/i)||[])[1]||null;
+    const mileage=num((item.match(/itemprop=["']value["'][^>]*>([^<]+)/i)||[])[1]);
+    const price=num((item.match(/itemprop=["']price["'][^>]*content=["']([0-9,.]+)/i)||[])[1]);
+    const vin=(item.match(/itemprop=["']vehicleIdentificationNumber["'][^>]*content=["']([A-HJ-NPR-Z0-9]{17})/i)||[])[1]||null;
+    if(!year || !make || !model || mileage==null) continue;
+    out.set(url,{url,hints:{year,make,model,mileageMi:mileage,
+      ...(price>=1000&&price<=250000?{askingPrice:price}:{}),...(vin?{vin}:{}),
+      sourceId:source.id,sourceNameInternal:source.name,status:"available",firstSeenAt:now()}});
+  }
+  return [...out.values()];
+}
+
 function discover(html, source) {
+  if(/\/llm\/inventory\//.test(source.inventoryUrls?.[0]||"")) return discoverLlmInventory(html,source);
   const out = new Map();
   // Several dealer search pages publish vehicle records in JSON-LD rather
   // than ordinary anchors. Read those records before scanning links.

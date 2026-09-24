@@ -6,7 +6,7 @@ import { connectionPage } from "./pages/connection.js";
 import { aboutPage } from "./pages/about.js";
 import { contactPage } from "./pages/contact.js";
 import { ukrainePage } from "./pages/ukraine.js";
-import { getVehicleInventory, searchVehicleInventory, getVehicleImageResponse, getPublicInventoryHealth } from "./inventory.js";
+import { getVehicleInventory, searchVehicleInventory, getVehicleImageResponse, getPublicInventoryHealth, syncVehicleInventory } from "./inventory.js";
 import { createBooking, listBookings, updateBooking, bookingsAdminPage } from "./booking.js";
 import { vehicleAdminPage, syncNow } from "./admin-vehicles.js";
 import { pricingAdminPage, savePricing } from "./admin-pricing.js";
@@ -80,6 +80,9 @@ const PAGES = {
 };
 
 export default {
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil(syncVehicleInventory(env));
+  },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
