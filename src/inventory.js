@@ -556,9 +556,26 @@ export async function syncVehicleInventory(env) {
     }
   }
 
-  const candidateEntries = [...candidates.entries()]
-    .sort((a,b) => Number(Boolean(b[1].previous?.id)) - Number(Boolean(a[1].previous?.id)))
-    .slice(0,180);
+  // Balance the 180-vehicle catalogue across every healthy source instead of
+  // allowing the first/highest-volume dealer to consume the entire cap.
+  const allCandidateEntries=[...candidates.entries()]
+    .sort((a,b) => Number(Boolean(b[1].previous?.id)) - Number(Boolean(a[1].previous?.id)));
+  const sourceBuckets=new Map();
+  for(const entry of allCandidateEntries){
+    const sourceId=entry[1]?.sourceId||"unknown";
+    if(!sourceBuckets.has(sourceId)) sourceBuckets.set(sourceId,[]);
+    sourceBuckets.get(sourceId).push(entry);
+  }
+  const candidateEntries=[];
+  const buckets=[...sourceBuckets.values()];
+  let round=0;
+  while(candidateEntries.length<180 && buckets.some(bucket=>round<bucket.length)){
+    for(const bucket of buckets){
+      if(candidateEntries.length>=180) break;
+      if(round<bucket.length) candidateEntries.push(bucket[round]);
+    }
+    round++;
+  }
 
   // Persist the dealer discovery set BEFORE detail-page enrichment. A Worker run
   // must never lose the whole live database just because later VDP enrichment hits
