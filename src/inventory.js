@@ -466,7 +466,12 @@ function discoverLlmInventory(html, source) {
 }
 
 function discover(html, source) {
-  if((source.inventoryUrls||[]).some(u=>/\/llm\/inventory\//.test(u))) return discoverLlmInventory(html,source);
+  if((source.inventoryUrls||[]).some(u=>/\/llm\/inventory\//.test(u))){
+    const structured=discoverLlmInventory(html,source);
+    if(structured.length) return structured;
+    // Dealer.com LLM output varies by theme. If the structured parser finds
+    // nothing, continue through the generic anchor/context parser below.
+  }
   const out = new Map();
   // Several dealer search pages publish vehicle records in JSON-LD rather
   // than ordinary anchors. Read those records before scanning links.
