@@ -4,7 +4,7 @@ const INVENTORY_KEY = "vehicle_inventory:v1";
 const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 27; // Refresh additional live Ford and Chevrolet feeds
+const INVENTORY_SCHEMA_VERSION = 28; // Refresh CARR Vancouver Sierra feed
 
 const SOURCE_PLUGINS = [
   {
@@ -37,6 +37,23 @@ const SOURCE_PLUGINS = [
     detailPatterns: [
       /\/inventory\/(?:certified-)?used-.*silverado/i,
       /\/used-.*silverado/i
+    ]
+  },
+  {
+    id: "carr-vancouver-gmc",
+    name: "CARR Vancouver Buick GMC",
+    inventoryUrls: [
+      "https://www.carrbuickgmc.com/searchnew.aspx?make=GMC&model=Sierra%201500",
+      "https://www.carrbuickgmc.com/searchnew.aspx?make=GMC&model=Sierra%201500&pt=2",
+      "https://www.carrbuickgmc.com/searchnew.aspx?make=GMC&model=Sierra%201500&pt=3",
+      "https://www.carrbuickgmc.com/searchnew.aspx?make=GMC&model=Sierra%202500%20HD",
+      "https://www.carrbuickgmc.com/searchnew.aspx?make=GMC&model=Sierra%203500%20HD",
+      "https://www.carrbuickgmc.com/searchused.aspx?make=GMC&model=Sierra%201500"
+    ],
+    baseUrl: "https://www.carrbuickgmc.com",
+    detailPatterns: [
+      /\/new-.*sierra/i,
+      /\/used-.*sierra/i
     ]
   },
   {
