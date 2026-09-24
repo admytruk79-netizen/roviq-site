@@ -11,6 +11,10 @@ const SOURCE_PLUGINS = [
     name: "CARR Chevrolet",
     inventoryUrls: [
       "https://www.carrchevrolet.com/used-inventory/index.htm",
+      "https://www.carrchevrolet.com/used-inventory/index.htm?start=18",
+      "https://www.carrchevrolet.com/used-inventory/index.htm?start=36",
+      "https://www.carrchevrolet.com/used-inventory/index.htm?start=54",
+      "https://www.carrchevrolet.com/used-inventory/index.htm?start=72",
       "https://www.carrchevrolet.com/used-inventory/index.htm?make=Chevrolet&model=Silverado+1500",
       "https://www.carrchevrolet.com/used-inventory/index.htm?make=Chevrolet&model=Silverado+2500+HD",
       "https://www.carrchevrolet.com/certified-inventory/index.htm",
@@ -23,7 +27,10 @@ const SOURCE_PLUGINS = [
     id: "ron-tonkin-chevrolet",
     name: "Ron Tonkin Chevrolet",
     inventoryUrls: [
-      "https://www.rontonkinchevrolet.com/used-vehicles/"
+      "https://www.rontonkinchevrolet.com/used-vehicles/",
+      "https://www.rontonkinchevrolet.com/used-vehicles/page/2/",
+      "https://www.rontonkinchevrolet.com/used-vehicles/page/3/",
+      "https://www.rontonkinchevrolet.com/used-vehicles/page/4/"
     ],
     baseUrl: "https://www.rontonkinchevrolet.com",
     detailPatterns: [
@@ -35,7 +42,10 @@ const SOURCE_PLUGINS = [
     id: "beaverton-gmc",
     name: "Buick GMC of Beaverton",
     inventoryUrls: [
-      "https://www.beavertongmc.com/searchused.aspx"
+      "https://www.beavertongmc.com/searchused.aspx",
+      "https://www.beavertongmc.com/searchused.aspx?Page=2",
+      "https://www.beavertongmc.com/searchused.aspx?Page=3",
+      "https://www.beavertongmc.com/searchused.aspx?Page=4"
     ],
     baseUrl: "https://www.beavertongmc.com",
     detailPatterns: [
@@ -46,7 +56,9 @@ const SOURCE_PLUGINS = [
     id: "damerow-ford",
     name: "Damerow Ford",
     inventoryUrls: [
-      "https://www.damerowford.com/inventory/used-vehicles/models-Ford-F--150/"
+      "https://www.damerowford.com/inventory/used-vehicles/models-Ford-F--150/",
+      "https://www.damerowford.com/inventory/used-vehicles/models-Ford-F--150/?page=2",
+      "https://www.damerowford.com/inventory/used-vehicles/models-Ford-F--150/?page=3"
     ],
     baseUrl: "https://www.damerowford.com",
     detailPatterns: [
@@ -57,7 +69,9 @@ const SOURCE_PLUGINS = [
     id: "northside-ford",
     name: "Northside Ford",
     inventoryUrls: [
-      "https://www.northsideford.net/inventory/used-vehicles/models-Ford-F--150/"
+      "https://www.northsideford.net/inventory/used-vehicles/models-Ford-F--150/",
+      "https://www.northsideford.net/inventory/used-vehicles/models-Ford-F--150/?page=2",
+      "https://www.northsideford.net/inventory/used-vehicles/models-Ford-F--150/?page=3"
     ],
     baseUrl: "https://www.northsideford.net",
     detailPatterns: [
@@ -69,7 +83,9 @@ const SOURCE_PLUGINS = [
     id: "courtesy-ford",
     name: "Courtesy Ford",
     inventoryUrls: [
-      "https://www.courtesyford.com/used-vehicles/"
+      "https://www.courtesyford.com/used-vehicles/",
+      "https://www.courtesyford.com/used-vehicles/page/2/",
+      "https://www.courtesyford.com/used-vehicles/page/3/"
     ],
     baseUrl: "https://www.courtesyford.com",
     detailPatterns: [
@@ -80,7 +96,9 @@ const SOURCE_PLUGINS = [
     id: "auto-town-gmc",
     name: "Auto Town GMC",
     inventoryUrls: [
-      "https://www.autotowngmc.com/searchused.aspx"
+      "https://www.autotowngmc.com/searchused.aspx",
+      "https://www.autotowngmc.com/searchused.aspx?Page=2",
+      "https://www.autotowngmc.com/searchused.aspx?Page=3"
     ],
     baseUrl: "https://www.autotowngmc.com",
     detailPatterns: [
