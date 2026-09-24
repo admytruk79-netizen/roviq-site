@@ -4,7 +4,7 @@ const INVENTORY_KEY = "vehicle_inventory:v1";
 const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 28; // Refresh CARR Vancouver Sierra feed
+const INVENTORY_SCHEMA_VERSION = 29; // Correct McLoughlin live source and expand Silverado coverage
 
 const SOURCE_PLUGINS = [
   {
@@ -288,12 +288,19 @@ const SOURCE_PLUGINS = [
     inventoryUrls: [
       "https://www.mcloughlinchevy.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500",
       "https://www.mcloughlinchevy.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500&pt=2",
+      "https://www.mcloughlinchevy.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500&pt=3",
       "https://www.mcloughlinchevy.com/searchnew.aspx?make=Chevrolet&model=Silverado%202500%20HD",
+      "https://www.mcloughlinchevy.com/searchnew.aspx?make=Chevrolet&model=Silverado%202500%20HD&pt=2",
       "https://www.mcloughlinchevy.com/searchnew.aspx?make=Chevrolet&model=Silverado%203500%20HD",
       "https://www.mcloughlinchevy.com/searchused.aspx?make=Chevrolet&model=Silverado%201500",
+      "https://www.mcloughlinchevy.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=2",
       "https://www.mcloughlinchevy.com/used-trucks-for-sale-near-portland-or.html"
     ],
-    baseUrl: "https://www.westlieford.com"
+    baseUrl: "https://www.mcloughlinchevy.com",
+    detailPatterns: [
+      /\/new-.*silverado/i,
+      /\/used-.*silverado/i
+    ]
   }
 ];
 
