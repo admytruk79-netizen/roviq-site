@@ -4,7 +4,7 @@ const INVENTORY_KEY = "vehicle_inventory:v1";
 const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 29; // Correct McLoughlin live source and expand Silverado coverage
+const INVENTORY_SCHEMA_VERSION = 30; // Expand healthy dealer pagination toward 180 live vehicles
 
 const SOURCE_PLUGINS = [
   {
@@ -50,7 +50,14 @@ const SOURCE_PLUGINS = [
       "https://www.carrbuickgmc.com/searchnew.aspx?make=GMC&model=Sierra%201500&pt=3",
       "https://www.carrbuickgmc.com/searchnew.aspx?make=GMC&model=Sierra%202500%20HD",
       "https://www.carrbuickgmc.com/searchnew.aspx?make=GMC&model=Sierra%203500%20HD",
-      "https://www.carrbuickgmc.com/searchused.aspx?make=GMC&model=Sierra%201500"
+      "https://www.carrbuickgmc.com/searchused.aspx?make=GMC&model=Sierra%201500",
+      "https://www.carrbuickgmc.com/searchnew.aspx",
+      "https://www.carrbuickgmc.com/searchnew.aspx?pt=2",
+      "https://www.carrbuickgmc.com/searchnew.aspx?pt=3",
+      "https://www.carrbuickgmc.com/searchnew.aspx?pt=4",
+      "https://www.carrbuickgmc.com/searchused.aspx",
+      "https://www.carrbuickgmc.com/searchused.aspx?pt=2",
+      "https://www.carrbuickgmc.com/searchused.aspx?pt=3"
     ],
     baseUrl: "https://www.carrbuickgmc.com",
     detailPatterns: [
@@ -74,7 +81,17 @@ const SOURCE_PLUGINS = [
       "https://www.beavertongmc.com/searchnew.aspx?make=GMC&model=Sierra%202500%20HD&pt=2",
       "https://www.beavertongmc.com/searchnew.aspx?make=GMC&model=Sierra%203500%20HD",
       "https://www.beavertongmc.com/searchused.aspx?make=GMC&model=Sierra%201500",
-      "https://www.beavertongmc.com/searchused.aspx?make=GMC&model=Sierra%201500&pt=2"
+      "https://www.beavertongmc.com/searchused.aspx?make=GMC&model=Sierra%201500&pt=2",
+      "https://www.beavertongmc.com/searchnew.aspx",
+      "https://www.beavertongmc.com/searchnew.aspx?pt=2",
+      "https://www.beavertongmc.com/searchnew.aspx?pt=3",
+      "https://www.beavertongmc.com/searchnew.aspx?pt=4",
+      "https://www.beavertongmc.com/searchnew.aspx?pt=5",
+      "https://www.beavertongmc.com/searchnew.aspx?pt=6",
+      "https://www.beavertongmc.com/searchused.aspx",
+      "https://www.beavertongmc.com/searchused.aspx?pt=2",
+      "https://www.beavertongmc.com/searchused.aspx?pt=3",
+      "https://www.beavertongmc.com/searchused.aspx?pt=4"
     ],
     baseUrl: "https://www.beavertongmc.com",
     detailPatterns: [
@@ -139,7 +156,15 @@ const SOURCE_PLUGINS = [
       "https://www.autotowngmc.com/searchnew.aspx?make=GMC&model=Sierra%202500%20HD&pt=2",
       "https://www.autotowngmc.com/searchnew.aspx?make=GMC&model=Sierra%203500%20HD",
       "https://www.autotowngmc.com/searchused.aspx?make=GMC&model=Sierra%201500",
-      "https://www.autotowngmc.com/searchused.aspx?make=GMC&model=Sierra%201500&pt=2"
+      "https://www.autotowngmc.com/searchused.aspx?make=GMC&model=Sierra%201500&pt=2",
+      "https://www.autotowngmc.com/searchnew.aspx",
+      "https://www.autotowngmc.com/searchnew.aspx?pt=2",
+      "https://www.autotowngmc.com/searchnew.aspx?pt=3",
+      "https://www.autotowngmc.com/searchnew.aspx?pt=4",
+      "https://www.autotowngmc.com/searchnew.aspx?pt=5",
+      "https://www.autotowngmc.com/searchused.aspx",
+      "https://www.autotowngmc.com/searchused.aspx?pt=2",
+      "https://www.autotowngmc.com/searchused.aspx?pt=3"
     ],
     baseUrl: "https://www.autotowngmc.com",
     detailPatterns: [
@@ -215,7 +240,15 @@ const SOURCE_PLUGINS = [
       "https://www.dickscanbyford.com/searchnew.aspx?make=Ford&model=F-150&pt=6",
       "https://www.dickscanbyford.com/searchused.aspx?make=Ford&model=F-150",
       "https://www.dickscanbyford.com/searchused.aspx?make=Ford&model=F-150&pt=2",
-      "https://www.dickscanbyford.com/searchused.aspx?make=Ford&model=F-150&pt=3"
+      "https://www.dickscanbyford.com/searchused.aspx?make=Ford&model=F-150&pt=3",
+      "https://www.dickscanbyford.com/searchnew.aspx",
+      "https://www.dickscanbyford.com/searchnew.aspx?pt=2",
+      "https://www.dickscanbyford.com/searchnew.aspx?pt=3",
+      "https://www.dickscanbyford.com/searchnew.aspx?pt=4",
+      "https://www.dickscanbyford.com/searchnew.aspx?pt=5",
+      "https://www.dickscanbyford.com/searchused.aspx",
+      "https://www.dickscanbyford.com/searchused.aspx?pt=2",
+      "https://www.dickscanbyford.com/searchused.aspx?pt=3"
     ],
     baseUrl: "https://www.dickscanbyford.com",
     detailPatterns: [
@@ -237,7 +270,15 @@ const SOURCE_PLUGINS = [
       "https://www.powerchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%203500%20HD",
       "https://www.powerchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500",
       "https://www.powerchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=2",
-      "https://www.powerchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=3"
+      "https://www.powerchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=3",
+      "https://www.powerchevrolet.com/searchnew.aspx",
+      "https://www.powerchevrolet.com/searchnew.aspx?pt=2",
+      "https://www.powerchevrolet.com/searchnew.aspx?pt=3",
+      "https://www.powerchevrolet.com/searchnew.aspx?pt=4",
+      "https://www.powerchevrolet.com/searchnew.aspx?pt=5",
+      "https://www.powerchevrolet.com/searchused.aspx",
+      "https://www.powerchevrolet.com/searchused.aspx?pt=2",
+      "https://www.powerchevrolet.com/searchused.aspx?pt=3"
     ],
     baseUrl: "https://www.powerchevrolet.com",
     detailPatterns: [
@@ -257,7 +298,15 @@ const SOURCE_PLUGINS = [
       "https://www.northwestchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%203500%20HD",
       "https://www.northwestchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500",
       "https://www.northwestchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=2",
-      "https://www.northwestchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=3"
+      "https://www.northwestchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=3",
+      "https://www.northwestchevrolet.com/searchnew.aspx",
+      "https://www.northwestchevrolet.com/searchnew.aspx?pt=2",
+      "https://www.northwestchevrolet.com/searchnew.aspx?pt=3",
+      "https://www.northwestchevrolet.com/searchnew.aspx?pt=4",
+      "https://www.northwestchevrolet.com/searchnew.aspx?pt=5",
+      "https://www.northwestchevrolet.com/searchused.aspx",
+      "https://www.northwestchevrolet.com/searchused.aspx?pt=2",
+      "https://www.northwestchevrolet.com/searchused.aspx?pt=3"
     ],
     baseUrl: "https://www.northwestchevrolet.com",
     detailPatterns: [
@@ -319,7 +368,14 @@ const SOURCE_PLUGINS = [
       "https://www.mcloughlinchevy.com/searchused.aspx?make=Chevrolet&model=Silverado%201500",
       "https://www.mcloughlinchevy.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=2",
       "https://www.mcloughlinchevy.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=3",
-      "https://www.mcloughlinchevy.com/used-trucks-for-sale-near-portland-or.html"
+      "https://www.mcloughlinchevy.com/used-trucks-for-sale-near-portland-or.html",
+      "https://www.mcloughlinchevy.com/searchnew.aspx?BodyType=~Truck",
+      "https://www.mcloughlinchevy.com/searchnew.aspx?BodyType=~Truck&pt=2",
+      "https://www.mcloughlinchevy.com/searchnew.aspx?BodyType=~Truck&pt=3",
+      "https://www.mcloughlinchevy.com/searchnew.aspx?BodyType=~Truck&pt=4",
+      "https://www.mcloughlinchevy.com/searchused.aspx?BodyType=~Truck",
+      "https://www.mcloughlinchevy.com/searchused.aspx?BodyType=~Truck&pt=2",
+      "https://www.mcloughlinchevy.com/searchused.aspx?BodyType=~Truck&pt=3"
     ],
     baseUrl: "https://www.mcloughlinchevy.com",
     detailPatterns: [
