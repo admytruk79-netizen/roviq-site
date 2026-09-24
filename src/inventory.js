@@ -43,9 +43,9 @@ const SOURCE_PLUGINS = [
     name: "Buick GMC of Beaverton",
     inventoryUrls: [
       "https://www.beavertongmc.com/searchused.aspx",
-      "https://www.beavertongmc.com/searchused.aspx?Page=2",
-      "https://www.beavertongmc.com/searchused.aspx?Page=3",
-      "https://www.beavertongmc.com/searchused.aspx?Page=4"
+      "https://www.beavertongmc.com/searchused.aspx?pt=2",
+      "https://www.beavertongmc.com/searchused.aspx?pt=3",
+      "https://www.beavertongmc.com/searchused.aspx?pt=4"
     ],
     baseUrl: "https://www.beavertongmc.com",
     detailPatterns: [
@@ -97,8 +97,8 @@ const SOURCE_PLUGINS = [
     name: "Auto Town GMC",
     inventoryUrls: [
       "https://www.autotowngmc.com/searchused.aspx",
-      "https://www.autotowngmc.com/searchused.aspx?Page=2",
-      "https://www.autotowngmc.com/searchused.aspx?Page=3"
+      "https://www.autotowngmc.com/searchused.aspx?pt=2",
+      "https://www.autotowngmc.com/searchused.aspx?pt=3"
     ],
     baseUrl: "https://www.autotowngmc.com",
     detailPatterns: [
@@ -260,7 +260,7 @@ async function fetchHtml(url) {
   const r = await fetch(url, {
     redirect:"follow",
     headers:{
-      "user-agent":"Mozilla/5.0 (compatible; ROVIQInventorySync/1.0)",
+      "user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
       "accept":"text/html,application/xhtml+xml"
     }
   });
@@ -273,6 +273,42 @@ function looksLikeListing(url) {
 
 function discover(html, source) {
   const out = new Map();
+  // Several dealer search pages publish vehicle records in JSON-LD rather
+  // than ordinary anchors. Read those records before scanning links.
+  for (const match of html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+    try {
+      const root=JSON.parse(match[1].trim());
+      const queue=Array.isArray(root)?[...root]:[root];
+      while(queue.length){
+        const node=queue.shift();
+        if(!node || typeof node!=="object") continue;
+        if(Array.isArray(node["@graph"])) queue.push(...node["@graph"]);
+        if(Array.isArray(node.itemListElement)) queue.push(...node.itemListElement);
+        if(Array.isArray(node.offers?.itemOffered)) queue.push(...node.offers.itemOffered);
+        if(node.item && typeof node.item==="object") queue.push(node.item);
+        const rawUrl=node.url||node.offers?.url;
+        const url=rawUrl && abs(rawUrl,source.baseUrl);
+        const name=String(node.name||"");
+        if(!url || !/(silverado|sierra|f-?150)/i.test(name+" "+url) || !looksLikeListing(url)) continue;
+        const year=Number((name.match(/\b20\d{2}\b/)||[])[0])||null;
+        const make=(name.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||null;
+        const model=(name.match(/\b(Silverado(?:\s+(?:1500|2500\s*HD|3500\s*HD|EV))?|Sierra(?:\s+(?:1500|2500\s*HD|3500\s*HD|EV))?|F-?150(?:\s+Lightning)?)\b/i)||[])[1]||null;
+        const image=Array.isArray(node.image)?node.image[0]:node.image;
+        const rawPrice=node.offers?.price||node.offers?.lowPrice;
+        const price=num(rawPrice);
+        const mileage=num(node.mileageFromOdometer?.value??node.mileageFromOdometer);
+        const vin=node.vehicleIdentificationNumber||node.identifier;
+        const prior=out.get(url)||{};
+        out.set(url,{...prior,...(year?{year}:{}),...(make?{make}:{}),...(model?{model}:{}),
+          ...(typeof image==="string"?{directImage:image}:{}),
+          ...(price>=1000&&price<=250000?{askingPrice:price}:{}),
+          ...(mileage!=null?{mileageMi:mileage}:{}),
+          ...(typeof vin==="string"&&/^[A-HJ-NPR-Z0-9]{17}$/i.test(vin)?{vin}:{}),
+          status:"available",sourceId:source.id,sourceNameInternal:source.name,
+          firstSeenAt:prior.firstSeenAt||now()});
+      }
+    } catch {}
+  }
   const re = /href=["']([^"']+)["']/gi;
   let m;
   while ((m = re.exec(html))) {
@@ -1008,4 +1044,3 @@ export async function getVehicleImageResponse(request,env) {
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="750"><rect width="100%" height="100%" fill="#dce6ee"/><text x="50%" y="48%" text-anchor="middle" font-family="Arial" font-size="72" font-weight="700" fill="#173c5d">ROVIQ</text><text x="50%" y="58%" text-anchor="middle" font-family="Arial" font-size="28" fill="#527087">Vehicle photo updating</text></svg>';
   return new Response(svg,{headers:{"content-type":"image/svg+xml","cache-control":"no-store"}});
 }
-
