@@ -3,7 +3,7 @@ import { syncVehicleCosting, publicCosting } from "./costing-db.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 72 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 18; // Dealer-linked live database + complete public cards
+const INVENTORY_SCHEMA_VERSION = 19; // JSON-LD discovery and complete public cards
 
 const SOURCE_PLUGINS = [
   {
@@ -43,9 +43,9 @@ const SOURCE_PLUGINS = [
     name: "Buick GMC of Beaverton",
     inventoryUrls: [
       "https://www.beavertongmc.com/searchused.aspx",
-      "https://www.beavertongmc.com/searchused.aspx?pt=2",
-      "https://www.beavertongmc.com/searchused.aspx?pt=3",
-      "https://www.beavertongmc.com/searchused.aspx?pt=4"
+      "https://www.beavertongmc.com/searchused.aspx?Page=2",
+      "https://www.beavertongmc.com/searchused.aspx?Page=3",
+      "https://www.beavertongmc.com/searchused.aspx?Page=4"
     ],
     baseUrl: "https://www.beavertongmc.com",
     detailPatterns: [
@@ -97,8 +97,8 @@ const SOURCE_PLUGINS = [
     name: "Auto Town GMC",
     inventoryUrls: [
       "https://www.autotowngmc.com/searchused.aspx",
-      "https://www.autotowngmc.com/searchused.aspx?pt=2",
-      "https://www.autotowngmc.com/searchused.aspx?pt=3"
+      "https://www.autotowngmc.com/searchused.aspx?Page=2",
+      "https://www.autotowngmc.com/searchused.aspx?Page=3"
     ],
     baseUrl: "https://www.autotowngmc.com",
     detailPatterns: [
@@ -260,7 +260,7 @@ async function fetchHtml(url) {
   const r = await fetch(url, {
     redirect:"follow",
     headers:{
-      "user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+      "user-agent":"Mozilla/5.0 (compatible; ROVIQInventorySync/1.0)",
       "accept":"text/html,application/xhtml+xml"
     }
   });
@@ -273,41 +273,48 @@ function looksLikeListing(url) {
 
 function discover(html, source) {
   const out = new Map();
-  // Several dealer search pages publish vehicle records in JSON-LD rather
-  // than ordinary anchors. Read those records before scanning links.
+  // Dealer.com inventory pages put their actual vehicle records in the
+  // CollectionPage JSON-LD, while the visible anchors are rendered later.
   for (const match of html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
     try {
-      const root=JSON.parse(match[1].trim());
-      const queue=Array.isArray(root)?[...root]:[root];
-      while(queue.length){
-        const node=queue.shift();
-        if(!node || typeof node!=="object") continue;
-        if(Array.isArray(node["@graph"])) queue.push(...node["@graph"]);
-        if(Array.isArray(node.itemListElement)) queue.push(...node.itemListElement);
-        if(Array.isArray(node.offers?.itemOffered)) queue.push(...node.offers.itemOffered);
-        if(node.item && typeof node.item==="object") queue.push(node.item);
-        const rawUrl=node.url||node.offers?.url;
-        const url=rawUrl && abs(rawUrl,source.baseUrl);
-        const name=String(node.name||"");
-        if(!url || !/(silverado|sierra|f-?150)/i.test(name+" "+url) || !looksLikeListing(url)) continue;
-        const year=Number((name.match(/\b20\d{2}\b/)||[])[0])||null;
-        const make=(name.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||null;
-        const model=(name.match(/\b(Silverado(?:\s+(?:1500|2500\s*HD|3500\s*HD|EV))?|Sierra(?:\s+(?:1500|2500\s*HD|3500\s*HD|EV))?|F-?150(?:\s+Lightning)?)\b/i)||[])[1]||null;
-        const image=Array.isArray(node.image)?node.image[0]:node.image;
-        const rawPrice=node.offers?.price||node.offers?.lowPrice;
-        const price=num(rawPrice);
-        const mileage=num(node.mileageFromOdometer?.value??node.mileageFromOdometer);
-        const vin=node.vehicleIdentificationNumber||node.identifier;
-        const prior=out.get(url)||{};
-        out.set(url,{...prior,...(year?{year}:{}),...(make?{make}:{}),...(model?{model}:{}),
-          ...(typeof image==="string"?{directImage:image}:{}),
-          ...(price>=1000&&price<=250000?{askingPrice:price}:{}),
-          ...(mileage!=null?{mileageMi:mileage}:{}),
-          ...(typeof vin==="string"&&/^[A-HJ-NPR-Z0-9]{17}$/i.test(vin)?{vin}:{}),
-          status:"available",sourceId:source.id,sourceNameInternal:source.name,
-          firstSeenAt:prior.firstSeenAt||now()});
+      const document = JSON.parse(match[1]);
+      const pages = Array.isArray(document) ? document : [document];
+      for (const page of pages) {
+        const listed = page?.about?.offers?.itemOffered;
+        for (const car of (Array.isArray(listed) ? listed : [])) {
+          const url = abs(car?.url, source.baseUrl);
+          const name = String(car?.name || "");
+          if (!url || !looksLikeListing(url) || !/(Silverado|Sierra|F-?150)/i.test(name)) continue;
+          const mileageMi = num(car?.mileageFromOdometer?.value);
+          if (mileageMi == null || mileageMi >= MAX_MILES) continue;
+          const image = Array.isArray(car.image) ? car.image[0] : car.image;
+          const directImage = typeof image === "string" ? image : image?.url;
+          const model = String(car.model || (name.match(/(?:Silverado|Sierra)(?:\s+(?:1500|2500\s*HD|3500\s*HD|EV))?|F-?150(?:\s+Lightning)?/i)||[])[0] || "");
+          const price = num(car?.offers?.price);
+          out.set(url, {
+            vin: safeField(car.vehicleIdentificationNumber),
+            year: Number(car.vehicleModelDate || (name.match(/\b20\d{2}\b/)||[])[0]) || null,
+            make: safeField(typeof car.brand === "string" ? car.brand : car.brand?.name),
+            model: safeField(model),
+            mileageMi,
+            engine: safeField(typeof car.vehicleEngine === "string" ? car.vehicleEngine : car.vehicleEngine?.name),
+            drivetrain: safeField(car.driveWheelConfiguration),
+            transmission: safeField(car.vehicleTransmission),
+            fuel: safeField(car.fuelType),
+            exterior: safeField(car.color),
+            interior: safeField(car.vehicleInteriorColor),
+            directImage: directImage ? abs(directImage, source.baseUrl) : null,
+            askingPrice: price >= 1000 && price <= 250000 ? price : null,
+            status: "available",
+            lastVerifiedAt: now(),
+            firstSeenAt: now(),
+            sourceNameInternal: source.name,
+            sourceId: source.id
+          });
+          if (out.size >= 80) break;
+        }
       }
-    } catch {}
+    } catch { /* Other JSON-LD blocks may use schemas we do not ingest. */ }
   }
   const re = /href=["']([^"']+)["']/gi;
   let m;
@@ -456,7 +463,11 @@ function isPublicReady(v) {
     v.mileageMi<MAX_MILES &&
     v.year &&
     v.make &&
-    v.model
+    v.model &&
+    v.directImage &&
+    hasValidPrice(v) &&
+    v.lastVerifiedAt &&
+    Date.now()-Date.parse(v.lastVerifiedAt) < LIVE_VERIFICATION_MAX_AGE_MS
   );
 }
 
@@ -739,13 +750,9 @@ export async function syncVehicleInventory(env) {
 
 export async function getVehicleInventory(env) {
   let state=await readState(env);
-  const storedCount=Array.isArray(state?.vehicles)?state.vehicles.length:0;
-  const databaseCount=Number(state?.databaseRows||storedCount||0);
-
-  // Do not keep serving an under-populated snapshot forever.
-  // If the dealer-linked database is missing or has fewer than 20 rows,
-  // rebuild it from the configured dealer sources before rendering.
-  if(!state || !Array.isArray(state.vehicles) || databaseCount<20){
+  // The hourly scheduled sync handles refreshes. A low count is a source
+  // diagnostic, not a reason to re-scrape dealers on every customer request.
+  if(!state || !Array.isArray(state.vehicles) || state.version!==INVENTORY_SCHEMA_VERSION){
     state=await syncVehicleInventory(env);
   }
 
@@ -761,19 +768,7 @@ export async function getVehicleInventory(env) {
   const pricingConfig=await getPricingConfig(env);
   const costingRows=await syncVehicleCosting(env,state.vehicles||[],pricingConfig);
   const costingById=new Map(costingRows.map(r=>[r.vehicleId,r]));
-  let publicVehicles=(state.vehicles||[]).filter(isPublicReady);
-
-  if(publicVehicles.length===0){
-    publicVehicles=(state.vehicles||[]).filter(v=>
-      v &&
-      v.status==="available" &&
-      v.mileageMi!=null &&
-      v.mileageMi<MAX_MILES &&
-      v.year &&
-      v.make &&
-      v.model
-    );
-  }
+  const publicVehicles=(state.vehicles||[]).filter(isPublicReady);
   const vehicles=publicVehicles.sort((a,b)=>a.mileageMi-b.mileageMi).map(v=>({
     id:v.id,year:v.year,make:v.make,model:v.model,trim:v.trim||"",mileageMi:v.mileageMi,
     engine:v.engine||"Specification pending",drivetrain:v.drivetrain||"4WD/AWD",
@@ -830,7 +825,7 @@ export async function getPublicInventoryHealth(env) {
 export async function getInventoryAdmin(env) {
   let state=await readState(env);
   const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
-  if(!state || state.version!==INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age>15*60*1000 || Number(state.databaseRows||0)<20){
+  if(!state || state.version!==INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age>15*60*1000){
     state=await syncVehicleInventory(env);
   }
   return state;
