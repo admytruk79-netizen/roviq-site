@@ -43,6 +43,8 @@ const SOURCE_PLUGINS = [
     id: "carr-vancouver-gmc",
     name: "CARR Vancouver Buick GMC",
     inventoryUrls: [
+      "https://www.carrbuickgmc.com/2026-gmc-sierra-1500",
+      "https://www.carrbuickgmc.com/2026-gmc-sierra-1500?pt=2",
       "https://www.carrbuickgmc.com/searchnew.aspx?make=GMC&model=Sierra%201500",
       "https://www.carrbuickgmc.com/searchnew.aspx?make=GMC&model=Sierra%201500&pt=2",
       "https://www.carrbuickgmc.com/searchnew.aspx?make=GMC&model=Sierra%201500&pt=3",
@@ -60,6 +62,9 @@ const SOURCE_PLUGINS = [
     id: "beaverton-gmc",
     name: "Buick GMC of Beaverton",
     inventoryUrls: [
+      "https://www.beavertongmc.com/2026-gmc-sierra-1500",
+      "https://www.beavertongmc.com/2026-gmc-sierra-1500?pt=2",
+      "https://www.beavertongmc.com/2026-gmc-sierra-for-sale-in-portland-or.html",
       "https://www.beavertongmc.com/searchnew.aspx?make=GMC&model=Sierra%201500",
       "https://www.beavertongmc.com/searchnew.aspx?make=GMC&model=Sierra%201500&pt=2",
       "https://www.beavertongmc.com/searchnew.aspx?make=GMC&model=Sierra%201500&pt=3",
@@ -122,6 +127,9 @@ const SOURCE_PLUGINS = [
     id: "auto-town-gmc",
     name: "Auto Town GMC",
     inventoryUrls: [
+      "https://www.autotowngmc.com/2026-gmc-sierra-1500",
+      "https://www.autotowngmc.com/2026-gmc-sierra-1500?pt=2",
+      "https://www.autotowngmc.com/GMC-Sierra-1500",
       "https://www.autotowngmc.com/searchnew.aspx?make=GMC&model=Sierra%201500",
       "https://www.autotowngmc.com/searchnew.aspx?make=GMC&model=Sierra%201500&pt=2",
       "https://www.autotowngmc.com/searchnew.aspx?make=GMC&model=Sierra%202500%20HD",
