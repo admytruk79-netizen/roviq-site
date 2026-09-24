@@ -538,9 +538,9 @@ export async function syncVehicleInventory(env) {
     .sort((a,b) => Number(Boolean(b[1].previous?.id)) - Number(Boolean(a[1].previous?.id)))
     .slice(0,180);
 
-  // Persist the live dealer discovery set itself, not only the subset whose VDP
-  // detail page happens to parse perfectly in this run. This is the actual dealer-
-  // linked inventory database; detail verification enriches these rows afterward.
+  // Persist the dealer discovery set BEFORE detail-page enrichment. A Worker run
+  // must never lose the whole live database just because later VDP enrichment hits
+  // a dealer timeout or Cloudflare subrequest ceiling.
   const discoveredRows=candidateEntries.map(([url,metaInfo])=>{
     const source=SOURCE_PLUGINS.find(s=>s.id===metaInfo.sourceId)||SOURCE_PLUGINS.find(s=>url.startsWith(s.baseUrl));
     const prior=metaInfo.previous||{};
@@ -568,6 +568,28 @@ export async function syncVehicleInventory(env) {
     vehicles:discoveredRows.slice(0,180)
   };
   await saveLiveDatabase(env,discoveryDatabase);
+
+  const provisionalSources = SOURCE_PLUGINS.map(({id,name}) => {
+    const h=sourceHealth[id]||{};
+    return {
+      ...h,
+      id,
+      name,
+      availableVehicles:discoveredRows.filter(v=>v.sourceId===id && v.status==="available").length,
+      publicReadyVehicles:discoveredRows.filter(v=>v.sourceId===id && isPublicReady(v)).length,
+      incompleteVehicles:discoveredRows.filter(v=>v.sourceId===id && !isPublicReady(v)).length,
+      filteredVehicles:0,
+      totalVehicles:discoveredRows.filter(v=>v.sourceId===id).length
+    };
+  });
+  await saveLiveDatabase(env,{
+    version:INVENTORY_SCHEMA_VERSION,
+    syncedAt:now(),
+    candidateCap:180,
+    databaseRows:discoveredRows.length,
+    sources:provisionalSources,
+    vehicles:discoveredRows.slice(0,180)
+  });
 
   async function inspectCandidate(entry) {
     const [url,metaInfo] = entry;
@@ -633,10 +655,19 @@ export async function syncVehicleInventory(env) {
     return v;
   }
 
+  // Keep each sync under Cloudflare's external-subrequest ceiling.
+  // Discovery already consumes ~30 dealer requests, so enrich a rotating batch
+  // of 12 VDPs per run. Every run republishes the full discovery database first.
+  const detailBatchSize=12;
+  const previousCursor=Number(old?.detailCursor||0);
+  const start=candidateEntries.length ? (previousCursor % candidateEntries.length) : 0;
+  const detailEntries=candidateEntries.length
+    ? Array.from({length:Math.min(detailBatchSize,candidateEntries.length)},(_,n)=>candidateEntries[(start+n)%candidateEntries.length])
+    : [];
   const vehicles=[];
-  const concurrency=10;
-  for(let i=0;i<candidateEntries.length;i+=concurrency){
-    const batch=candidateEntries.slice(i,i+concurrency);
+  const concurrency=6;
+  for(let i=0;i<detailEntries.length;i+=concurrency){
+    const batch=detailEntries.slice(i,i+concurrency);
     const results=await Promise.all(batch.map(inspectCandidate));
     vehicles.push(...results.filter(Boolean));
   }
@@ -756,6 +787,7 @@ export async function syncVehicleInventory(env) {
     syncedAt:now(),
     candidateCap:180,
     databaseRows:finalVehicles.length,
+    detailCursor:candidateEntries.length ? ((start+detailEntries.length)%candidateEntries.length) : 0,
     sources,
     vehicles:finalVehicles
   };
