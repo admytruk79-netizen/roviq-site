@@ -1,7 +1,8 @@
 import { bookingForm } from "../booking.js";
 
 function km(mi){return Math.round(mi*1.60934).toLocaleString("en-US")}
-function priceLabel(pricing){return pricing?.hasPrice && Number.isFinite(pricing.dealerPrice??pricing.vehiclePrice) ? "&#36;"+Number(pricing.dealerPrice??pricing.vehiclePrice).toLocaleString("en-US") : "Request current price"}\nfunction feeLabel(pricing){return Number.isFinite(pricing?.processingFee) ? "&#36;"+Number(pricing.processingFee).toLocaleString("en-US") : "Contact ROVIQ"}
+function priceLabel(pricing){return pricing?.hasPrice && Number.isFinite(pricing.dealerPrice??pricing.vehiclePrice) ? "&#36;"+Number(pricing.dealerPrice??pricing.vehiclePrice).toLocaleString("en-US") : "Request current price"}
+function feeLabel(pricing){return Number.isFinite(pricing?.processingFee) ? "&#36;"+Number(pricing.processingFee).toLocaleString("en-US") : "Contact ROVIQ"}
 function shippingLabel(pricing){return pricing?.hasPrice && Number.isFinite(pricing.shippingLow) && Number.isFinite(pricing.shippingHigh) ? "&#36;"+pricing.shippingLow.toLocaleString("en-US")+"–&#36;"+pricing.shippingHigh.toLocaleString("en-US") : "Request shipping quote"}
 function esc(value){return String(value||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function card(v,formPage=false){return `
