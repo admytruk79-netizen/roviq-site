@@ -4,7 +4,7 @@ const INVENTORY_KEY = "vehicle_inventory:v1";
 const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 25; // Refresh with Gresham structured Ford feed
+const INVENTORY_SCHEMA_VERSION = 26; // Refresh explicit machine-readable dealer feeds
 
 const SOURCE_PLUGINS = [
   {
@@ -389,12 +389,19 @@ function extractImage(html) {
 }
 
 async function fetchHtml(url) {
+  const machineReadable=/\/llm\/inventory\//i.test(url);
+  const headers=machineReadable ? {
+    "user-agent":"ROVIQ-Inventory/1.0 (+vehicle inventory aggregation)",
+    "accept":"text/html,text/plain,application/json;q=0.9,*/*;q=0.8",
+    "cache-control":"no-cache"
+  } : {
+    "user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+    "accept":"text/html,application/xhtml+xml"
+  };
   const r = await fetch(url, {
     redirect:"follow",
-    headers:{
-      "user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-      "accept":"text/html,application/xhtml+xml"
-    }
+    signal:AbortSignal.timeout(15000),
+    headers
   });
   return { ok:r.ok, status:r.status, html:r.ok ? await r.text() : "" };
 }
