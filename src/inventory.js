@@ -11,18 +11,19 @@ const SOURCE_PLUGINS = [
     id: "carr",
     name: "CARR Chevrolet",
     inventoryUrls: [
+      "https://www.carrchevrolet.com/sitemap.htm",
+      "https://www.carrchevrolet.com/test-new-cars-widget.htm",
+      "https://www.carrchevrolet.com/truck-country/index.htm",
       "https://www.carrchevrolet.com/used-inventory/index.htm",
-      "https://www.carrchevrolet.com/used-inventory/index.htm?start=18",
-      "https://www.carrchevrolet.com/used-inventory/index.htm?start=36",
-      "https://www.carrchevrolet.com/used-inventory/index.htm?start=54",
-      "https://www.carrchevrolet.com/used-inventory/index.htm?start=72",
-      "https://www.carrchevrolet.com/used-inventory/index.htm?make=Chevrolet&model=Silverado+1500",
-      "https://www.carrchevrolet.com/used-inventory/index.htm?make=Chevrolet&model=Silverado+2500+HD",
-      "https://www.carrchevrolet.com/certified-inventory/index.htm",
-      "https://www.carrchevrolet.com/certified-inventory/index.htm?make=Chevrolet&model=Silverado+1500",
-      "https://www.carrchevrolet.com/certified-inventory/index.htm?make=Chevrolet&model=Silverado+2500+HD"
+      "https://www.carrchevrolet.com/certified-inventory/index.htm"
     ],
-    baseUrl: "https://www.carrchevrolet.com"
+    baseUrl: "https://www.carrchevrolet.com",
+    detailPatterns: [
+      /\/used\/Chevrolet\/.*Silverado/i,
+      /\/new\/Chevrolet\/.*Silverado/i,
+      /\/used\/GMC\/.*Sierra/i,
+      /\/used\/Ford\/.*F-?150/i
+    ]
   },
   {
     id: "ron-tonkin-chevrolet",
@@ -373,7 +374,7 @@ function discover(html, source) {
       sourceNameInternal:source.name,
       sourceId:source.id
     });
-    if (out.size >= 80) break;
+    if (out.size >= 180) break;
   }
   return [...out.entries()].map(([url,hints])=>({url,hints}));
 }
@@ -697,7 +698,7 @@ export async function syncVehicleInventory(env) {
   // Keep each sync under Cloudflare's external-subrequest ceiling.
   // Discovery already consumes ~30 dealer requests, so enrich a rotating batch
   // of 12 VDPs per run. Every run republishes the full discovery database first.
-  const detailBatchSize=24;
+  const detailBatchSize=12;
   const previousCursor=Number(old?.detailCursor||0);
   const start=candidateEntries.length ? (previousCursor % candidateEntries.length) : 0;
   const detailEntries=candidateEntries.length
