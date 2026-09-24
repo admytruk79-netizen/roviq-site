@@ -28,10 +28,12 @@ const SOURCE_PLUGINS = [
     id: "ron-tonkin-chevrolet",
     name: "Ron Tonkin Chevrolet",
     inventoryUrls: [
-      "https://www.tonkinchevrolet.com/llm/inventory/?limit=100",
-      "https://www.tonkinchevrolet.com/llm/inventory/?limit=100&page=2"
+      "https://www.rontonkinchevrolet.com/used-vehicles/",
+      "https://www.rontonkinchevrolet.com/used-vehicles/page/2/",
+      "https://www.rontonkinchevrolet.com/used-vehicles/page/3/",
+      "https://www.rontonkinchevrolet.com/used-vehicles/page/4/"
     ],
-    baseUrl: "https://www.tonkinchevrolet.com",
+    baseUrl: "https://www.rontonkinchevrolet.com",
     detailPatterns: [
       /\/inventory\/(?:certified-)?used-.*silverado/i,
       /\/used-.*silverado/i
@@ -124,61 +126,6 @@ const SOURCE_PLUGINS = [
     name: "BMW of Salem",
     inventoryUrls: ["https://www.bmwofsalem.com/used-inventory/used-ford-salem-or.htm"],
     baseUrl: "https://www.bmwofsalem.com"
-  },
-  {
-    id: "landmark-ford",
-    name: "Landmark Ford",
-    inventoryUrls: [
-      "https://www.landmarkford.com/used-vehicles/?_dFR%5Bmodel%5D%5B0%5D=F-150",
-      "https://www.landmarkford.com/used-vehicles/page/2/?_dFR%5Bmodel%5D%5B0%5D=F-150"
-    ],
-    baseUrl: "https://www.landmarkford.com",
-    detailPatterns: [/\/inventory\/(?:certified-)?used-.*f-?150/i]
-  },
-  {
-    id: "tonkin-hillsboro-ford",
-    name: "Tonkin Hillsboro Ford",
-    inventoryUrls: [
-      "https://www.tonkinhillsboroford.com/used-vehicles/?_dFR%5Bmodel%5D%5B0%5D=F-150",
-      "https://www.tonkinhillsboroford.com/used-vehicles/page/2/?_dFR%5Bmodel%5D%5B0%5D=F-150"
-    ],
-    baseUrl: "https://www.tonkinhillsboroford.com",
-    detailPatterns: [/\/inventory\/(?:certified-)?used-.*f-?150/i]
-  },
-  {
-    id: "weston-gmc",
-    name: "Weston Buick GMC",
-    inventoryUrls: [
-      "https://www.westonbuickgmc.com/searchused.aspx?make=GMC&model=Sierra%201500",
-      "https://www.westonbuickgmc.com/searchused.aspx?make=GMC&model=Sierra%201500&pt=2"
-    ],
-    baseUrl: "https://www.westonbuickgmc.com",
-    detailPatterns: [/\/used-.*sierra/i]
-  },
-  {
-    id: "royal-moore-gmc",
-    name: "Royal Moore Buick GMC",
-    inventoryUrls: [
-      "https://www.royalmooregmc.com/used-vehicles/?_dFR%5Bmodel%5D%5B0%5D=Sierra%201500",
-      "https://www.royalmooregmc.com/used-vehicles/page/2/?_dFR%5Bmodel%5D%5B0%5D=Sierra%201500"
-    ],
-    baseUrl: "https://www.royalmooregmc.com",
-    detailPatterns: [/\/inventory\/(?:certified-)?used-.*sierra/i]
-  },
-  {
-    id: "mcloughlin-chevrolet",
-    name: "McLoughlin Chevrolet",
-    inventoryUrls: ["https://www.mcloughlinchevy.com/used-trucks-for-sale-near-portland-or.html"],
-    baseUrl: "https://www.mcloughlinchevy.com"
-  },
-  {
-    id: "westlie-ford",
-    name: "Westlie Ford",
-    inventoryUrls: [
-      "https://www.westlieford.com/llm/inventory/?limit=100",
-      "https://www.westlieford.com/llm/inventory/?limit=100&page=2"
-    ],
-    baseUrl: "https://www.westlieford.com"
   }
 ];
 
@@ -325,7 +272,6 @@ function extractImage(html) {
 async function fetchHtml(url) {
   const r = await fetch(url, {
     redirect:"follow",
-    signal:AbortSignal.timeout(12000),
     headers:{
       "user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
       "accept":"text/html,application/xhtml+xml"
@@ -338,30 +284,7 @@ function looksLikeListing(url) {
   return /(silverado|sierra|f-?150)/i.test(url) && /(used|preowned|pre-owned|vehicle|inventory)/i.test(url);
 }
 
-function discoverLlmInventory(html, source) {
-  const out=new Map();
-  for(const match of html.matchAll(/<li\b[^>]*class=["'][^"']*vehicle-item[^"']*["'][^>]*>([\s\S]*?)<\/li>/gi)){
-    const item=match[1];
-    const titleTag=(item.match(/<a\b(?=[^>]*class=["'][^"']*vehicle-title)[^>]*>/i)||[])[0]||"";
-    const url=abs((titleTag.match(/href=["']([^"']+)/i)||[])[1],source.baseUrl);
-    if(!url || !/\/inventory\/used-/i.test(url) || !looksLikeListing(url)) continue;
-    const name=clean((item.match(/itemprop=["']name["'][^>]*>([^<]+)/i)||[])[1]||"");
-    const year=Number((name.match(/\b20\d{2}\b/)||[])[0])||null;
-    const make=(name.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||null;
-    const model=(name.match(/\b(Silverado(?:\s+\d{4}\s*HD|\s+\d{4}HD|\s+EV)?|Sierra(?:\s+\d{4}\s*HD|\s+\d{4}HD)?|F-?150)\b/i)||[])[1]||null;
-    const mileage=num((item.match(/itemprop=["']value["'][^>]*>([^<]+)/i)||[])[1]);
-    const price=num((item.match(/itemprop=["']price["'][^>]*content=["']([0-9,.]+)/i)||[])[1]);
-    const vin=(item.match(/itemprop=["']vehicleIdentificationNumber["'][^>]*content=["']([A-HJ-NPR-Z0-9]{17})/i)||[])[1]||null;
-    if(!year || !make || !model || mileage==null) continue;
-    out.set(url,{url,hints:{year,make,model,mileageMi:mileage,
-      ...(price>=1000&&price<=250000?{askingPrice:price}:{}),...(vin?{vin}:{}),
-      sourceId:source.id,sourceNameInternal:source.name,status:"available",firstSeenAt:now()}});
-  }
-  return [...out.values()];
-}
-
 function discover(html, source) {
-  if(/\/llm\/inventory\//.test(source.inventoryUrls?.[0]||"")) return discoverLlmInventory(html,source);
   const out = new Map();
   // Several dealer search pages publish vehicle records in JSON-LD rather
   // than ordinary anchors. Read those records before scanning links.
@@ -596,7 +519,6 @@ export async function syncVehicleInventory(env) {
 
   const previousSources = Object.fromEntries((old?.sources || []).map(s => [s.id, s]));
   const sourceHealth = {};
-  const inventoryPages=[];
   for (const source of SOURCE_PLUGINS) {
     const health = sourceHealth[source.id] = {
       id: source.id,
@@ -612,14 +534,10 @@ export async function syncVehicleInventory(env) {
       rejectedMileage: 0,
       rejectedMakeModel: 0
     };
-    for (const inventoryUrl of (source.inventoryUrls || [])) inventoryPages.push({source,inventoryUrl,health});
-  }
-  // Bound total duration when a dealer blocks requests or leaves a socket open.
-  for(let i=0;i<inventoryPages.length;i+=6){
-    await Promise.all(inventoryPages.slice(i,i+6).map(async ({source,inventoryUrl,health})=>{
+    for (const inventoryUrl of (source.inventoryUrls || [])) {
       try {
         const r=await fetchHtml(inventoryUrl);
-        if (!r.ok) { health.inventoryPagesFailed++; return; }
+        if (!r.ok) { health.inventoryPagesFailed++; continue; }
         health.inventoryPagesOk++;
         health.lastSuccessAt = now();
         const found = discover(r.html,source);
@@ -635,7 +553,7 @@ export async function syncVehicleInventory(env) {
           }
         }
       } catch { health.inventoryPagesFailed++; }
-    }));
+    }
   }
 
   // Balance the 180-vehicle catalogue across every healthy source instead of
@@ -779,7 +697,7 @@ export async function syncVehicleInventory(env) {
   // Keep each sync under Cloudflare's external-subrequest ceiling.
   // Discovery already consumes ~30 dealer requests, so enrich a rotating batch
   // of 12 VDPs per run. Every run republishes the full discovery database first.
-  const detailBatchSize=12;
+  const detailBatchSize=24;
   const previousCursor=Number(old?.detailCursor||0);
   const start=candidateEntries.length ? (previousCursor % candidateEntries.length) : 0;
   const detailEntries=candidateEntries.length
@@ -892,14 +810,6 @@ export async function syncVehicleInventory(env) {
     .slice(0,180);
 
   const finalVehicles=liveDatabaseRows;
-  for(const source of sources){
-    const matching=finalVehicles.filter(v=>v.sourceId===source.id);
-    source.availableVehicles=matching.filter(v=>v.status==="available").length;
-    source.publicReadyVehicles=matching.filter(isPublicReady).length;
-    source.incompleteVehicles=matching.filter(v=>v.status==="incomplete").length;
-    source.filteredVehicles=matching.filter(v=>v.status==="filtered").length;
-    source.totalVehicles=matching.length;
-  }
   const state={
     version:INVENTORY_SCHEMA_VERSION,
     maxMileage:MAX_MILES,
@@ -994,7 +904,12 @@ export function searchVehicleInventory(inventory, params) {
 }
 
 export async function getPublicInventoryHealth(env) {
-  const state=(await readState(env))||{vehicles:[],sources:[]};
+  let state=await readState(env);
+  const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
+  const hasRenderableStoredInventory=Boolean((state?.vehicles||[]).some(isRenderableVehicle));
+  if(!state || state.version!==INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age > 30*60*1000 || !hasRenderableStoredInventory) {
+    state=await syncVehicleInventory(env);
+  }
   const vehicles=state.vehicles||[];
   return {
     version: state.version,
@@ -1031,7 +946,12 @@ export async function getPublicInventoryHealth(env) {
 }
 
 export async function getInventoryAdmin(env) {
-  return (await readState(env))||{vehicles:[],sources:[]};
+  let state=await readState(env);
+  const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
+  if(!state || state.version!==INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age>15*60*1000 || Number(state.databaseRows||0)<20){
+    state=await syncVehicleInventory(env);
+  }
+  return state;
 }
 
 export async function checkVehicleAvailability(env, vehicleId) {

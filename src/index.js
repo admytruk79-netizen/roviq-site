@@ -146,12 +146,6 @@ export default {
         if (method === "GET") return new Response(await vehicleAdminPage(env), { headers: { "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" } });
         return new Response("Method not allowed", { status: 405 });
       }
-      if (path === "/api/inventory-refresh" && method === "POST") {
-        const token = request.headers.get("x-roviq-sync-token") || "";
-        if (!env.INVENTORY_SYNC_TOKEN || token !== env.INVENTORY_SYNC_TOKEN) return new Response("Unauthorized", { status: 401 });
-        const state = await syncVehicleInventory(env);
-        return Response.json({ ok:true, syncedAt:state.syncedAt, databaseRows:state.databaseRows, sources:state.sources?.map(s=>({id:s.id,discovered:s.discovered,publicReadyVehicles:s.publicReadyVehicles}))||[] }, { headers: secureHeaders({ "cache-control":"no-store" }) });
-      }
       if (path === "/admin/vehicles/sync" && method === "POST") {
         if (!(await isAuthed(request, env))) return new Response("Unauthorized", { status: 401 });
         return syncNow(env);
@@ -187,6 +181,12 @@ export default {
       if (page && method === "GET") {
         const content = await loadAllContent(env);
         const inventory = path === "/ukraine" ? searchVehicleInventory(await getVehicleInventory(env),url.searchParams) : null;
+        if(path === "/ukraine"){
+          const syncAge=inventory?.syncedAt ? Date.now()-Date.parse(inventory.syncedAt) : Infinity;
+          if(Number(inventory?.version||0)<20 || Number(inventory?.databaseRows||0)<20 || !Number.isFinite(syncAge) || syncAge>15*60*1000){
+            ctx.waitUntil(syncVehicleInventory(env));
+          }
+        }
         const bookingId = path === "/ukraine" ? url.searchParams.get("booking") : null;
         const unavailableId = path === "/ukraine" ? url.searchParams.get("unavailable") : null;
         const body = path === "/ukraine" ? page.render(content, inventory, bookingId, unavailableId,false,url.searchParams) : page.render(content);

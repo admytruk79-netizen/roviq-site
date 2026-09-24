@@ -33,11 +33,6 @@ jobs:
             exit 1
           fi
 
-      - name: Refresh verified vehicle inventory
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: node scripts/sync-inventory.mjs
-
       - name: Deploy with Wrangler
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
