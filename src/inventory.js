@@ -3,7 +3,7 @@ import { syncVehicleCosting, publicCosting } from "./costing-db.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 72 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 18; // Dealer-linked live database + complete public cards
+const INVENTORY_SCHEMA_VERSION = 19; // Refresh after dealer detail parser correction
 
 const SOURCE_PLUGINS = [
   {
@@ -749,7 +749,7 @@ export async function getVehicleInventory(env) {
   // Do not keep serving an under-populated snapshot forever.
   // If the dealer-linked database is missing or has fewer than 20 rows,
   // rebuild it from the configured dealer sources before rendering.
-  if(!state || !Array.isArray(state.vehicles) || databaseCount<20){
+  if(!state || state.version!==INVENTORY_SCHEMA_VERSION || !Array.isArray(state.vehicles) || databaseCount<20){
     state=await syncVehicleInventory(env);
   }
 
@@ -793,7 +793,7 @@ export async function getPublicInventoryHealth(env) {
   let state=await readState(env);
   const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
   const hasRenderableStoredInventory=Boolean((state?.vehicles||[]).some(isRenderableVehicle));
-  if(!state || !Number.isFinite(age) || age > 30*60*1000 || !hasRenderableStoredInventory) {
+  if(!state || state.version!==INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age > 30*60*1000 || !hasRenderableStoredInventory) {
     state=await syncVehicleInventory(env);
   }
   const vehicles=state.vehicles||[];
