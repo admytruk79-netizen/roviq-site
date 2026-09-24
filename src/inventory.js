@@ -471,16 +471,6 @@ function stableId(v) {
   return "ROVIQ-US-"+Math.abs(h);
 }
 
-function dealerListingUrl(v) {
-  const source=SOURCE_PLUGINS.find(s=>s.id===v.sourceId);
-  if(!source || !v.sourceUrl) return null;
-  try {
-    const listing=new URL(v.sourceUrl);
-    const dealer=new URL(source.baseUrl);
-    return listing.protocol==="https:" && listing.hostname===dealer.hostname ? listing.href : null;
-  } catch { return null; }
-}
-
 async function readState(env) {
   const raw = env.CONTENT ? await env.CONTENT.get(INVENTORY_KEY) : null;
   if (!raw) return null;
@@ -794,11 +784,24 @@ export async function getVehicleInventory(env) {
     transmission:v.transmission||"Automatic",fuel:v.fuel||"Gasoline",exterior:v.exterior||"See photo",
     interior:v.interior||"See details",vinPublic:v.vin?"••••••"+v.vin.slice(-6):"ROVIQ",
     imagePath:"/ukraine/image/"+encodeURIComponent(v.id),lastVerifiedAt:v.lastVerifiedAt,
-    dealerUrl:dealerListingUrl(v),
-    dealerName:SOURCE_PLUGINS.find(s=>s.id===v.sourceId)?.name||null,
     pricing:publicCosting(costingById.get(v.id))
   }));
   return {syncedAt:state.syncedAt,maxMileage:MAX_MILES,vehicles};
+}
+
+export function searchVehicleInventory(inventory, params) {
+  const q=String(params.get("q")||"").trim().toLowerCase().slice(0,80);
+  const make=String(params.get("make")||"").trim().toLowerCase();
+  const fuel=String(params.get("fuel")||"").trim().toLowerCase();
+  const maxMileage=Number(params.get("maxMileage"));
+  const vehicles=(inventory.vehicles||[]).filter(v=>{
+    if(q && ![v.year,v.make,v.model,v.trim,v.engine,v.fuel,v.id].join(" ").toLowerCase().includes(q)) return false;
+    if(make && String(v.make).toLowerCase()!==make) return false;
+    if(fuel && String(v.fuel).toLowerCase()!==fuel) return false;
+    if(params.has("maxMileage") && Number.isFinite(maxMileage) && maxMileage>=0 && v.mileageMi>maxMileage) return false;
+    return true;
+  });
+  return {...inventory,vehicles,totalVehicles:(inventory.vehicles||[]).length};
 }
 
 export async function getPublicInventoryHealth(env) {
