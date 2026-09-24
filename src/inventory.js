@@ -416,8 +416,8 @@ function discoverLlmInventory(html, source) {
     const item=match[1];
     const titleTag=(item.match(/<a\b(?=[^>]*class=["'][^"']*vehicle-title)[^>]*>/i)||[])[0]||"";
     const url=abs((titleTag.match(/href=["']([^"']+)/i)||[])[1],source.baseUrl);
-    if(!url || !/\/inventory\/(?:new|used|certified-used)-/i.test(url) || !/(silverado|sierra|f-?150)/i.test(url+" "+name)) continue;
     const name=clean((item.match(/itemprop=["']name["'][^>]*>([^<]+)/i)||[])[1]||"");
+    if(!url || !/\/inventory\/(?:new|used|certified-used)-/i.test(url) || !/(silverado|sierra|f-?150)/i.test(url+" "+name)) continue;
     const year=Number((name.match(/\b20\d{2}\b/)||[])[0])||null;
     const make=(name.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||null;
     const model=(name.match(/\b(Silverado(?:\s+\d{4}\s*HD|\s+\d{4}HD|\s+EV)?|Sierra(?:\s+\d{4}\s*HD|\s+\d{4}HD)?|F-?150)\b/i)||[])[1]||null;
