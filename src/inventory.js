@@ -638,10 +638,15 @@ function discover(html, source) {
     const hintImage=extractImage(context);
     const hintPrice=extractAskingPrice(context) ||
       numericAttr(context,["data-price","data-sale-price","data-vehicle-price","data-internet-price","data-msrp","data-final-price"]);
-    const hintVin=((contextText.match(/\b([A-HJ-NPR-Z0-9]{17})\b/)||[])[1]||null);
-    const hintYear=Number((contextText.match(/\b(20\d{2})\b/)||[])[1]||0)||null;
-    const hintMake=((contextText.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||"");
-    const hintModel=((contextText.match(/\b(Silverado(?:\s+1500(?:\s+LTD)?|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|Sierra(?:\s+1500|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|F-?150(?:\s+Lightning)?)\b/i)||[])[1]||"");
+    const decodedUrl=decodeURIComponent(url.replace(/\+/g," "));
+    const hintVin=((contextText.match(/\b([A-HJ-NPR-Z0-9]{17})\b/)||[])[1]||
+      (decodedUrl.match(/\b([A-HJ-NPR-Z0-9]{17})\b/i)||[])[1]||null);
+    const hintYear=Number((contextText.match(/\b(20\d{2})\b/)||[])[1]||
+      (decodedUrl.match(/\b(20\d{2})\b/)||[])[1]||0)||null;
+    const hintMake=((contextText.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||
+      (decodedUrl.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||"");
+    const hintModel=((contextText.match(/\b(Silverado(?:\s+1500(?:\s+LTD)?|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|Sierra(?:\s+1500|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|F-?150(?:\s+Lightning)?)\b/i)||[])[1]||
+      (decodedUrl.match(/\b(Silverado(?:[\s-]+1500(?:[\s-]+LTD)?|[\s-]+2500[\s-]*HD|[\s-]+3500[\s-]*HD|[\s-]+EV)?|Sierra(?:[\s-]+1500|[\s-]+2500[\s-]*HD|[\s-]+3500[\s-]*HD|[\s-]+EV)?|F-?150(?:[\s-]+Lightning)?)\b/i)||[])[1]||"");
     const parsedHintMileage=num((contextText.match(/\b([0-9]{1,3}(?:,[0-9]{3})*|[0-9]{1,6})\s*(?:mi|miles?)\b/i)||[])[1]);
     const newVehicleUrl=/(?:\/new[-\/]|\/inventory\/new-)/i.test(url);
     const hintMileage=parsedHintMileage!=null ? parsedHintMileage : (newVehicleUrl ? 0 : null);
