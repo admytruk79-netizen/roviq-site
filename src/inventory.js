@@ -4,7 +4,7 @@ const INVENTORY_KEY = "vehicle_inventory:v1";
 const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 26; // Refresh explicit machine-readable dealer feeds
+const INVENTORY_SCHEMA_VERSION = 27; // Refresh additional live Ford and Chevrolet feeds
 
 const SOURCE_PLUGINS = [
   {
@@ -140,6 +140,23 @@ const SOURCE_PLUGINS = [
     baseUrl: "https://www.bmwofsalem.com"
   },
   {
+    id: "kendall-ford-vancouver",
+    name: "Kendall Ford of Vancouver",
+    inventoryUrls: [
+      "https://www.kendallfordvancouver.com/llm/inventory/",
+      "https://www.kendallfordvancouver.com/llm/inventory/?type=new",
+      "https://www.kendallfordvancouver.com/llm/inventory/?_p=2&type=new",
+      "https://www.kendallfordvancouver.com/llm/inventory/?_p=3&type=new",
+      "https://www.kendallfordvancouver.com/llm/inventory/?_p=4&type=new",
+      "https://www.kendallfordvancouver.com/llm/inventory/?type=used",
+      "https://www.kendallfordvancouver.com/llm/inventory/?_p=2&type=used"
+    ],
+    baseUrl: "https://www.kendallfordvancouver.com",
+    detailPatterns: [
+      /\/inventory\/(?:new|used|certified-used)-.*f-?150/i
+    ]
+  },
+  {
     id: "gresham-ford",
     name: "Gresham Ford",
     inventoryUrls: [
@@ -172,6 +189,23 @@ const SOURCE_PLUGINS = [
     detailPatterns: [
       /\/new-.*f-?150/i,
       /\/used-.*f-?150/i
+    ]
+  },
+  {
+    id: "power-chevrolet",
+    name: "Power Chevrolet",
+    inventoryUrls: [
+      "https://www.powerchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500",
+      "https://www.powerchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500&pt=2",
+      "https://www.powerchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%202500%20HD",
+      "https://www.powerchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%203500%20HD",
+      "https://www.powerchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500",
+      "https://www.powerchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=2"
+    ],
+    baseUrl: "https://www.powerchevrolet.com",
+    detailPatterns: [
+      /\/new-.*silverado/i,
+      /\/used-.*silverado/i
     ]
   },
   {
@@ -234,15 +268,13 @@ const SOURCE_PLUGINS = [
   {
     id: "mcloughlin-chevrolet",
     name: "McLoughlin Chevrolet",
-    inventoryUrls: ["https://www.mcloughlinchevy.com/used-trucks-for-sale-near-portland-or.html"],
-    baseUrl: "https://www.mcloughlinchevy.com"
-  },
-  {
-    id: "westlie-ford",
-    name: "Westlie Ford",
     inventoryUrls: [
-      "https://www.westlieford.com/llm/inventory/?limit=100",
-      "https://www.westlieford.com/llm/inventory/?limit=100&page=2"
+      "https://www.mcloughlinchevy.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500",
+      "https://www.mcloughlinchevy.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500&pt=2",
+      "https://www.mcloughlinchevy.com/searchnew.aspx?make=Chevrolet&model=Silverado%202500%20HD",
+      "https://www.mcloughlinchevy.com/searchnew.aspx?make=Chevrolet&model=Silverado%203500%20HD",
+      "https://www.mcloughlinchevy.com/searchused.aspx?make=Chevrolet&model=Silverado%201500",
+      "https://www.mcloughlinchevy.com/used-trucks-for-sale-near-portland-or.html"
     ],
     baseUrl: "https://www.westlieford.com"
   }
