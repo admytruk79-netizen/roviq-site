@@ -4,7 +4,7 @@ const INVENTORY_KEY = "vehicle_inventory:v1";
 const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 30; // Expand healthy dealer pagination toward 180 live vehicles
+const INVENTORY_SCHEMA_VERSION = 31; // Accept low-mileage new vehicles in live inventory
 
 const SOURCE_PLUGINS = [
   {
@@ -642,7 +642,7 @@ function discover(html, source) {
     const hintYear=Number((contextText.match(/\b(20\d{2})\b/)||[])[1]||0)||null;
     const hintMake=((contextText.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||"");
     const hintModel=((contextText.match(/\b(Silverado(?:\s+1500(?:\s+LTD)?|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|Sierra(?:\s+1500|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|F-?150(?:\s+Lightning)?)\b/i)||[])[1]||"");
-    const parsedHintMileage=num((contextText.match(/\b([0-9][0-9,]{2,6})\s*(?:mi|miles?)\b/i)||[])[1]);
+    const parsedHintMileage=num((contextText.match(/\b([0-9]{1,3}(?:,[0-9]{3})*|[0-9]{1,6})\s*(?:mi|miles?)\b/i)||[])[1]);
     const newVehicleUrl=/(?:\/new[-\/]|\/inventory\/new-)/i.test(url);
     const hintMileage=parsedHintMileage!=null ? parsedHintMileage : (newVehicleUrl ? 0 : null);
     const hintDrivetrain=safeField((contextText.match(/\b(4WD|4x4|4×4|AWD|RWD|2WD)\b/i)||[])[1]||null);
@@ -718,7 +718,7 @@ export function parseDetail(html, source, url, previous={}) {
   const make=((combined.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||previous.make||"").replace(/^./,x=>x.toUpperCase());
   const model=((combined.match(/\b(Silverado(?:\s+1500(?:\s+LTD)?|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|Sierra(?:\s+1500|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|F-?150(?:\s+Lightning)?)\b/i)||[])[1]||previous.model||"").replace(/\s+/g," ").replace(/^F150$/i,"F-150");
   const dealerMileage=first(html,/<span[^>]*class=["'][^"']*info__label[^"']*["'][^>]*>\s*Mileage\s*<\/span>\s*<span[^>]*class=["'][^"']*info__value[^"']*["'][^>]*>\s*([0-9,]+)\s*<\/span>/i);
-  const mileage=structured.mileageMi ?? num(dealerMileage||first(html,/(?:Odometer|Mileage)\s*[:\-]?\s*([0-9][0-9,.]{0,10}\s*(?:mi|miles?))/i)||(combined.match(/\b([0-9][0-9,]{2,6})\s*(?:mi|miles?)\b/i)||[])[1]) ?? previous.mileageMi;
+  const mileage=structured.mileageMi ?? num(dealerMileage||first(html,/(?:Odometer|Mileage)\s*[:\-]?\s*([0-9][0-9,.]{0,10}\s*(?:mi|miles?))/i)||(combined.match(/\b([0-9]{1,3}(?:,[0-9]{3})*|[0-9]{1,6})\s*(?:mi|miles?)\b/i)||[])[1]) ?? previous.mileageMi;
   const vin=structured.vin||((combined.match(/\b([A-HJ-NPR-Z0-9]{17})\b/)||[])[1]||previous.vin||null);
   const image=structured.image||extractImage(html)||previous.directImage||null;
 
