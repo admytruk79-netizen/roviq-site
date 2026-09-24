@@ -1,14 +1,14 @@
 import { bookingForm } from "../booking.js";
 
 function km(mi){return Math.round(mi*1.60934).toLocaleString("en-US")}
-function priceLabel(pricing){return pricing?.hasPrice && Number.isFinite(pricing.subtotal??pricing.vehiclePrice) ? "&#36;"+Number(pricing.subtotal??pricing.vehiclePrice).toLocaleString("en-US") : "Request current price"}
+function priceLabel(pricing){return pricing?.hasPrice && Number.isFinite(pricing.vehiclePrice) ? "&#36;"+Number(pricing.vehiclePrice).toLocaleString("en-US") : "Request current price"}
 function shippingLabel(pricing){return pricing?.hasPrice && Number.isFinite(pricing.shippingLow) && Number.isFinite(pricing.shippingHigh) ? "&#36;"+pricing.shippingLow.toLocaleString("en-US")+"–&#36;"+pricing.shippingHigh.toLocaleString("en-US") : "Request shipping quote"}
 function esc(value){return String(value||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function card(v,formPage=false){return `
 <article class="uk-card">
 <div class="uk-photo"><img src="${v.imagePath}" alt="${v.year} ${v.make} ${v.model}" loading="eager" fetchpriority="high" decoding="async"><div class="uk-badge">${v.mileageMi<10000?"ULTRA-LOW MILEAGE":"UNDER 60,000 MILES"}</div></div>
 <div class="uk-info"><div class="uk-id">${v.id} • ROVIQ LIVE INVENTORY</div><h2>${v.year} ${v.make} ${v.model}</h2><div class="uk-sub">${v.trim||""}${v.trim?" • ":""}${v.drivetrain} • ${v.engine}</div>
-<div class="price-box"><div><span>ROVIQ vehicle price</span><strong>${priceLabel(v.pricing)}</strong><small>Includes ROVIQ margin / coordination</small></div><div><span>Estimated shipping to Rijeka</span><strong>${shippingLabel(v.pricing)}</strong><small><a href="/contact">Contact ROVIQ for the final delivered quote</a></small></div></div>\n<div class="uk-specs"><div class="uk-spec"><span>Mileage</span><strong>${v.mileageMi.toLocaleString("en-US")} mi / ${km(v.mileageMi)} km</strong></div><div class="uk-spec"><span>Engine</span><strong>${v.engine}</strong></div><div class="uk-spec"><span>Drivetrain</span><strong>${v.drivetrain}</strong></div><div class="uk-spec"><span>Transmission</span><strong>${v.transmission}</strong></div><div class="uk-spec"><span>Fuel</span><strong>${v.fuel}</strong></div><div class="uk-spec"><span>Exterior</span><strong>${v.exterior}</strong></div><div class="uk-spec"><span>Interior</span><strong>${v.interior}</strong></div><div class="uk-spec"><span>Vehicle ID</span><strong>${v.vinPublic}</strong></div></div>
+<div class="price-box"><div><span>ROVIQ vehicle price</span><strong>${priceLabel(v.pricing)}</strong><small>Includes ROVIQ margin</small></div></div>\n<div class="uk-specs"><div class="uk-spec"><span>Mileage</span><strong>${v.mileageMi.toLocaleString("en-US")} mi / ${km(v.mileageMi)} km</strong></div><div class="uk-spec"><span>Engine</span><strong>${v.engine}</strong></div><div class="uk-spec"><span>Drivetrain</span><strong>${v.drivetrain}</strong></div><div class="uk-spec"><span>Transmission</span><strong>${v.transmission}</strong></div><div class="uk-spec"><span>Fuel</span><strong>${v.fuel}</strong></div><div class="uk-spec"><span>Exterior</span><strong>${v.exterior}</strong></div><div class="uk-spec"><span>Interior</span><strong>${v.interior}</strong></div><div class="uk-spec"><span>Vehicle ID</span><strong>${v.vinPublic}</strong></div></div>
 ${formPage ? bookingForm(v) : `<a class="uk-btn primary" style="margin-top:17px" href="/ukraine/request?vehicle=${encodeURIComponent(v.id)}">Open vehicle request form →</a>`}
 </div></article>`}
 
@@ -52,7 +52,7 @@ return `<style>
 .uk-id{font-size:11px;color:#9ba8b3;font-weight:800}
 .uk-info h2{font-size:1.55rem;margin:7px 0 5px;color:#f4f2ed}
 .uk-sub{font-weight:700;color:#c8d2d9;margin-bottom:17px}
-.price-box{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:14px}
+.price-box{display:grid;grid-template-columns:1fr;gap:9px;margin-bottom:14px}
 .price-box>div{padding:12px;border-radius:10px;background:#0f2231;border:1px solid rgba(200,146,69,.24)}
 .price-box span{display:block;font-size:9px;text-transform:uppercase;font-weight:800;color:#9ba8b3;margin-bottom:5px}
 .price-box strong{font-size:18px;color:#f0dfbf}.price-box small{display:block;margin-top:5px;color:#9ba8b3;font-size:10px;line-height:1.4}.price-box small a{color:#e1b770;text-decoration:none;font-weight:800}.price-box small a:hover{text-decoration:underline}
