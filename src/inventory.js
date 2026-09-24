@@ -269,16 +269,36 @@ function discover(html, source) {
     // the public card can still be complete after the detail-page verification succeeds.
     const start=Math.max(0,m.index-4500), end=Math.min(html.length,m.index+9000);
     const context=html.slice(start,end);
+    const contextText=clean(context);
     const hintImage=extractImage(context);
     const hintPrice=extractAskingPrice(context) ||
       numericAttr(context,["data-price","data-sale-price","data-vehicle-price","data-internet-price","data-msrp","data-final-price"]);
-    const hintVin=((clean(context).match(/\b([A-HJ-NPR-Z0-9]{17})\b/)||[])[1]||null);
+    const hintVin=((contextText.match(/\b([A-HJ-NPR-Z0-9]{17})\b/)||[])[1]||null);
+    const hintYear=Number((contextText.match(/\b(20\d{2})\b/)||[])[1]||0)||null;
+    const hintMake=((contextText.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||"");
+    const hintModel=((contextText.match(/\b(Silverado(?:\s+1500(?:\s+LTD)?|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|Sierra(?:\s+1500|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|F-?150(?:\s+Lightning)?)\b/i)||[])[1]||"");
+    const hintMileage=num((contextText.match(/\b([0-9][0-9,]{2,6})\s*(?:mi|miles?)\b/i)||[])[1]);
+    const hintDrivetrain=safeField((contextText.match(/\b(4WD|4x4|4×4|AWD|RWD|2WD)\b/i)||[])[1]||null);
+    const hintEngine=safeField(
+      (contextText.match(/\b((?:2\.7L|3\.0L|5\.0L|5\.3L|6\.2L|6\.6L)[^|,;<]{0,45}(?:TurboMax|Duramax|EcoTec3|V8|V-8|diesel|turbo|engine)?)\b/i)||[])[1]||null
+    );
     const existing=out.get(url)||{};
     out.set(url,{
       ...existing,
       ...(hintImage?{directImage:hintImage}:{}),
       ...(hintPrice?{askingPrice:hintPrice}:{}),
-      ...(hintVin?{vin:hintVin}:{})
+      ...(hintVin?{vin:hintVin}:{}),
+      ...(hintYear?{year:hintYear}:{}),
+      ...(hintMake?{make:hintMake.replace(/^./,x=>x.toUpperCase())}:{}),
+      ...(hintModel?{model:hintModel.replace(/\s+/g," ").replace(/^F150$/i,"F-150")}:{}),
+      ...(hintMileage!=null?{mileageMi:hintMileage}:{}),
+      ...(hintDrivetrain?{drivetrain:hintDrivetrain}:{}),
+      ...(hintEngine?{engine:hintEngine}:{}),
+      status:"available",
+      lastVerifiedAt:now(),
+      firstSeenAt:existing.firstSeenAt||now(),
+      sourceNameInternal:source.name,
+      sourceId:source.id
     });
     if (out.size >= 80) break;
   }
@@ -386,8 +406,6 @@ function isPublicReady(v) {
     v.year &&
     v.make &&
     v.model &&
-    safeField(v.engine) &&
-    safeField(v.drivetrain) &&
     v.directImage &&
     hasValidPrice(v)
   );
