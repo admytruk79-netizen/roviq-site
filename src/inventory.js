@@ -3,7 +3,7 @@ import { syncVehicleCosting, publicCosting } from "./costing-db.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 72 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 14;
+const INVENTORY_SCHEMA_VERSION = 14; // Public inventory v14: price + photo completeness
 
 const SOURCE_PLUGINS = [
   {
