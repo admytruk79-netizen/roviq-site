@@ -3,7 +3,7 @@ import { syncVehicleCosting, publicCosting } from "./costing-db.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 72 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 14; // Public inventory v14: price + photo completeness
+const INVENTORY_SCHEMA_VERSION = 15; // Dealer-linked live database + complete public cards
 
 const SOURCE_PLUGINS = [
   {
@@ -669,7 +669,7 @@ export async function getVehicleInventory(env) {
   let state=await readState(env);
   const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
   const hasRenderableStoredInventory=Boolean((state?.vehicles||[]).some(isRenderableVehicle));
-  if(!state || !Number.isFinite(age) || age > 30*60*1000 || !hasRenderableStoredInventory) {
+  if(!state || state.version!==INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age > 15*60*1000 || !hasRenderableStoredInventory || Number(state.databaseRows||0)<20) {
     state=await syncVehicleInventory(env);
   }
   const pricingConfig=await getPricingConfig(env);
@@ -740,7 +740,12 @@ export async function getPublicInventoryHealth(env) {
 }
 
 export async function getInventoryAdmin(env) {
-  let state=await readState(env); if(!state) state=await syncVehicleInventory(env); return state;
+  let state=await readState(env);
+  const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
+  if(!state || state.version!==INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age>15*60*1000 || Number(state.databaseRows||0)<20){
+    state=await syncVehicleInventory(env);
+  }
+  return state;
 }
 
 export async function checkVehicleAvailability(env, vehicleId) {
