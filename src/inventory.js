@@ -1253,12 +1253,21 @@ export function searchVehicleInventory(inventory, params) {
   const make=String(params.get("make")||"").trim().toLowerCase();
   const fuel=String(params.get("fuel")||"").trim().toLowerCase();
   const maxMileage=Number(params.get("maxMileage"));
+  const sort=String(params.get("sort")||"year_desc");
   const vehicles=(inventory.vehicles||[]).filter(v=>{
     if(q && ![v.year,v.make,v.model,v.trim,v.engine,v.fuel,v.id].join(" ").toLowerCase().includes(q)) return false;
     if(make && String(v.make).toLowerCase()!==make) return false;
     if(fuel && String(v.fuel).toLowerCase()!==fuel) return false;
     if(params.has("maxMileage") && Number.isFinite(maxMileage) && maxMileage>=0 && v.mileageMi>maxMileage) return false;
     return true;
+  });
+  const price=v=>v.pricing?.hasPrice ? Number(v.pricing.vehiclePrice) : Infinity;
+  const tie=(a,b)=>(a.mileageMi??Infinity)-(b.mileageMi??Infinity);
+  vehicles.sort((a,b)=>{
+    if(sort==="mileage_asc") return tie(a,b) || (b.year||0)-(a.year||0);
+    if(sort==="price_asc") return price(a)-price(b) || tie(a,b);
+    if(sort==="price_desc") return (Number.isFinite(price(b))?price(b):-Infinity)-(Number.isFinite(price(a))?price(a):-Infinity) || tie(a,b);
+    return (b.year||0)-(a.year||0) || tie(a,b);
   });
   return {...inventory,vehicles,totalVehicles:(inventory.vehicles||[]).length};
 }
