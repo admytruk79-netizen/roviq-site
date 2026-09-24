@@ -3,8 +3,8 @@ import { syncVehicleCosting, publicCosting } from "./costing-db.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
 const MAX_MILES = 60000;
-const LIVE_VERIFICATION_MAX_AGE_MS = 72 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 20; // Discover the additional dealer sources
+const LIVE_VERIFICATION_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+const INVENTORY_SCHEMA_VERSION = 21; // Publish only freshly discovered dealer inventory
 
 const SOURCE_PLUGINS = [
   {
