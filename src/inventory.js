@@ -707,11 +707,16 @@ export async function syncVehicleInventory(env) {
 }
 
 export async function getVehicleInventory(env) {
+  // Public inventory reads must never block on live dealer scraping.
+  // Serve the last stored snapshot immediately; scheduled/admin sync refreshes it separately.
   let state=await readState(env);
-  const age=state?.syncedAt ? Date.now()-Date.parse(state.syncedAt) : Infinity;
-  const hasRenderableStoredInventory=Boolean((state?.vehicles||[]).some(isRenderableVehicle));
-  if(!state || state.version!==INVENTORY_SCHEMA_VERSION || !Number.isFinite(age) || age > 15*60*1000 || !hasRenderableStoredInventory || Number(state.databaseRows||0)<20) {
-    state=await syncVehicleInventory(env);
+  if(!state || !Array.isArray(state.vehicles)) {
+    state={
+      version:INVENTORY_SCHEMA_VERSION,
+      syncedAt:null,
+      databaseRows:SEEDS.length,
+      vehicles:SEEDS.map(v=>({...v,status:"available",lastVerifiedAt:null}))
+    };
   }
   const pricingConfig=await getPricingConfig(env);
   const costingRows=await syncVehicleCosting(env,state.vehicles||[],pricingConfig);
