@@ -1,6 +1,7 @@
 import { getPricingConfig } from "./pricing.js";
 import { syncVehicleCosting, publicCosting } from "./costing-db.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
+const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 72 * 60 * 60 * 1000;
 const INVENTORY_SCHEMA_VERSION = 19; // Refresh after dealer detail parser correction
@@ -478,6 +479,15 @@ async function readState(env) {
 }
 async function saveState(env,state) { if (env.CONTENT) await env.CONTENT.put(INVENTORY_KEY,JSON.stringify(state)); }
 
+async function readLiveDatabase(env) {
+  const raw = env.CONTENT ? await env.CONTENT.get(LIVE_DATABASE_KEY) : null;
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+async function saveLiveDatabase(env, database) {
+  if (env.CONTENT) await env.CONTENT.put(LIVE_DATABASE_KEY,JSON.stringify(database));
+}
+
 export async function syncVehicleInventory(env) {
   const old = await readState(env);
   const oldVehicles = old?.vehicles || SEEDS.map(v=>({...v,status:"available",missCount:0,firstSeenAt:now()}));
@@ -546,6 +556,18 @@ export async function syncVehicleInventory(env) {
     row.id=stableId(row);
     return row;
   });
+
+  // Persist discovery immediately as the live dealer-linked database.
+  // This happens before slow detail-page enrichment, so a partial/slow enrichment
+  // run cannot collapse the live database back to a handful of cards.
+  const discoveryDatabase={
+    version:INVENTORY_SCHEMA_VERSION,
+    syncedAt:now(),
+    candidateCap:180,
+    databaseRows:discoveredRows.length,
+    vehicles:discoveredRows.slice(0,180)
+  };
+  await saveLiveDatabase(env,discoveryDatabase);
 
   async function inspectCandidate(entry) {
     const [url,metaInfo] = entry;
@@ -738,55 +760,85 @@ export async function syncVehicleInventory(env) {
     vehicles:finalVehicles
   };
   await saveState(env,state);
+  await saveLiveDatabase(env,{
+    version:INVENTORY_SCHEMA_VERSION,
+    syncedAt:state.syncedAt,
+    candidateCap:180,
+    databaseRows:finalVehicles.length,
+    sources,
+    vehicles:finalVehicles
+  });
   return state;
 }
 
 export async function getVehicleInventory(env) {
-  let state=await readState(env);
-  const storedCount=Array.isArray(state?.vehicles)?state.vehicles.length:0;
-  const databaseCount=Number(state?.databaseRows||storedCount||0);
+  // Customer requests read the persisted dealer-linked live database only.
+  // Dealer scraping is performed by the hourly cron/admin sync, never inline here.
+  const [state,liveDatabase]=await Promise.all([readState(env),readLiveDatabase(env)]);
+  const stateVehicles=Array.isArray(state?.vehicles)?state.vehicles:[];
+  const liveVehicles=Array.isArray(liveDatabase?.vehicles)?liveDatabase.vehicles:[];
 
-  // Do not keep serving an under-populated snapshot forever.
-  // If the dealer-linked database is missing or has fewer than 20 rows,
-  // rebuild it from the configured dealer sources before rendering.
-  if(!state || state.version!==INVENTORY_SCHEMA_VERSION || !Array.isArray(state.vehicles) || databaseCount<20){
-    state=await syncVehicleInventory(env);
-  }
+  // Prefer the larger live discovery database, while merging enriched snapshot
+  // fields by source URL so price/photo/spec data is retained.
+  const enrichedByUrl=new Map(stateVehicles.map(v=>[v.sourceUrl,v]));
+  const sourceRows=(liveVehicles.length>=stateVehicles.length ? liveVehicles : stateVehicles);
+  let databaseRows=sourceRows.map(v=>({
+    ...(enrichedByUrl.get(v.sourceUrl)||{}),
+    ...v,
+    id:v.id||stableId(v),
+    status:v.status||"available"
+  }));
 
-  if(!state || !Array.isArray(state.vehicles)){
-    state={
-      version:INVENTORY_SCHEMA_VERSION,
-      syncedAt:null,
-      databaseRows:SEEDS.length,
-      vehicles:SEEDS.map(v=>({...v,status:"available",lastVerifiedAt:null}))
-    };
+  if(databaseRows.length===0){
+    databaseRows=SEEDS.map(v=>({...v,status:"available",lastVerifiedAt:null}));
   }
 
   const pricingConfig=await getPricingConfig(env);
-  const costingRows=await syncVehicleCosting(env,state.vehicles||[],pricingConfig);
+  const costingRows=await syncVehicleCosting(env,databaseRows,pricingConfig);
   const costingById=new Map(costingRows.map(r=>[r.vehicleId,r]));
-  let publicVehicles=(state.vehicles||[]).filter(isPublicReady);
 
-  if(publicVehicles.length===0){
-    publicVehicles=(state.vehicles||[]).filter(v=>
+  const publicVehicles=databaseRows
+    .filter(v=>
       v &&
-      v.status==="available" &&
-      v.mileageMi!=null &&
-      v.mileageMi<MAX_MILES &&
+      v.status!=="sold" &&
+      v.status!=="unavailable" &&
+      v.status!=="filtered" &&
       v.year &&
       v.make &&
-      v.model
-    );
-  }
-  const vehicles=publicVehicles.sort((a,b)=>a.mileageMi-b.mileageMi).map(v=>({
-    id:v.id,year:v.year,make:v.make,model:v.model,trim:v.trim||"",mileageMi:v.mileageMi,
-    engine:v.engine||"Specification pending",drivetrain:v.drivetrain||"4WD/AWD",
-    transmission:v.transmission||"Automatic",fuel:v.fuel||"Gasoline",exterior:v.exterior||"See photo",
-    interior:v.interior||"See details",vinPublic:v.vin?"••••••"+v.vin.slice(-6):"ROVIQ",
-    imagePath:"/ukraine/image/"+encodeURIComponent(v.id),lastVerifiedAt:v.lastVerifiedAt,
+      v.model &&
+      (v.mileageMi==null || v.mileageMi<MAX_MILES)
+    )
+    .sort((a,b)=>(a.mileageMi??999999)-(b.mileageMi??999999))
+    .slice(0,180);
+
+  const vehicles=publicVehicles.map(v=>({
+    id:v.id,
+    year:v.year,
+    make:v.make,
+    model:v.model,
+    trim:v.trim||"",
+    mileageMi:Number.isFinite(Number(v.mileageMi))?Number(v.mileageMi):0,
+    engine:v.engine||"Specification updating",
+    drivetrain:v.drivetrain||"Specification updating",
+    transmission:v.transmission||"Automatic",
+    fuel:v.fuel||"Gasoline",
+    exterior:v.exterior||"See dealer listing",
+    interior:v.interior||"See dealer listing",
+    vinPublic:v.vin?"••••••"+v.vin.slice(-6):"ROVIQ",
+    imagePath:"/ukraine/image/"+encodeURIComponent(v.id),
+    lastVerifiedAt:v.lastVerifiedAt||v.lastDiscoveredAt||null,
+    dealerUrl:v.sourceUrl||null,
+    dealerName:v.sourceNameInternal||null,
     pricing:publicCosting(costingById.get(v.id))
   }));
-  return {syncedAt:state.syncedAt,maxMileage:MAX_MILES,vehicles};
+
+  return {
+    syncedAt:liveDatabase?.syncedAt||state?.syncedAt||null,
+    maxMileage:MAX_MILES,
+    databaseRows:databaseRows.length,
+    candidateCap:180,
+    vehicles
+  };
 }
 
 export function searchVehicleInventory(inventory, params) {
