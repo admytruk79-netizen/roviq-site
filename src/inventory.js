@@ -4,7 +4,7 @@ const INVENTORY_KEY = "vehicle_inventory:v1";
 const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 24; // Refresh model-filtered dealer inventory
+const INVENTORY_SCHEMA_VERSION = 25; // Refresh with Gresham structured Ford feed
 
 const SOURCE_PLUGINS = [
   {
@@ -138,6 +138,24 @@ const SOURCE_PLUGINS = [
     name: "BMW of Salem",
     inventoryUrls: ["https://www.bmwofsalem.com/used-inventory/used-ford-salem-or.htm"],
     baseUrl: "https://www.bmwofsalem.com"
+  },
+  {
+    id: "gresham-ford",
+    name: "Gresham Ford",
+    inventoryUrls: [
+      "https://www.greshamford.com/llm/inventory/?type=new",
+      "https://www.greshamford.com/llm/inventory/?_p=2&type=new",
+      "https://www.greshamford.com/llm/inventory/?_p=3&type=new",
+      "https://www.greshamford.com/llm/inventory/?_p=4&type=new",
+      "https://www.greshamford.com/llm/inventory/?_p=5&type=new",
+      "https://www.greshamford.com/llm/inventory/?_p=6&type=new",
+      "https://www.greshamford.com/llm/inventory/?type=used",
+      "https://www.greshamford.com/llm/inventory/?_p=2&type=used"
+    ],
+    baseUrl: "https://www.greshamford.com",
+    detailPatterns: [
+      /\/inventory\/(?:new|used|certified-used)-.*f-?150/i
+    ]
   },
   {
     id: "dicks-canby-ford",
@@ -391,7 +409,7 @@ function discoverLlmInventory(html, source) {
     const item=match[1];
     const titleTag=(item.match(/<a\b(?=[^>]*class=["'][^"']*vehicle-title)[^>]*>/i)||[])[0]||"";
     const url=abs((titleTag.match(/href=["']([^"']+)/i)||[])[1],source.baseUrl);
-    if(!url || !/\/inventory\/(?:used|certified-used)-/i.test(url) || !looksLikeListing(url)) continue;
+    if(!url || !/\/inventory\/(?:new|used|certified-used)-/i.test(url) || !/(silverado|sierra|f-?150)/i.test(url+" "+name)) continue;
     const name=clean((item.match(/itemprop=["']name["'][^>]*>([^<]+)/i)||[])[1]||"");
     const year=Number((name.match(/\b20\d{2}\b/)||[])[0])||null;
     const make=(name.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||null;
