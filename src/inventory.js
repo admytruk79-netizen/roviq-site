@@ -739,7 +739,7 @@ export async function syncVehicleInventory(env) {
   // Keep each sync under Cloudflare's external-subrequest ceiling.
   // Discovery already consumes ~30 dealer requests, so enrich a rotating batch
   // of 12 VDPs per run. Every run republishes the full discovery database first.
-  const detailBatchSize=24;
+  const detailBatchSize=12;
   const previousCursor=Number(old?.detailCursor||0);
   const start=candidateEntries.length ? (previousCursor % candidateEntries.length) : 0;
   const detailEntries=candidateEntries.length
