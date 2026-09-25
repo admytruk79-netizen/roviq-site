@@ -11,12 +11,16 @@ const SOURCE_PLUGINS = [
     id: "carr",
     name: "CARR Chevrolet",
     inventoryUrls: [
+      "https://www.carrchevrolet.com/used-inventory/index.htm",
       "https://www.carrchevrolet.com/certified-inventory/index.htm",
-      "https://www.carrchevrolet.com/sitemap.htm"
+      "https://www.carrchevrolet.com/used-trucks.htm",
+      "https://www.carrchevrolet.com/used-trucks.htm?start=16"
     ],
     baseUrl: "https://www.carrchevrolet.com",
     detailPatterns: [
-      /\/new\/Chevrolet\/.*Silverado/i,
+      /\\/used\\/Chevrolet\\/.*Silverado/i,
+      /\\/used\\/GMC\\/.*Sierra/i,
+      /\\/used\\/Ford\\/.*F-?(?:150|250)/i
     ]
   },
   {
