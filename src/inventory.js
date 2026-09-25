@@ -2,7 +2,7 @@ import { getPricingConfig } from "./pricing.js";
 import { syncVehicleCosting, publicCosting } from "./costing-db.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
-const MAX_MILES = 60000;
+const MAX_MILES = 30000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const INVENTORY_SCHEMA_VERSION = 33; // Ukraine feed: used/pre-owned inventory only
 
@@ -701,6 +701,21 @@ export function normalizePriorInventory(state){
   );
 }
 
+export function retainRecentUnseenVehicles(discoveredRows, oldVehicles, sourceHealth){
+  const rows=new Map(discoveredRows.map(v=>[v.sourceUrl,v]));
+  for(const prior of oldVehicles){
+    if(!prior?.sourceUrl || rows.has(prior.sourceUrl) || prior.status!=="available") continue;
+    const health=sourceHealth[prior.sourceId];
+    // A successful, complete crawl is evidence that an unseen listing left the
+    // dealer inventory. A failed page is not. Keep only recently discovered rows.
+    if(!health || health.inventoryPagesFailed<1) continue;
+    const age=Date.now()-Date.parse(prior.lastDiscoveredAt||"");
+    if(!Number.isFinite(age) || age<0 || age>LIVE_VERIFICATION_MAX_AGE_MS) continue;
+    rows.set(prior.sourceUrl,prior);
+  }
+  return [...rows.values()].slice(0,180);
+}
+
 export async function syncVehicleInventory(env) {
   const old = await readState(env);
   // Version 31 inferred zero miles for new listings with no dealer mileage.
@@ -779,7 +794,7 @@ export async function syncVehicleInventory(env) {
   // Persist the dealer discovery set BEFORE detail-page enrichment. A Worker run
   // must never lose the whole live database just because later VDP enrichment hits
   // a dealer timeout or Cloudflare subrequest ceiling.
-  const discoveredRows=candidateEntries.map(([url,metaInfo])=>{
+  const freshRows=candidateEntries.map(([url,metaInfo])=>{
     const source=SOURCE_PLUGINS.find(s=>s.id===metaInfo.sourceId)||SOURCE_PLUGINS.find(s=>url.startsWith(s.baseUrl));
     const prior=metaInfo.previous||{};
     const row={
@@ -794,6 +809,7 @@ export async function syncVehicleInventory(env) {
     row.id=stableId(row);
     return row;
   });
+  const discoveredRows=retainRecentUnseenVehicles(freshRows,oldVehicles,sourceHealth);
 
   // Persist discovery immediately as the live dealer-linked database.
   // This happens before slow detail-page enrichment, so a partial/slow enrichment
@@ -898,7 +914,7 @@ export async function syncVehicleInventory(env) {
   // Keep each sync under Cloudflare's external-subrequest ceiling.
   // Discovery already consumes ~30 dealer requests, so enrich a rotating batch
   // of 12 VDPs per run. Every run republishes the full discovery database first.
-  const detailBatchSize=12;
+  const detailBatchSize=Math.min(36,Math.max(1,Number(env.inventoryDetailBatchSize)||12));
   const previousCursor=Number(old?.detailCursor||0);
   const start=candidateEntries.length ? (previousCursor % candidateEntries.length) : 0;
   // EV search pages can list VINs without mileage or price. Enrich a few of
