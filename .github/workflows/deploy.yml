@@ -38,17 +38,19 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: npx wrangler deploy
 
-      - name: Verify live vehicle inventory
+      - name: Verify live vehicle inventory and rendered page
         run: |
           set -euo pipefail
           BASE="https://roviq-site.admytruk79.workers.dev"
           sleep 6
           curl -fsS --retry 4 --retry-delay 3 --max-time 120 "$BASE/api/inventory-health" -o /tmp/health.json
           curl -fsS --retry 4 --retry-delay 3 --max-time 60 "$BASE/api/vehicles" -o /tmp/vehicles.json
+          curl -fsS --retry 4 --retry-delay 3 --max-time 60 "$BASE/ukraine" -o /tmp/ukraine.html
           node - <<'NODE'
           const fs=require("fs");
           const health=JSON.parse(fs.readFileSync("/tmp/health.json","utf8"));
           const inventory=JSON.parse(fs.readFileSync("/tmp/vehicles.json","utf8"));
+          const html=fs.readFileSync("/tmp/ukraine.html","utf8");
           const vehicles=Array.isArray(inventory.vehicles)?inventory.vehicles:[];
           const summary={
             inventoryVersion:inventory.version||null,
@@ -58,10 +60,8 @@ jobs:
             publicVehicles:vehicles.length,
             candidateCap:Number(inventory.candidateCap||0),
             healthCounts:health.counts||null,
-            sources:Array.isArray(health.sources)?health.sources.map(s=>({
-              id:s.id,healthy:s.healthy,discovered:s.discovered,
-              availableVehicles:s.availableVehicles,publicReadyVehicles:s.publicReadyVehicles
-            })):[],
+            renderedVehicleCards:(html.match(/<article class="uk-card">/g)||[]).length,
+            renderedEmptyState:html.includes('class="uk-empty"'),
             samples:vehicles.slice(0,5).map(v=>({
               id:v.id,year:v.year,make:v.make,model:v.model,trim:v.trim,
               mileageMi:v.mileageMi,hasPrice:Boolean(v.pricing?.hasPrice)
@@ -71,4 +71,6 @@ jobs:
           if(!summary.syncedAt) throw new Error("Live inventory has no sync timestamp");
           if(summary.databaseRows<1) throw new Error("Live inventory database is empty");
           if(vehicles.length<1) throw new Error("No public live vehicles returned");
+          if(summary.renderedVehicleCards<1) throw new Error("Live /ukraine page rendered no vehicle cards");
+          if(summary.renderedEmptyState) throw new Error("Live /ukraine page rendered empty inventory state");
           NODE
