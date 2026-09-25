@@ -4,7 +4,7 @@ const INVENTORY_KEY = "vehicle_inventory:v1";
 const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 31; // Accept low-mileage new vehicles in live inventory
+const INVENTORY_SCHEMA_VERSION = 32; // Preserve dealer-reported mileage; never infer zero
 
 const SOURCE_PLUGINS = [
   {
@@ -615,8 +615,7 @@ function discoverFleetInventory(html, source, inventoryUrl) {
     const fuel=safeField((text.match(/Fuel Type\s+(Gasoline|Diesel|Hybrid|Electric|Flex Fuel)/i)||[])[1]||null);
     const color=safeField((text.match(/Color\s+([^$|]{2,35}?)(?:\s+Vehicle Trim|\s+See More Details|$)/i)||[])[1]||null);
     const usedMileage=num((text.match(/Mileage\s+([0-9,]+)\b/i)||[])[1]);
-    const isUsed=/Condition%3AUsed/i.test(inventoryUrl);
-    const mileageMi=usedMileage!=null ? usedMileage : (isUsed ? null : 0);
+    const mileageMi=usedMileage;
     if(mileageMi==null || mileageMi>=MAX_MILES) continue;
     const price=num((text.match(/(?:Price\*?|Sale Price|Total Price)\s*\|?\s*\$\s*([0-9,]+)/i)||[])[1]) ||
       num((text.match(/MSRP\s*\|?\s*\$\s*([0-9,]+)/i)||[])[1]);
@@ -740,8 +739,7 @@ function discover(html, source, inventoryUrl) {
     const hintModel=((decodedUrl.match(/\b(Silverado(?:[\s-]+1500(?:[\s-]+LTD)?|[\s-]+2500[\s-]*HD|[\s-]+3500[\s-]*HD|[\s-]+EV)?|Sierra(?:[\s-]+1500|[\s-]+2500[\s-]*HD|[\s-]+3500[\s-]*HD|[\s-]+EV)?|F-?(?:150|250)(?:[\s-]+Lightning)?)\b/i)||[])[1]||
       (contextText.match(/\b(Silverado(?:\s+1500(?:\s+LTD)?|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|Sierra(?:\s+1500|\s+2500\s*HD|\s+3500\s*HD|\s+EV)?|F-?(?:150|250)(?:\s+Lightning)?)\b/i)||[])[1]||"");
     const parsedHintMileage=num((contextText.match(/\b([0-9]{1,3}(?:,[0-9]{3})*|[0-9]{1,6})\s*(?:mi|miles?)\b/i)||[])[1]);
-    const newVehicleUrl=/(?:\/new[-\/]|\/inventory\/new-)/i.test(url);
-    const hintMileage=parsedHintMileage!=null ? parsedHintMileage : (newVehicleUrl ? 0 : null);
+    const hintMileage=parsedHintMileage;
     const hintDrivetrain=safeField((contextText.match(/\b(4WD|4x4|4×4|AWD|RWD|2WD)\b/i)||[])[1]||null);
     const hintEngine=safeField(
       (contextText.match(/\b((?:2\.7L|3\.0L|5\.0L|5\.3L|6\.2L|6\.6L)[^|,;<]{0,45}(?:TurboMax|Duramax|EcoTec3|V8|V-8|diesel|turbo|engine)?)\b/i)||[])[1]||null
@@ -901,9 +899,17 @@ async function saveLiveDatabase(env, database) {
   if (env.CONTENT) await env.CONTENT.put(LIVE_DATABASE_KEY,JSON.stringify(database));
 }
 
+export function normalizePriorInventory(state){
+  return (state?.vehicles || []).map(v=>
+    Number(state?.version)<32 && v.mileageMi===0 ? {...v,mileageMi:null} : v
+  );
+}
+
 export async function syncVehicleInventory(env) {
   const old = await readState(env);
-  const oldVehicles = old?.vehicles || [];
+  // Version 31 inferred zero miles for new listings with no dealer mileage.
+  // Discard those unverified values before any old-row enrichment is reused.
+  const oldVehicles = normalizePriorInventory(old);
   const byUrl = Object.fromEntries(oldVehicles.map(v=>[v.sourceUrl,v]));
   // Only URLs discovered from dealer inventory pages in this sync enter the live database.
   // Previous rows are used only to enrich rediscovered vehicles; seeds never count as live inventory.
@@ -938,6 +944,7 @@ export async function syncVehicleInventory(env) {
           const url=item.url;
           const prior=byUrl[url]||{};
           const hinted={...prior,...item.hints};
+          if(item.hints?.mileageMi==null && prior.mileageMi===0) hinted.mileageMi=null;
           if(!candidates.has(url)) candidates.set(url,{sourceId:source.id,previous:hinted});
           else {
             const existing=candidates.get(url);
@@ -1157,13 +1164,14 @@ export async function syncVehicleInventory(env) {
     };
   });
   const usableNew=retainedVehicles.filter(isRenderableVehicle);
-  const usableOld=(old?.vehicles||[]).filter(isRenderableVehicle);
+  const usableOld=oldVehicles.filter(isRenderableVehicle);
 
   // Fail-safe: never replace a working inventory with an empty/bad refresh.
   if(usableNew.length===0 && usableOld.length>0){
     const preserved={
       ...old,
       version:INVENTORY_SCHEMA_VERSION,
+      vehicles:oldVehicles,
       maxMileage:MAX_MILES,
       syncedAt:old.syncedAt||now(),
       lastFailedSyncAt:now(),
@@ -1274,7 +1282,7 @@ export async function getVehicleInventory(env) {
     make:v.make,
     model:canonicalModel(v.model),
     trim:v.trim||"",
-    mileageMi:Number.isFinite(Number(v.mileageMi))?Number(v.mileageMi):0,
+    mileageMi:v.mileageMi==null?null:Number(v.mileageMi),
     engine:v.engine||"Specification updating",
     drivetrain:v.drivetrain||"Specification updating",
     transmission:v.transmission||"Automatic",
