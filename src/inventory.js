@@ -4,26 +4,19 @@ const INVENTORY_KEY = "vehicle_inventory:v1";
 const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
 const MAX_MILES = 60000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 32; // Preserve dealer-reported mileage; never infer zero
+const INVENTORY_SCHEMA_VERSION = 33; // Ukraine feed: used/pre-owned inventory only
 
 const SOURCE_PLUGINS = [
   {
     id: "carr",
     name: "CARR Chevrolet",
     inventoryUrls: [
-      "https://www.carrchevrolet.com/showroom/2026/Chevrolet/Silverado%201500/Truck.htm",
-      "https://www.carrchevrolet.com/showroom/2026/Chevrolet/Silverado%202500%20HD/Truck.htm",
-      "https://www.carrchevrolet.com/showroom/2026/Chevrolet/Silverado%203500%20HD/Truck.htm",
-      "https://www.carrchevrolet.com/used-inventory/index.htm",
       "https://www.carrchevrolet.com/certified-inventory/index.htm",
       "https://www.carrchevrolet.com/sitemap.htm"
     ],
     baseUrl: "https://www.carrchevrolet.com",
     detailPatterns: [
-      /\/used\/Chevrolet\/.*Silverado/i,
       /\/new\/Chevrolet\/.*Silverado/i,
-      /\/used\/GMC\/.*Sierra/i,
-      /\/used\/Ford\/.*F-?150/i
     ]
   },
   {
@@ -35,70 +28,24 @@ const SOURCE_PLUGINS = [
     ],
     baseUrl: "https://www.tonkinchevrolet.com",
     detailPatterns: [
-      /\/inventory\/(?:certified-)?used-.*silverado/i,
-      /\/used-.*silverado/i
     ]
   },
   {
     id: "carr-vancouver-gmc",
     name: "CARR Vancouver Buick GMC",
     inventoryUrls: [
-      "https://www.carrbuickgmc.com/2026-gmc-sierra-1500",
-      "https://www.carrbuickgmc.com/2026-gmc-sierra-1500?pt=2",
-      "https://www.carrbuickgmc.com/searchnew.aspx?make=GMC&model=Sierra%201500",
-      "https://www.carrbuickgmc.com/searchnew.aspx?make=GMC&model=Sierra%201500&pt=2",
-      "https://www.carrbuickgmc.com/searchnew.aspx?make=GMC&model=Sierra%201500&pt=3",
-      "https://www.carrbuickgmc.com/searchnew.aspx?make=GMC&model=Sierra%202500%20HD",
-      "https://www.carrbuickgmc.com/searchnew.aspx?make=GMC&model=Sierra%203500%20HD",
-      "https://www.carrbuickgmc.com/searchused.aspx?make=GMC&model=Sierra%201500",
-      "https://www.carrbuickgmc.com/searchnew.aspx",
-      "https://www.carrbuickgmc.com/searchnew.aspx?pt=2",
-      "https://www.carrbuickgmc.com/searchnew.aspx?pt=3",
-      "https://www.carrbuickgmc.com/searchnew.aspx?pt=4",
-      "https://www.carrbuickgmc.com/searchused.aspx",
-      "https://www.carrbuickgmc.com/searchused.aspx?pt=2",
-      "https://www.carrbuickgmc.com/searchused.aspx?pt=3"
     ],
     baseUrl: "https://www.carrbuickgmc.com",
     detailPatterns: [
-      /\/new-.*sierra/i,
-      /\/used-.*sierra/i
     ]
   },
   {
     id: "beaverton-gmc",
     name: "Buick GMC of Beaverton",
     inventoryUrls: [
-      "https://www.beavertongmc.com/2026-gmc-sierra-1500",
-      "https://www.beavertongmc.com/2026-gmc-sierra-1500?pt=2",
-      "https://www.beavertongmc.com/2026-gmc-sierra-for-sale-in-portland-or.html",
-      "https://www.beavertongmc.com/searchnew.aspx?make=GMC&model=Sierra%201500",
-      "https://www.beavertongmc.com/searchnew.aspx?make=GMC&model=Sierra%201500&pt=2",
-      "https://www.beavertongmc.com/searchnew.aspx?make=GMC&model=Sierra%201500&pt=3",
-      "https://www.beavertongmc.com/searchnew.aspx?make=GMC&model=Sierra%201500&pt=4",
-      "https://www.beavertongmc.com/searchnew.aspx?make=GMC&model=Sierra%201500&pt=5",
-      "https://www.beavertongmc.com/searchnew.aspx?make=GMC&model=Sierra%202500%20HD",
-      "https://www.beavertongmc.com/searchnew.aspx?make=GMC&model=Sierra%202500%20HD&pt=2",
-      "https://www.beavertongmc.com/searchnew.aspx?make=GMC&model=Sierra%203500%20HD",
-      "https://www.beavertongmc.com/searchused.aspx?make=GMC&model=Sierra%201500",
-      "https://www.beavertongmc.com/searchused.aspx?make=GMC&model=Sierra%201500&pt=2",
-      "https://www.beavertongmc.com/searchused.aspx?make=Chevrolet&model=Silverado%20EV",
-      "https://www.beavertongmc.com/searchnew.aspx?make=GMC&model=Sierra%20EV",
-      "https://www.beavertongmc.com/searchnew.aspx",
-      "https://www.beavertongmc.com/searchnew.aspx?pt=2",
-      "https://www.beavertongmc.com/searchnew.aspx?pt=3",
-      "https://www.beavertongmc.com/searchnew.aspx?pt=4",
-      "https://www.beavertongmc.com/searchnew.aspx?pt=5",
-      "https://www.beavertongmc.com/searchnew.aspx?pt=6",
-      "https://www.beavertongmc.com/searchused.aspx",
-      "https://www.beavertongmc.com/searchused.aspx?pt=2",
-      "https://www.beavertongmc.com/searchused.aspx?pt=3",
-      "https://www.beavertongmc.com/searchused.aspx?pt=4"
     ],
     baseUrl: "https://www.beavertongmc.com",
     detailPatterns: [
-      /\/new-.*sierra/i,
-      /\/used-.*(?:silverado|sierra)/i
     ]
   },
   {
@@ -106,13 +53,9 @@ const SOURCE_PLUGINS = [
     name: "Damerow Ford",
     inventoryUrls: [
       "https://www.damerowford.com/inventory/truck-month/models-Ford/",
-      "https://www.damerowford.com/inventory/used-vehicles/used/models-Ford-F--150/srp-sort-price--desc/",
-      "https://www.damerowford.com/inventory/used-vehicles/used/models-Ford-F--150/srp-sort-price--desc/?page=2",
-      "https://www.damerowford.com/inventory/used-vehicles/used/models-Ford-F--150/srp-sort-price--desc/?page=3"
     ],
     baseUrl: "https://www.damerowford.com",
     detailPatterns: [
-      /\/inventory\/(?:new|certified-used|used)-.*f-?150/i,
       /\/inventory\/.*f-?150/i
     ]
   },
@@ -120,13 +63,9 @@ const SOURCE_PLUGINS = [
     id: "northside-ford",
     name: "Northside Ford",
     inventoryUrls: [
-      "https://www.northsideford.net/inventory/used-vehicles/models-Ford-F--150/",
-      "https://www.northsideford.net/inventory/used-vehicles/models-Ford-F--150/?page=2",
-      "https://www.northsideford.net/inventory/used-vehicles/models-Ford-F--150/?page=3"
     ],
     baseUrl: "https://www.northsideford.net",
     detailPatterns: [
-      /\/inventory\/(?:certified-)?used-.*f-?150/i,
       /\/vehicle\/.*f-?150/i
     ]
   },
@@ -134,44 +73,19 @@ const SOURCE_PLUGINS = [
     id: "courtesy-ford",
     name: "Courtesy Ford",
     inventoryUrls: [
-      "https://www.courtesyford.com/used-vehicles/",
-      "https://www.courtesyford.com/used-vehicles/page/2/",
-      "https://www.courtesyford.com/used-vehicles/page/3/"
     ],
     baseUrl: "https://www.courtesyford.com",
     detailPatterns: [
-      /\/inventory\/(?:certified-)?used-.*f-?150/i
     ]
   },
   {
     id: "auto-town-gmc",
     name: "Auto Town GMC",
     inventoryUrls: [
-      "https://www.autotowngmc.com/2026-gmc-sierra-1500",
-      "https://www.autotowngmc.com/2026-gmc-sierra-1500?pt=2",
       "https://www.autotowngmc.com/GMC-Sierra-1500",
-      "https://www.autotowngmc.com/searchnew.aspx?make=GMC&model=Sierra%201500",
-      "https://www.autotowngmc.com/searchnew.aspx?make=GMC&model=Sierra%201500&pt=2",
-      "https://www.autotowngmc.com/searchnew.aspx?make=GMC&model=Sierra%201500&pt=3",
-      "https://www.autotowngmc.com/searchnew.aspx?make=GMC&model=Sierra%201500&pt=4",
-      "https://www.autotowngmc.com/searchnew.aspx?make=GMC&model=Sierra%202500%20HD",
-      "https://www.autotowngmc.com/searchnew.aspx?make=GMC&model=Sierra%202500%20HD&pt=2",
-      "https://www.autotowngmc.com/searchnew.aspx?make=GMC&model=Sierra%203500%20HD",
-      "https://www.autotowngmc.com/searchused.aspx?make=GMC&model=Sierra%201500",
-      "https://www.autotowngmc.com/searchused.aspx?make=GMC&model=Sierra%201500&pt=2",
-      "https://www.autotowngmc.com/searchnew.aspx",
-      "https://www.autotowngmc.com/searchnew.aspx?pt=2",
-      "https://www.autotowngmc.com/searchnew.aspx?pt=3",
-      "https://www.autotowngmc.com/searchnew.aspx?pt=4",
-      "https://www.autotowngmc.com/searchnew.aspx?pt=5",
-      "https://www.autotowngmc.com/searchused.aspx",
-      "https://www.autotowngmc.com/searchused.aspx?pt=2",
-      "https://www.autotowngmc.com/searchused.aspx?pt=3"
     ],
     baseUrl: "https://www.autotowngmc.com",
     detailPatterns: [
-      /\/new-.*sierra/i,
-      /\/used-.*(?:silverado|sierra)/i
     ]
   },
   {
@@ -186,29 +100,17 @@ const SOURCE_PLUGINS = [
   {
     id: "doherty-ford",
     name: "Doherty Ford",
-    inventoryUrls: ["https://www.doherty-ford.com/used-inventory/index.htm"],
     baseUrl: "https://www.doherty-ford.com"
   },
   {
     id: "bmw-of-salem",
     name: "BMW of Salem",
-    inventoryUrls: ["https://www.bmwofsalem.com/used-inventory/used-ford-salem-or.htm"],
     baseUrl: "https://www.bmwofsalem.com"
   },
   {
     id: "kendall-eugene-fleet",
     name: "Kendall Ford of Eugene",
     inventoryUrls: [
-      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=1",
-      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=2",
-      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=3",
-      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=4",
-      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=5",
-      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=6",
-      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=7",
-      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=8",
-      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=9",
-      "https://oregon-fleet-sales.kendallford.com/Pickup/f-150?filters=Chassis.Make%3AFord&page=10",
       "https://oregon-fleet-sales.kendallford.com/Pickup?filters=Chassis.Condition%3AUsed&filters=Chassis.Make%3AFord"
     ],
     baseUrl: "https://oregon-fleet-sales.kendallford.com",
@@ -219,192 +121,82 @@ const SOURCE_PLUGINS = [
     name: "Kendall Ford of Vancouver",
     inventoryUrls: [
       "https://www.kendallfordvancouver.com/llm/inventory/",
-      "https://www.kendallfordvancouver.com/llm/inventory/?type=new",
-      "https://www.kendallfordvancouver.com/llm/inventory/?_p=2&type=new",
-      "https://www.kendallfordvancouver.com/llm/inventory/?_p=3&type=new",
-      "https://www.kendallfordvancouver.com/llm/inventory/?_p=4&type=new",
-      "https://www.kendallfordvancouver.com/llm/inventory/?type=used",
-      "https://www.kendallfordvancouver.com/llm/inventory/?_p=2&type=used"
     ],
     baseUrl: "https://www.kendallfordvancouver.com",
     detailPatterns: [
-      /\/inventory\/(?:new|used|certified-used)-.*f-?150/i
     ]
   },
   {
     id: "gresham-ford",
     name: "Gresham Ford",
     inventoryUrls: [
-      "https://www.greshamford.com/llm/inventory/?type=new",
-      "https://www.greshamford.com/llm/inventory/?_p=2&type=new",
-      "https://www.greshamford.com/llm/inventory/?_p=3&type=new",
-      "https://www.greshamford.com/llm/inventory/?_p=4&type=new",
-      "https://www.greshamford.com/llm/inventory/?_p=5&type=new",
-      "https://www.greshamford.com/llm/inventory/?_p=6&type=new",
-      "https://www.greshamford.com/llm/inventory/?type=used",
-      "https://www.greshamford.com/llm/inventory/?_p=2&type=used"
     ],
     baseUrl: "https://www.greshamford.com",
     detailPatterns: [
-      /\/inventory\/(?:new|used|certified-used)-.*f-?150/i
     ]
   },
   {
     id: "dicks-canby-ford",
     name: "Dick's Canby Ford",
     inventoryUrls: [
-      "https://www.dickscanbyford.com/searchnew.aspx?make=Ford&model=F-150",
-      "https://www.dickscanbyford.com/searchnew.aspx?make=Ford&model=F-150&pt=2",
-      "https://www.dickscanbyford.com/searchnew.aspx?make=Ford&model=F-150&pt=3",
-      "https://www.dickscanbyford.com/searchnew.aspx?make=Ford&model=F-150&pt=4",
-      "https://www.dickscanbyford.com/searchnew.aspx?make=Ford&model=F-150&pt=5",
-      "https://www.dickscanbyford.com/searchnew.aspx?make=Ford&model=F-150&pt=6",
-      "https://www.dickscanbyford.com/searchused.aspx?make=Ford&model=F-150",
-      "https://www.dickscanbyford.com/searchused.aspx?make=Ford&model=F-150&pt=2",
-      "https://www.dickscanbyford.com/searchnew.aspx?make=Ford&model=F-250",
-      "https://www.dickscanbyford.com/searchused.aspx?make=Ford&model=F-250",
-      "https://www.dickscanbyford.com/searchused.aspx?make=Ford&model=F-150%20Lightning",
-      "https://www.dickscanbyford.com/searchused.aspx?make=Ford&model=F-150&pt=3",
-      "https://www.dickscanbyford.com/searchnew.aspx",
-      "https://www.dickscanbyford.com/searchnew.aspx?pt=2",
-      "https://www.dickscanbyford.com/searchnew.aspx?pt=3",
-      "https://www.dickscanbyford.com/searchnew.aspx?pt=4",
-      "https://www.dickscanbyford.com/searchnew.aspx?pt=5",
-      "https://www.dickscanbyford.com/searchused.aspx",
-      "https://www.dickscanbyford.com/searchused.aspx?pt=2",
-      "https://www.dickscanbyford.com/searchused.aspx?pt=3"
     ],
     baseUrl: "https://www.dickscanbyford.com",
     detailPatterns: [
-      /\/new-.*f-?150/i,
-      /\/used-.*f-?150/i
     ]
   },
   {
     id: "power-chevrolet",
     name: "Power Chevrolet",
     inventoryUrls: [
-      "https://www.powerchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500",
-      "https://www.powerchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500&pt=2",
-      "https://www.powerchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500&pt=3",
-      "https://www.powerchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500&pt=4",
-      "https://www.powerchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500&pt=5",
-      "https://www.powerchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%202500%20HD",
-      "https://www.powerchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%202500%20HD&pt=2",
-      "https://www.powerchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%203500%20HD",
-      "https://www.powerchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500",
-      "https://www.powerchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=2",
-      "https://www.powerchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=3",
-      "https://www.powerchevrolet.com/searchnew.aspx",
-      "https://www.powerchevrolet.com/searchnew.aspx?pt=2",
-      "https://www.powerchevrolet.com/searchnew.aspx?pt=3",
-      "https://www.powerchevrolet.com/searchnew.aspx?pt=4",
-      "https://www.powerchevrolet.com/searchnew.aspx?pt=5",
-      "https://www.powerchevrolet.com/searchused.aspx",
-      "https://www.powerchevrolet.com/searchused.aspx?pt=2",
-      "https://www.powerchevrolet.com/searchused.aspx?pt=3"
     ],
     baseUrl: "https://www.powerchevrolet.com",
     detailPatterns: [
-      /\/new-.*silverado/i,
-      /\/used-.*silverado/i
     ]
   },
   {
     id: "northwest-chevrolet",
     name: "Northwest Chevrolet",
     inventoryUrls: [
-      "https://www.northwestchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500",
-      "https://www.northwestchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500&pt=2",
-      "https://www.northwestchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500&pt=3",
-      "https://www.northwestchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500&pt=4",
-      "https://www.northwestchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%202500%20HD",
-      "https://www.northwestchevrolet.com/searchnew.aspx?make=Chevrolet&model=Silverado%203500%20HD",
-      "https://www.northwestchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500",
-      "https://www.northwestchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=2",
-      "https://www.northwestchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=3",
-      "https://www.northwestchevrolet.com/searchnew.aspx",
-      "https://www.northwestchevrolet.com/searchnew.aspx?pt=2",
-      "https://www.northwestchevrolet.com/searchnew.aspx?pt=3",
-      "https://www.northwestchevrolet.com/searchnew.aspx?pt=4",
-      "https://www.northwestchevrolet.com/searchnew.aspx?pt=5",
-      "https://www.northwestchevrolet.com/searchused.aspx",
-      "https://www.northwestchevrolet.com/searchused.aspx?pt=2",
-      "https://www.northwestchevrolet.com/searchused.aspx?pt=3"
     ],
     baseUrl: "https://www.northwestchevrolet.com",
     detailPatterns: [
-      /\/new-.*silverado/i,
-      /\/used-.*silverado/i
     ]
   },
   {
     id: "landmark-ford",
     name: "Landmark Ford",
     inventoryUrls: [
-      "https://www.landmarkford.com/used-vehicles/?_dFR%5Bmodel%5D%5B0%5D=F-150",
-      "https://www.landmarkford.com/used-vehicles/page/2/?_dFR%5Bmodel%5D%5B0%5D=F-150"
     ],
     baseUrl: "https://www.landmarkford.com",
-    detailPatterns: [/\/inventory\/(?:certified-)?used-.*f-?150/i]
   },
   {
     id: "tonkin-hillsboro-ford",
     name: "Tonkin Hillsboro Ford",
     inventoryUrls: [
-      "https://www.tonkinhillsboroford.com/used-vehicles/?_dFR%5Bmodel%5D%5B0%5D=F-150",
-      "https://www.tonkinhillsboroford.com/used-vehicles/page/2/?_dFR%5Bmodel%5D%5B0%5D=F-150"
     ],
     baseUrl: "https://www.tonkinhillsboroford.com",
-    detailPatterns: [/\/inventory\/(?:certified-)?used-.*f-?150/i]
   },
   {
     id: "weston-gmc",
     name: "Weston Buick GMC",
     inventoryUrls: [
-      "https://www.westonbuickgmc.com/searchused.aspx?make=GMC&model=Sierra%201500",
-      "https://www.westonbuickgmc.com/searchused.aspx?make=GMC&model=Sierra%201500&pt=2"
     ],
     baseUrl: "https://www.westonbuickgmc.com",
-    detailPatterns: [/\/used-.*sierra/i]
   },
   {
     id: "royal-moore-gmc",
     name: "Royal Moore Buick GMC",
     inventoryUrls: [
-      "https://www.royalmooregmc.com/used-vehicles/?_dFR%5Bmodel%5D%5B0%5D=Sierra%201500",
-      "https://www.royalmooregmc.com/used-vehicles/page/2/?_dFR%5Bmodel%5D%5B0%5D=Sierra%201500"
     ],
     baseUrl: "https://www.royalmooregmc.com",
-    detailPatterns: [/\/inventory\/(?:certified-)?used-.*sierra/i]
   },
   {
     id: "mcloughlin-chevrolet",
     name: "McLoughlin Chevrolet",
     inventoryUrls: [
-      "https://www.mcloughlinchevy.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500",
-      "https://www.mcloughlinchevy.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500&pt=2",
-      "https://www.mcloughlinchevy.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500&pt=3",
-      "https://www.mcloughlinchevy.com/searchnew.aspx?make=Chevrolet&model=Silverado%201500&pt=4",
-      "https://www.mcloughlinchevy.com/searchnew.aspx?make=Chevrolet&model=Silverado%202500%20HD",
-      "https://www.mcloughlinchevy.com/searchnew.aspx?make=Chevrolet&model=Silverado%202500%20HD&pt=2",
-      "https://www.mcloughlinchevy.com/searchnew.aspx?make=Chevrolet&model=Silverado%203500%20HD",
-      "https://www.mcloughlinchevy.com/searchused.aspx?make=Chevrolet&model=Silverado%201500",
-      "https://www.mcloughlinchevy.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=2",
-      "https://www.mcloughlinchevy.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=3",
-      "https://www.mcloughlinchevy.com/used-trucks-for-sale-near-portland-or.html",
-      "https://www.mcloughlinchevy.com/searchnew.aspx?BodyType=~Truck",
-      "https://www.mcloughlinchevy.com/searchnew.aspx?BodyType=~Truck&pt=2",
-      "https://www.mcloughlinchevy.com/searchnew.aspx?BodyType=~Truck&pt=3",
-      "https://www.mcloughlinchevy.com/searchnew.aspx?BodyType=~Truck&pt=4",
-      "https://www.mcloughlinchevy.com/searchused.aspx?BodyType=~Truck",
-      "https://www.mcloughlinchevy.com/searchused.aspx?BodyType=~Truck&pt=2",
-      "https://www.mcloughlinchevy.com/searchused.aspx?BodyType=~Truck&pt=3"
     ],
     baseUrl: "https://www.mcloughlinchevy.com",
     detailPatterns: [
-      /\/new-.*silverado/i,
-      /\/used-.*silverado/i
     ]
   }
 ];
