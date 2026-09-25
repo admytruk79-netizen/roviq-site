@@ -1271,8 +1271,14 @@ export async function getVehicleInventory(env) {
   const costingRows=await syncVehicleCosting(env,databaseRows,pricingConfig);
   const costingById=new Map(costingRows.map(r=>[r.vehicleId,r]));
 
+  const isVerifiedUsedListing=v=>{
+    const url=String(v.sourceUrl||"").toLowerCase();
+    const condition=String(v.condition||v.vehicleCondition||"").toLowerCase();
+    return condition==="used" || condition==="pre-owned" || condition==="certified used" || condition==="certified pre-owned" || /(?:\/used[-\/]|\/certified-used-|\/used-vehicles|\/used-inventory|searchused\.aspx|[?&]type=used\b|chassis\.condition%3aused)/i.test(url);
+  };
+
   const publicVehicles=databaseRows
-    .filter(isPublicReady)
+    .filter(v=>isPublicReady(v) && isVerifiedUsedListing(v))
     .sort((a,b)=>(a.mileageMi??999999)-(b.mileageMi??999999))
     .slice(0,180);
 
