@@ -954,6 +954,10 @@ export async function syncVehicleInventory(env) {
     if(!sourceBuckets.has(sourceId)) sourceBuckets.set(sourceId,[]);
     sourceBuckets.get(sourceId).push(entry);
   }
+  for(const bucket of sourceBuckets.values()) bucket.sort((a,b)=>
+    Number(/^(?:Silverado EV|Sierra EV|F-150 Lightning)$/i.test(canonicalModel(b[1]?.previous?.model))) -
+    Number(/^(?:Silverado EV|Sierra EV|F-150 Lightning)$/i.test(canonicalModel(a[1]?.previous?.model)))
+  );
   const candidateEntries=[];
   const buckets=[...sourceBuckets.values()];
   let round=0;
@@ -1090,9 +1094,20 @@ export async function syncVehicleInventory(env) {
   const detailBatchSize=12;
   const previousCursor=Number(old?.detailCursor||0);
   const start=candidateEntries.length ? (previousCursor % candidateEntries.length) : 0;
-  const detailEntries=candidateEntries.length
-    ? Array.from({length:Math.min(detailBatchSize,candidateEntries.length)},(_,n)=>candidateEntries[(start+n)%candidateEntries.length])
+  // EV search pages can list VINs without mileage or price. Enrich a few of
+  // those individual VDPs first so verified electric trucks reach the catalog.
+  const priorityEntries=candidateEntries.filter(([,meta])=>
+    /^(?:Silverado EV|Sierra EV|F-150 Lightning)$/i.test(canonicalModel(meta.previous?.model)) &&
+    meta.previous?.mileageMi==null
+  ).slice(0,4);
+  const rotatingEntries=candidateEntries.length
+    ? Array.from({length:candidateEntries.length},(_,n)=>candidateEntries[(start+n)%candidateEntries.length])
     : [];
+  const detailEntries=[...priorityEntries];
+  for(const entry of rotatingEntries){
+    if(detailEntries.length>=detailBatchSize) break;
+    if(!detailEntries.includes(entry)) detailEntries.push(entry);
+  }
   const vehicles=[];
   const concurrency=6;
   for(let i=0;i<detailEntries.length;i+=concurrency){
