@@ -29,13 +29,12 @@ export async function syncVehicleCosting(env, vehicles, config){
       vin:v.vin||prior.vin||null,
       sourceId:v.sourceId||prior.sourceId||null,
       acquisitionPrice,
-      dealerPrice:calc.dealerPrice,
+      dealerPrice:acquisitionPrice,
+      customerVehiclePrice:calc.vehiclePrice,
       processingFee:Number(config.processingFee)||0,
       shippingLow:Number(config.shippingLow)||0,
       shippingHigh:Number(config.shippingHigh)||0,
-      customerSubtotal:calc.subtotal,
-      deliveredLow:calc.totalLow,
-      deliveredHigh:calc.totalHigh,
+      customerSubtotal:calc.vehiclePrice == null ? null : calc.vehiclePrice + (Number(config.processingFee)||0),
       updatedAt:now(),
       sourceVerifiedAt:v.lastVerifiedAt||prior.sourceVerifiedAt||null
     });
@@ -53,24 +52,11 @@ export async function getCostingMap(env){
 }
 
 export function publicCosting(record){
-  const dealerPrice=Number(record?.dealerPrice||record?.acquisitionPrice||0);
-  if(!record || !dealerPrice) return {
-    hasPrice:false,
-    dealerPrice:null,
-    vehiclePrice:null,
-    processingFee:Number(record?.processingFee||0),
-    subtotal:null,
+  const vehiclePrice=Number(record?.customerVehiclePrice||0);
+  return {
+    hasPrice:Boolean(record && Number.isFinite(vehiclePrice) && vehiclePrice>0),
+    vehiclePrice:vehiclePrice>0?vehiclePrice:null,
     shippingLow:Number(record?.shippingLow||0),
     shippingHigh:Number(record?.shippingHigh||0)
-  };
-  const processingFee=Number(record.processingFee||0);
-  return {
-    hasPrice:true,
-    dealerPrice,
-    vehiclePrice:dealerPrice,
-    processingFee,
-    subtotal:dealerPrice+processingFee,
-    shippingLow:Number(record.shippingLow||0),
-    shippingHigh:Number(record.shippingHigh||0)
   };
 }

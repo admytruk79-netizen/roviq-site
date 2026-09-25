@@ -3,6 +3,8 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { syncVehicleInventory, getVehicleInventory } from '../src/inventory.js';
+import { getPricingConfig } from '../src/pricing.js';
+import { publishCoreInventory } from './core-inventory-feed.mjs';
 
 const keys = ['vehicle_inventory:v1', 'vehicle_live_database:v1'];
 const values = new Map();
@@ -71,4 +73,23 @@ try {
   }
 } finally {
   rmSync(dir,{recursive:true,force:true});
+}
+
+// Keep Core's SQL catalog synchronized with the same dealer discovery set.
+// Core remains unconfigured until its inventory migration and admin identity
+// are deployed; never claim the SQL catalog is live when credentials are absent.
+const coreSettings=[process.env.ROVIQ_CORE_API_URL,process.env.ROVIQ_CORE_SYNC_EMAIL,process.env.ROVIQ_CORE_SYNC_PASSWORD];
+if(coreSettings.some(Boolean) && !coreSettings.every(Boolean)) throw new Error('ROVIQ Core SQL sync configuration incomplete');
+if(coreSettings.every(Boolean)){
+  const database=JSON.parse(values.get(keys[1]));
+  const pricingConfig=await getPricingConfig(env);
+  const published=await publishCoreInventory(database,{
+    baseUrl:process.env.ROVIQ_CORE_API_URL,
+    email:process.env.ROVIQ_CORE_SYNC_EMAIL,
+    password:process.env.ROVIQ_CORE_SYNC_PASSWORD,
+    pricingConfig
+  });
+  console.log(JSON.stringify({coreSqlPublished:published},null,2));
+}else{
+  console.log('ROVIQ Core SQL sync not configured; KV inventory published only.');
 }

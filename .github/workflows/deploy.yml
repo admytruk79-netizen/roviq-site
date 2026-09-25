@@ -24,6 +24,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Verify inventory and site assets
+        run: node --test src/inventory.test.mjs scripts/core-inventory-feed.test.mjs && node build-check.js
+
       - name: Verify Cloudflare token
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -33,44 +36,12 @@ jobs:
             exit 1
           fi
 
-      - name: Patch mileage parser regression
-        run: |
-          node - <<'NODE'
-          const fs=require('fs');
-          const path='src/inventory.js';
-          let s=fs.readFileSync(path,'utf8');
-          const replacements=[
-            [
-              'const INVENTORY_SCHEMA_VERSION = 31; // Accept low-mileage new vehicles in live inventory',
-              'const INVENTORY_SCHEMA_VERSION = 32; // Preserve dealer-reported mileage; remove forced-zero fallbacks'
-            ],
-            [
-              'const mileageMi=usedMileage!=null ? usedMileage : (isUsed ? null : 0);',
-              'const mileageMi=usedMileage;'
-            ],
-            [
-              'const newVehicleUrl=/(?:\\/new[-\\/]|\\/inventory\\/new-)/i.test(url);\n    const hintMileage=parsedHintMileage!=null ? parsedHintMileage : (newVehicleUrl ? 0 : null);',
-              'const hintMileage=parsedHintMileage;'
-            ],
-            [
-              'const hinted={...prior,...item.hints};',
-              'const hinted={...prior,...item.hints};\n          if(item.hints?.mileageMi==null && prior.mileageMi===0) hinted.mileageMi=null;'
-            ],
-            [
-              'mileageMi:Number.isFinite(Number(v.mileageMi))?Number(v.mileageMi):0,',
-              'mileageMi:v.mileageMi==null?null:Number(v.mileageMi),'
-            ]
-          ];
-          for (const [from,to] of replacements) {
-            if (!s.includes(from)) throw new Error('Mileage hotfix pattern not found: '+from.slice(0,80));
-            s=s.replace(from,to);
-          }
-          fs.writeFileSync(path,s);
-          NODE
-
       - name: Rebuild live inventory mileage
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ROVIQ_CORE_API_URL: ${{ vars.ROVIQ_CORE_API_URL }}
+          ROVIQ_CORE_SYNC_EMAIL: ${{ secrets.ROVIQ_CORE_SYNC_EMAIL }}
+          ROVIQ_CORE_SYNC_PASSWORD: ${{ secrets.ROVIQ_CORE_SYNC_PASSWORD }}
         run: node scripts/sync-inventory.mjs
 
       - name: Deploy with Wrangler

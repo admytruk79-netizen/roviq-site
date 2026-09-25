@@ -34,7 +34,7 @@ export async function vehicleAdminPage(env) {
       <td><img class="thumb" src="/ukraine/image/${encodeURIComponent(v.id)}" alt="" loading="lazy"></td>
       <td><strong>${esc(v.id)}</strong><div class="sub">${esc(v.vin?"••••••"+String(v.vin).slice(-6):"No VIN")}</div></td>
       <td><strong>${esc(v.year)} ${esc(v.make)} ${esc(v.model)}</strong><div class="sub">${esc(v.trim||"")} ${v.trim?"• ":""}${esc(v.engine||"")}</div></td>
-      <td>${Number(v.mileageMi||0).toLocaleString("en-US")}</td>
+      <td>${v.mileageMi==null?"Unknown":Number(v.mileageMi).toLocaleString("en-US")}</td>
       <td>${hasImage?pill("Photo","ok"):pill("No photo","bad")}</td>
       <td><strong>${money(v.askingPrice)}</strong><div class="sub">dealer/source</div></td>
       <td><strong>${pub?.pricing?.hasPrice?money(pub.pricing.vehiclePrice):"—"}</strong><div class="sub">customer-facing</div></td>

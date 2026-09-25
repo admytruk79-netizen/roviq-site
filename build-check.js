@@ -12,15 +12,16 @@ for (const [key, { file, section }] of Object.entries(STATION_IMAGES)) {
   }
 }
 
-// Grep every page file for <img src="/images/...> that isn't sourced from STATION_IMAGES.
+// Station placement uses the station manifest. Other pages can use their own
+// existing assets, but every referenced public image must exist.
 const manifestFiles = new Set(Object.values(STATION_IMAGES).map((v) => v.file));
 const pageFiles = fs.readdirSync("./src/pages").filter((f) => f.endsWith(".js"));
 for (const pageFile of pageFiles) {
   const src = fs.readFileSync(`./src/pages/${pageFile}`, "utf8");
   const matches = src.matchAll(/\/images\/[a-zA-Z0-9_\-./]+\.(?:png|jpg|jpeg|webp)/g);
   for (const [hit] of matches) {
-    if (!manifestFiles.has(hit)) {
-      console.error(`ORPHANED IMAGE REFERENCE: "${hit}" in src/pages/${pageFile} is not sourced from content/station-images.js`);
+    if (!fs.existsSync(`./public${hit}`) || (pageFile === "station.js" && !manifestFiles.has(hit))) {
+      console.error(`INVALID IMAGE REFERENCE: "${hit}" in src/pages/${pageFile}`);
       failed = true;
     }
   }
@@ -30,5 +31,5 @@ if (failed) {
   console.error("\nbuild-check failed — fix the issues above before deploying.");
   process.exitCode = 1;
 } else {
-  console.log(`build-check passed — ${Object.keys(STATION_IMAGES).length} station images verified, no orphaned references.`);
+  console.log(`build-check passed — ${Object.keys(STATION_IMAGES).length} station images and page image references verified.`);
 }

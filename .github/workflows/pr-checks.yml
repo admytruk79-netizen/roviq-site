@@ -1,0 +1,21 @@
+name: Site PR checks
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: node --test src/inventory.test.mjs scripts/core-inventory-feed.test.mjs
+      - run: node build-check.js
+      - run: npx wrangler deploy --dry-run
