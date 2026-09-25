@@ -18,9 +18,9 @@ const SOURCE_PLUGINS = [
     ],
     baseUrl: "https://www.carrchevrolet.com",
     detailPatterns: [
-      /\\/used\\/Chevrolet\\/.*Silverado/i,
-      /\\/used\\/GMC\\/.*Sierra/i,
-      /\\/used\\/Ford\\/.*F-?(?:150|250)/i
+      /\/used\/Chevrolet\/.*Silverado/i,
+      /\/used\/GMC\/.*Sierra/i,
+      /\/used\/Ford\/.*F-?(?:150|250)/i
     ]
   },
   {
