@@ -27,6 +27,8 @@ for (const key of keys) {
 }
 
 const env = {
+  // The GitHub runner is not subject to the Worker's external-subrequest cap.
+  inventoryDetailBatchSize:30,
   CONTENT: {
     get: async key => values.get(key)||null,
     put: async (key,value) => { values.set(key,value); }
