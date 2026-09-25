@@ -15,7 +15,7 @@ function spec(value,type){
   if((type==="exterior"||type==="interior")&&v.split(/\s+/).length>6) return "Not listed";
   return esc(v);
 }
-function mileageLabel(mi){const n=Number(mi);return Number.isFinite(n)&&n>0?n.toLocaleString("en-US")+" mi / "+km(n)+" km":"Not listed"}
+function mileageLabel(mi){const n=Number(mi);return Number.isFinite(n)?n.toLocaleString("en-US")+" mi / "+km(n)+" km":"Not listed"}
 function card(v,formPage=false){
 const mileage=Number(v.mileageMi);
 const engine=spec(v.engine,"engine");
@@ -26,7 +26,7 @@ const exterior=spec(v.exterior,"exterior");
 const interior=spec(v.interior,"interior");
 return `
 <article class="uk-card">
-<div class="uk-photo"><img src="${v.imagePath}" alt="${v.year} ${v.make} ${v.model}" loading="eager" fetchpriority="high" decoding="async"><div class="uk-badge">${Number.isFinite(mileage)&&mileage>0?(mileage<10000?"ULTRA-LOW MILEAGE":"UNDER 60,000 MILES"):"MILEAGE NOT LISTED"}</div></div>
+<div class="uk-photo"><img src="${v.imagePath}" alt="${v.year} ${v.make} ${v.model}" loading="eager" fetchpriority="high" decoding="async"><div class="uk-badge">${Number.isFinite(mileage)?(mileage<10000?"ULTRA-LOW MILEAGE":"UNDER 60,000 MILES"):"MILEAGE NOT LISTED"}</div></div>
 <div class="uk-info"><div class="uk-id">${v.id} • ROVIQ LIVE INVENTORY</div><h2>${v.year} ${v.make} ${v.model}</h2><div class="uk-sub">${v.trim||""}${v.trim?" • ":""}${drivetrain} • ${engine}</div>
 <div class="price-box"><div><span>Vehicle price</span><strong>${priceLabel(v.pricing)}</strong></div><div><span>Estimated shipping</span><strong>${shippingLabel(v.pricing)}</strong></div></div>\n<div class="uk-specs"><div class="uk-spec"><span>Mileage</span><strong>${mileageLabel(v.mileageMi)}</strong></div><div class="uk-spec"><span>Engine</span><strong>${engine}</strong></div><div class="uk-spec"><span>Drivetrain</span><strong>${drivetrain}</strong></div><div class="uk-spec"><span>Transmission</span><strong>${transmission}</strong></div><div class="uk-spec"><span>Fuel</span><strong>${fuel}</strong></div><div class="uk-spec"><span>Exterior</span><strong>${exterior}</strong></div><div class="uk-spec"><span>Interior</span><strong>${interior}</strong></div><div class="uk-spec"><span>Vehicle ID</span><strong>${v.vinPublic}</strong></div></div>
 ${formPage ? bookingForm(v) : `<a class="uk-btn primary" style="margin-top:17px" href="/ukraine/request?vehicle=${encodeURIComponent(v.id)}">Open vehicle request form →</a>`}
