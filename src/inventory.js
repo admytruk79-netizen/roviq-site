@@ -578,6 +578,10 @@ function canonicalModel(value) {
   if (/\bF\s*150\b/i.test(s)) return "F-150";
   if (/\bSilverado\s*EV\b/i.test(s)) return "Silverado EV";
   if (/\bSierra\s*EV\b/i.test(s)) return "Sierra EV";
+  for(const make of ["Silverado","Sierra"]){
+    const match=s.match(new RegExp(`\\b${make}\\s*(1500|2500|3500)\\s*(HD)?\\b`,"i"));
+    if(match) return make+" "+match[1]+(match[2]?" HD":"");
+  }
   return String(value||"").replace(/\s+/g," ").trim();
 }
 
