@@ -4,11 +4,31 @@ function km(mi){return Math.round(mi*1.60934).toLocaleString("en-US")}
 function priceLabel(pricing){return pricing?.hasPrice && Number.isFinite(pricing.vehiclePrice) ? "&#36;"+Number(pricing.vehiclePrice).toLocaleString("en-US") : "Request current price"}
 function shippingLabel(pricing){return pricing?.hasPrice && Number.isFinite(pricing.shippingLow) && Number.isFinite(pricing.shippingHigh) ? "&#36;"+pricing.shippingLow.toLocaleString("en-US")+"–&#36;"+pricing.shippingHigh.toLocaleString("en-US") : "Request shipping quote"}
 function esc(value){return String(value||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function card(v,formPage=false){return `
+function spec(value,type){
+  const v=String(value??"").trim();
+  if(!v||v.length>55) return "Not listed";
+  if(/[{}\[\]"=:]/.test(v)) return "Not listed";
+  if(/\b(?:null|undefined|options are|available on|replacement|OEM|javascript|class|data-|href|src)\b/i.test(v)) return "Not listed";
+  if(type==="drivetrain"&&!/^(?:4WD|4x4|4×4|AWD|RWD|2WD|FWD)$/i.test(v)) return "Not listed";
+  if(type==="transmission"&&!/\b(?:automatic|manual|CVT|eCVT|speed|single-speed)\b/i.test(v)) return "Not listed";
+  if(type==="fuel"&&!/^(?:Gasoline|Diesel|Electric|Hybrid|Plug-in Hybrid|Flex Fuel)$/i.test(v)) return "Not listed";
+  if((type==="exterior"||type==="interior")&&v.split(/\s+/).length>6) return "Not listed";
+  return esc(v);
+}
+function mileageLabel(mi){const n=Number(mi);return Number.isFinite(n)&&n>0?n.toLocaleString("en-US")+" mi / "+km(n)+" km":"Not listed"}
+function card(v,formPage=false){
+const mileage=Number(v.mileageMi);
+const engine=spec(v.engine,"engine");
+const drivetrain=spec(v.drivetrain,"drivetrain");
+const transmission=spec(v.transmission,"transmission");
+const fuel=spec(v.fuel,"fuel");
+const exterior=spec(v.exterior,"exterior");
+const interior=spec(v.interior,"interior");
+return `
 <article class="uk-card">
-<div class="uk-photo"><img src="${v.imagePath}" alt="${v.year} ${v.make} ${v.model}" loading="eager" fetchpriority="high" decoding="async"><div class="uk-badge">${v.mileageMi<10000?"ULTRA-LOW MILEAGE":"UNDER 60,000 MILES"}</div></div>
-<div class="uk-info"><div class="uk-id">${v.id} • ROVIQ LIVE INVENTORY</div><h2>${v.year} ${v.make} ${v.model}</h2><div class="uk-sub">${v.trim||""}${v.trim?" • ":""}${v.drivetrain} • ${v.engine}</div>
-<div class="price-box"><div><span>Vehicle price</span><strong>${priceLabel(v.pricing)}</strong></div><div><span>Estimated shipping</span><strong>${shippingLabel(v.pricing)}</strong></div></div>\n<div class="uk-specs"><div class="uk-spec"><span>Mileage</span><strong>${v.mileageMi.toLocaleString("en-US")} mi / ${km(v.mileageMi)} km</strong></div><div class="uk-spec"><span>Engine</span><strong>${v.engine}</strong></div><div class="uk-spec"><span>Drivetrain</span><strong>${v.drivetrain}</strong></div><div class="uk-spec"><span>Transmission</span><strong>${v.transmission}</strong></div><div class="uk-spec"><span>Fuel</span><strong>${v.fuel}</strong></div><div class="uk-spec"><span>Exterior</span><strong>${v.exterior}</strong></div><div class="uk-spec"><span>Interior</span><strong>${v.interior}</strong></div><div class="uk-spec"><span>Vehicle ID</span><strong>${v.vinPublic}</strong></div></div>
+<div class="uk-photo"><img src="${v.imagePath}" alt="${v.year} ${v.make} ${v.model}" loading="eager" fetchpriority="high" decoding="async"><div class="uk-badge">${Number.isFinite(mileage)&&mileage>0?(mileage<10000?"ULTRA-LOW MILEAGE":"UNDER 60,000 MILES"):"MILEAGE NOT LISTED"}</div></div>
+<div class="uk-info"><div class="uk-id">${v.id} • ROVIQ LIVE INVENTORY</div><h2>${v.year} ${v.make} ${v.model}</h2><div class="uk-sub">${v.trim||""}${v.trim?" • ":""}${drivetrain} • ${engine}</div>
+<div class="price-box"><div><span>Vehicle price</span><strong>${priceLabel(v.pricing)}</strong></div><div><span>Estimated shipping</span><strong>${shippingLabel(v.pricing)}</strong></div></div>\n<div class="uk-specs"><div class="uk-spec"><span>Mileage</span><strong>${mileageLabel(v.mileageMi)}</strong></div><div class="uk-spec"><span>Engine</span><strong>${engine}</strong></div><div class="uk-spec"><span>Drivetrain</span><strong>${drivetrain}</strong></div><div class="uk-spec"><span>Transmission</span><strong>${transmission}</strong></div><div class="uk-spec"><span>Fuel</span><strong>${fuel}</strong></div><div class="uk-spec"><span>Exterior</span><strong>${exterior}</strong></div><div class="uk-spec"><span>Interior</span><strong>${interior}</strong></div><div class="uk-spec"><span>Vehicle ID</span><strong>${v.vinPublic}</strong></div></div>
 ${formPage ? bookingForm(v) : `<a class="uk-btn primary" style="margin-top:17px" href="/ukraine/request?vehicle=${encodeURIComponent(v.id)}">Open vehicle request form →</a>`}
 </div></article>`}
 
