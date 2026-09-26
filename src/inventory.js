@@ -380,6 +380,9 @@ async function fetchHtml(url) {
 function looksLikeListing(url) {
   return /(silverado|sierra|f-?150|f-?250|lightning)/i.test(url) && /(used|preowned|pre-owned|vehicle|inventory)/i.test(url);
 }
+function looksLikeUsedListing(url) {
+  return /(?:\/used(?:[-\/]|%2b)|\/certified-used-|\/certified\/|\/preowned|\/pre-owned)/i.test(String(url||""));
+}
 
 function canonicalModel(value) {
   const s=String(value||"").replace(/[-_]/g," ").replace(/\s+/g," ").trim();
@@ -461,6 +464,7 @@ function discoverLlmInventory(html, source) {
     const url=abs((titleTag.match(/href=["']([^"']+)/i)||[])[1],source.baseUrl);
     const name=clean((item.match(/itemprop=["']name["'][^>]*>([^<]+)/i)||[])[1]||"");
     if(!url || !/\/inventory\/(?:new|used|certified-used)-/i.test(url) || !/(silverado|sierra|f-?150|f-?250|lightning)/i.test(url+" "+name)) continue;
+    if(source.usedOnly && !/\/inventory\/(?:used|certified-used)-/i.test(url)) continue;
     const year=Number((name.match(/\b20\d{2}\b/)||[])[0])||null;
     const make=(name.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||null;
     const model=canonicalModel((name.match(/\b(Silverado(?:\s+\d{4}\s*HD|\s+\d{4}HD|\s+EV)?|Sierra(?:\s+\d{4}\s*HD|\s+\d{4}HD|\s+EV)?|F-?(?:150|250)(?:\s+Lightning)?)\b/i)||[])[1]);
@@ -504,6 +508,7 @@ function discover(html, source, inventoryUrl) {
         const url=rawUrl && abs(rawUrl,source.baseUrl);
         const name=String(node.name||"");
         if(!url || !/(silverado|sierra|f-?150|f-?250|lightning)/i.test(name+" "+url) || !looksLikeListing(url)) continue;
+        if(source.usedOnly && !looksLikeUsedListing(url)) continue;
         const year=Number((name.match(/\b20\d{2}\b/)||[])[0])||null;
         const make=(name.match(/\b(Chevrolet|GMC|Ford)\b/i)||[])[1]||null;
         const model=canonicalModel((name.match(/\b(Silverado(?:\s+(?:1500|2500\s*HD|3500\s*HD|EV))?|Sierra(?:\s+(?:1500|2500\s*HD|3500\s*HD|EV))?|F-?(?:150|250)(?:\s+Lightning)?)\b/i)||[])[1]);
@@ -535,6 +540,7 @@ function discover(html, source, inventoryUrl) {
     const url=u.split("#")[0];
     const customMatch=(source.detailPatterns||[]).some(p=>p.test(url));
     if (!(customMatch || looksLikeListing(url))) continue;
+    if(source.usedOnly && !customMatch && !looksLikeUsedListing(url)) continue;
 
     // Dealer search-result pages often expose price/photo even when the VDP hides them
     // behind client-side rendering or anti-bot middleware. Capture those hints here so
@@ -1110,7 +1116,7 @@ export async function getVehicleInventory(env) {
     const source=SOURCE_PLUGINS.find(s=>s.id===v.sourceId);
     const url=String(v.sourceUrl||"").toLowerCase();
     const condition=String(v.condition||v.vehicleCondition||"").toLowerCase();
-    return source?.usedOnly===true || condition==="used" || condition==="pre-owned" || condition==="certified used" || condition==="certified pre-owned" || /(?:\/used[-\/]|\/certified-used-|\/used-vehicles|\/used-inventory|searchused\.aspx|[?&]type=used\b|chassis\.condition%3aused)/i.test(url);
+    return condition==="used" || condition==="pre-owned" || condition==="certified used" || condition==="certified pre-owned" || looksLikeUsedListing(url) || /(?:\/used-vehicles|\/used-inventory|searchused\.aspx|[?&]type=used\b|chassis\.condition%3aused)/i.test(url);
   };
 
   const publicVehicles=databaseRows
