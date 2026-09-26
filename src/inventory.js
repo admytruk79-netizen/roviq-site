@@ -391,14 +391,18 @@ function verifiedFuel(v) {
   return fuel||"Gasoline";
 }
 
-function discoverFleetInventory(html, source, inventoryUrl) {
+export function discoverFleetInventory(html, source, inventoryUrl) {
   const out=new Map();
-  const vinRe=/\b([A-HJ-NPR-Z0-9]{17})\b/gi;
-  let m;
-  while((m=vinRe.exec(html))){
+  const vinMatches=[...html.matchAll(/\b([A-HJ-NPR-Z0-9]{17})\b/gi)];
+  for(let i=0;i<vinMatches.length;i++){
+    const m=vinMatches[i];
     const vin=m[1].toUpperCase();
-    const start=Math.max(0,m.index-5000);
-    const end=Math.min(html.length,m.index+5000);
+    // Scope parsing to this VIN's own listing segment. The previous implementation
+    // used a broad +/-5k window, which could pick up the price from a neighboring
+    // truck and attach it to the wrong VIN.
+    const prev=vinMatches[i-1], next=vinMatches[i+1];
+    const start=prev ? Math.floor((prev.index+m.index)/2) : Math.max(0,m.index-3000);
+    const end=next ? Math.floor((m.index+next.index)/2) : Math.min(html.length,m.index+7000);
     const raw=html.slice(start,end);
     const text=clean(raw);
     if(!/\bFord\s+F-?(?:150|250)\b/i.test(text)) continue;
@@ -419,7 +423,7 @@ function discoverFleetInventory(html, source, inventoryUrl) {
     const url=inventoryUrl+"#"+vin;
     out.set(url,{url,hints:{
       year,make:"Ford",model,trim:trim||"",
-      mileageMi,vin,
+      mileageMi,vin,condition:"used",
       ...(drivetrain?{drivetrain}:{}),
       ...(transmission?{transmission}:{}),
       ...(fuel?{fuel}:{}),
