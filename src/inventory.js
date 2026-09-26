@@ -1045,9 +1045,16 @@ export async function syncVehicleInventory(env) {
   const rotatingEntries=candidateEntries.length
     ? Array.from({length:candidateEntries.length},(_,n)=>candidateEntries[(start+n)%candidateEntries.length])
     : [];
-  const detailEntries=[...priorityEntries];
+  // Search-index sources (Kendall Ford Vancouver) already carry the dealer's exact
+  // record and need no VDP fetch, so they never wait in the 12-per-run rotation.
+  const searchIndexEntries=candidateEntries.filter(entry=>
+    SOURCE_PLUGINS.find(s=>s.id===entry[1]?.sourceId)?.searchService && !priorityEntries.includes(entry)
+  );
+  const detailEntries=[...priorityEntries,...searchIndexEntries];
+  let rotated=0;
   for(const entry of rotatingEntries){
-    if(detailEntries.length>=detailBatchSize) break;
+    if(rotated>=detailBatchSize) break;
+    rotated++;
     if(!detailEntries.includes(entry)) detailEntries.push(entry);
   }
   const vehicles=[];
@@ -1164,7 +1171,7 @@ export async function syncVehicleInventory(env) {
     syncedAt:now(),
     candidateCap:180,
     databaseRows:finalVehicles.length,
-    detailCursor:candidateEntries.length ? ((start+detailEntries.length)%candidateEntries.length) : 0,
+    detailCursor:candidateEntries.length ? ((start+rotated)%candidateEntries.length) : 0,
     sources,
     vehicles:finalVehicles
   };
