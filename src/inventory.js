@@ -401,10 +401,12 @@ export function discoverFleetInventory(html, source, inventoryUrl) {
     // used a broad +/-5k window, which could pick up the price from a neighboring
     // truck and attach it to the wrong VIN.
     const prev=vinMatches[i-1], next=vinMatches[i+1];
-    const start=prev ? Math.floor((prev.index+m.index)/2) : Math.max(0,m.index-3000);
-    const end=next ? Math.floor((m.index+next.index)/2) : Math.min(html.length,m.index+7000);
+    const start=prev ? Math.max(prev.index+prev[0].length,m.index-3000) : Math.max(0,m.index-3000);
+    const end=next ? next.index : Math.min(html.length,m.index+7000);
     const raw=html.slice(start,end);
+    const postVinRaw=html.slice(m.index,end);
     const text=clean(raw);
+    const postVinText=clean(postVinRaw);
     if(!/\bFord\s+F-?(?:150|250)\b/i.test(text)) continue;
     const model=canonicalModel((text.match(/\bFord\s+(F-?(?:150|250)(?:\s+Lightning)?)\b/i)||[])[1]);
     const year=Number((text.match(/\b(20\d{2})\s+Ford\s+F-?(?:150|250)\b/i)||[])[1]||0)||null;
@@ -414,11 +416,11 @@ export function discoverFleetInventory(html, source, inventoryUrl) {
     const transmission=safeField((text.match(/Transmission\s+([^$|]{2,35}?)(?:\s+Color|\s+Vehicle Trim|\s+See More Details|$)/i)||[])[1]||null);
     const fuel=safeField((text.match(/Fuel Type\s+(Gasoline|Diesel|Hybrid|Electric|Flex Fuel)/i)||[])[1]||null);
     const color=safeField((text.match(/Color\s+([^$|]{2,35}?)(?:\s+Vehicle Trim|\s+See More Details|$)/i)||[])[1]||null);
-    const usedMileage=num((text.match(/Mileage\s+([0-9,]+)\b/i)||[])[1]);
+    const usedMileage=num((postVinText.match(/Mileage\s+([0-9,]+)\b/i)||[])[1]);
     const mileageMi=usedMileage;
     if(mileageMi==null || mileageMi>=MAX_MILES) continue;
-    const price=num((text.match(/(?:Price\*?|Sale Price|Total Price)\s*\|?\s*\$\s*([0-9,]+)/i)||[])[1]) ||
-      num((text.match(/MSRP\s*\|?\s*\$\s*([0-9,]+)/i)||[])[1]);
+    const price=num((postVinText.match(/(?:Price\*?|Sale Price|Total Price)\s*\|?\s*\$\s*([0-9,]+)/i)||[])[1]) ||
+      num((postVinText.match(/MSRP\s*\|?\s*\$\s*([0-9,]+)/i)||[])[1]);
     const directImage=extractImage(raw);
     const url=inventoryUrl+"#"+vin;
     out.set(url,{url,hints:{
