@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {getVehicleInventory,normalizePriorInventory,retainRecentUnseenVehicles} from './inventory.js';
+import {getVehicleInventory,normalizePriorInventory,retainRecentUnseenVehicles,discoverFleetInventory} from './inventory.js';
 
 function environment(rows){
   const data=new Map([
@@ -51,4 +51,40 @@ test('partial dealer outage retains only recent previously discovered cars',()=>
   assert.deepEqual(retainRecentUnseenVehicles([], [prior],{ford:{inventoryPagesOk:2,inventoryPagesFailed:0}}),[]);
   assert.deepEqual(retainRecentUnseenVehicles([], [{...prior,lastDiscoveredAt:new Date(Date.now()-25*3600000).toISOString()}],failed),[]);
   assert.deepEqual(retainRecentUnseenVehicles([{...prior,mileageMi:13000}], [prior],failed).map(v=>v.mileageMi),[13000]);
+});
+
+
+test('fleet parser keeps each price with its own VIN',()=>{
+  const html=`
+    <section>2024 Ford F-150 SuperCrew Cab 4WD Pickup
+      VIN 1FTFW1RG7RFB85608
+      Mileage 28,033 Drivetrain 4WD Fuel Type Gasoline Transmission 10-Speed Automatic
+      Color Blue Metallic Vehicle Trim Raptor
+      MSRP | $69,733 Doc Fee | + $250 Price* | $69,983
+    </section>
+    <section>2022 Ford F-150 SuperCrew Cab 4WD Pickup
+      VIN 1FTFW1E50NFA11111
+      Mileage 21,000 Drivetrain 4WD Fuel Type Gasoline Transmission 10-Speed Automatic
+      Color White Vehicle Trim XLT
+      MSRP | $25,231 Doc Fee | + $250 Price* | $25,481
+    </section>`;
+  const rows=discoverFleetInventory(html,{id:'kendall-eugene-fleet',name:'Kendall Ford of Eugene'},'https://dealer.example/used');
+  const raptor=rows.find(r=>r.hints.vin==='1FTFW1RG7RFB85608');
+  const xlt=rows.find(r=>r.hints.vin==='1FTFW1E50NFA11111');
+  assert.equal(raptor.hints.askingPrice,69983);
+  assert.equal(xlt.hints.askingPrice,25481);
+});
+
+test('stale dealer price is not reused when current listing has no valid price',async()=>{
+  const row={...vehicle(12000),askingPrice:null};
+  const data=new Map([
+    ['vehicle_inventory:v1',JSON.stringify({version:33,vehicles:[row]})],
+    ['vehicle_live_database:v1',JSON.stringify({version:33,vehicles:[row]})],
+    ['vehicle_costing_records:v1',JSON.stringify([{vehicleId:row.id,acquisitionPrice:25000,dealerPrice:25000,customerVehiclePrice:28500,shippingLow:5000,shippingHigh:7000}])]
+  ]);
+  const env={CONTENT:{get:async key=>data.get(key)||null,put:async(key,value)=>{data.set(key,value)}}};
+  const result=await getVehicleInventory(env);
+  assert.equal(result.vehicles.length,1);
+  assert.equal(result.vehicles[0].pricing.hasPrice,false);
+  assert.equal(result.vehicles[0].pricing.vehiclePrice,null);
 });
