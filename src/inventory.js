@@ -897,7 +897,9 @@ export async function syncVehicleInventory(env) {
     v.transmission=safeField(v.transmission);
     v.exterior=safeField(v.exterior);
     v.interior=safeField(v.interior);
-    if(!v.year||!v.make||!v.model||v.mileageMi==null||!v.engine||!v.drivetrain) {
+    const missingCore=!v.year||!v.make||!v.model||v.mileageMi==null||
+      (!source.fleetInventory && (!v.engine||!v.drivetrain));
+    if(missingCore) {
       if (sourceHealth[source.id]) sourceHealth[source.id].rejectedMissingCore++;
       v.status = "incomplete";
       v.incompleteReason = "missing_core";
