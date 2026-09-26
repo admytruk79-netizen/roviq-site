@@ -486,7 +486,12 @@ export function readSearchServiceConfig(html) {
   if(!m) return null;
   try {
     const cfg=JSON.parse(m[1]);
-    return cfg.search && cfg.apiKey ? {search:cfg.search,apiKey:cfg.apiKey,statuses:cfg.visibleStatusValues||["publish"]} : null;
+    if(!cfg.search || !cfg.apiKey) return null;
+    // Without the site's field map the index returns only a thin record (no cab style, no specs).
+    const fm=String(html).match(/var SEARCH_SERVICE_FIELD_MAP\s*=\s*(\{[\s\S]*?\});\s*(?:var|\/\*)/);
+    let requestedFields;
+    try { requestedFields=fm?JSON.parse(fm[1]).requestedFields:undefined; } catch { requestedFields=undefined; }
+    return {search:cfg.search,apiKey:cfg.apiKey,statuses:cfg.visibleStatusValues||["publish"],requestedFields};
   } catch { return null; }
 }
 
@@ -497,10 +502,11 @@ export function searchServiceListingToHints(listing, source) {
   if(!/^(Chevrolet|GMC|Ford)$/i.test(make) || !/^(?:Silverado|Sierra|F-150|F-250)/i.test(model)) return null;
   if(!/used/i.test(String(listing?.type||""))) return null;
   const style=String(listing?.styles?.style_name||listing?.styles?.style_description||"");
-  if(!/super\s*crew|crew\s*cab/i.test(style+" "+String(listing?.trim||""))) return null;
+  const url=String(listing?.vdp_url||"");
+  // Cab comes from the dealer's style name; the VDP slug (e.g. "-4wd-supercrew-") is the fallback.
+  if(!/super\s*-?crew|crew\s*-?cab/i.test(style ? style+" "+String(listing?.trim||"") : url)) return null;
   const mileageMi=Number(listing?.mileage);
   if(!Number.isFinite(mileageMi) || mileageMi<=0 || mileageMi>=MAX_MILES) return null;
-  const url=String(listing?.vdp_url||"");
   if(!listing?.vin || !looksLikeUsedListing(url)) return null;
   const pricing=listing?.pricing||{};
   const askingPrice=[pricing.our_price,pricing.internet_price,pricing.price].map(Number).find(n=>n>=1000&&n<=250000);
@@ -530,7 +536,7 @@ export async function querySearchService(source, filters, fetcher, maxPages) {
   for(let n=1;n<=maxPages;n++){
     const r=await fetcher(cfg.search+"/search",{method:"POST",signal:AbortSignal.timeout(20000),
       headers:{"content-type":"application/json",accept:"application/json","x-api-key":cfg.apiKey},
-      body:JSON.stringify({page:n,perPage:100,filters:{status:cfg.statuses,...filters}})});
+      body:JSON.stringify({page:n,perPage:100,filters:{status:cfg.statuses,...filters},...(cfg.requestedFields?{requestedFields:cfg.requestedFields}:{})})});
     if(!r.ok) return null;
     const body=await r.json();
     const listings=body?.data?.listings||body?.listings||[];

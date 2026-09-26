@@ -138,3 +138,15 @@ test("checkSearchServiceVin reports sold when VIN left the dealer index", async 
   assert.equal((await checkSearchServiceVin(kendall,"1FTFW1E81PFA00001",searchFetcher([usedF150]).fetcher)).item.hints.askingPrice,41995);
   assert.equal((await checkSearchServiceVin(kendall,"1FTFW1E81PFA00001",searchFetcher([]).fetcher)).item,null);
 });
+
+test("crew cab can be read from the VDP slug when style is missing; field map is requested", async () => {
+  const thin={...usedF150,styles:{}};
+  assert.ok(searchServiceListingToHints(thin,kendall));
+  assert.equal(searchServiceListingToHints({...thin,vdp_url:"https://dealer.test/inventory/used-2023-ford-f-150-xl-4wd-regular-cab-x/"},kendall),null);
+  const calls=[];
+  const fetcher=async (url,init={})=>{calls.push(init);
+    if(url===kendall.searchService.pageUrl) return new Response('<script>var SEARCH_SERVICE = {"search":"https://api.test/l/1","apiKey":"k"}; var SEARCH_SERVICE_FIELD_MAP = {"requestedFields":["vin","styles"]}; var Y=2;</script>');
+    return new Response(JSON.stringify({data:{listings:[]}}));};
+  await discoverSearchService(kendall,fetcher);
+  assert.deepEqual(JSON.parse(calls[1].body).requestedFields,["vin","styles"]);
+});
