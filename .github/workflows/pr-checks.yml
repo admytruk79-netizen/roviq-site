@@ -22,3 +22,6 @@ jobs:
       - name: Probe live dealer search sources (informational)
         continue-on-error: true
         run: node scripts/probe-search-sources.mjs
+      - name: Probe DealerOn new-inventory structure (informational)
+        continue-on-error: true
+        run: node scripts/probe-dealeron.mjs
