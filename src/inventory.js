@@ -521,7 +521,7 @@ export function searchServiceListingToHints(listing, source) {
   }};
 }
 
-async function querySearchService(source, filters, fetcher, maxPages) {
+export async function querySearchService(source, filters, fetcher, maxPages) {
   const page=await fetcher(source.searchService.pageUrl,{headers:{"user-agent":SEARCH_PAGE_USER_AGENT},signal:AbortSignal.timeout(20000)});
   if(!page.ok) return null;
   const cfg=readSearchServiceConfig(await page.text());
