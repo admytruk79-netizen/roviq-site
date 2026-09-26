@@ -857,7 +857,7 @@ export async function syncVehicleInventory(env) {
     const source = SOURCE_PLUGINS.find(s=>s.id===metaInfo.sourceId) || SOURCE_PLUGINS.find(s=>url.startsWith(s.baseUrl));
     if (!source) return null;
     const prev=metaInfo.previous||{};
-    let v={...prev,sourceId:source.id,sourceNameInternal:source.name,sourceUrl:url};
+    let v={...prev,sourceId:source.id,sourceNameInternal:source.name,sourceUrl:url,lastDiscoveredAt:now()};
 
     try {
       if (sourceHealth[source.id]) sourceHealth[source.id].detailChecks++;
