@@ -808,7 +808,8 @@ export async function syncVehicleInventory(env) {
       sourceId:source?.id||prior.sourceId||null,
       sourceNameInternal:source?.name||prior.sourceNameInternal||null,
       sourceUrl:url,
-      status:prior.status||"available",
+      // A vehicle rediscovered on a current dealer used-inventory page is live again.
+      status:"available",
       firstSeenAt:prior.firstSeenAt||now(),
       lastDiscoveredAt:now()
     };
