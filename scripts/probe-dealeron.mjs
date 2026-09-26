@@ -1,7 +1,6 @@
 // Read-only structure probe for a DealerOn new-inventory page (diagnostics only).
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 const urls = [
-  "https://www.beavertongmc.com/searchnew.aspx?make=GMC&model=Sierra%201500",
   "https://www.beavertongmc.com/searchnew.aspx"
 ];
 for (const url of urls) {
@@ -17,6 +16,14 @@ for (const url of urls) {
     "/new-": /href="[^"]*\/new-[^"]*"/gi, "searchnew.aspx?pt=": /searchnew\.aspx\?[^"']*pt=\d/gi,
     "totalCount": /totalCount|TotalCount|resultsCount|vehicleCount/g
   })) console.log(k, count(re));
+  const card = html.search(/srpVehicle/);
+  if (card > 0) {
+    const chunk = html.slice(card - 300, card + 6000);
+    const attrs = [...new Set([...chunk.matchAll(/(data-[\w-]+)="([^"]{0,160})"/g)].map(m => `${m[1]}=${m[2]}`))].slice(0, 90);
+    console.log("--- first srpVehicle attributes ---\n" + attrs.join("\n"));
+    console.log("--- first srpVehicle html ---\n" + chunk.replace(/\s+/g, " ").slice(0, 3000));
+  }
+  console.log("pagination:", [...new Set([...html.matchAll(/searchnew\.aspx\?[^"'<> ]*pt=\d+[^"'<> ]*/g)].map(m => m[0]))].slice(0, 6).join(" | "));
   const vinIdx = html.search(/data-vin=/i);
   if (vinIdx > 0) console.log("--- around first data-vin ---\n" + html.slice(Math.max(0, vinIdx - 1500), vinIdx + 2500).replace(/\s+/g, " "));
   const ld = html.match(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/i);
