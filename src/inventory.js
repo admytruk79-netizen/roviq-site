@@ -6,7 +6,7 @@ const MAX_MILES = 30000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const INVENTORY_SCHEMA_VERSION = 33; // Ukraine feed: used/pre-owned inventory only
 
-const SOURCE_PLUGINS = [
+export const SOURCE_PLUGINS = [
   {
     id: "carr", name: "CARR Chevrolet", usedOnly: true,
     inventoryUrls: [
@@ -118,11 +118,10 @@ const SOURCE_PLUGINS = [
   },
   {
     id: "kendall-ford-vancouver", name: "Kendall Ford of Vancouver", usedOnly: true,
-    inventoryUrls: [
-      "https://www.kendallfordvancouver.com/llm/inventory/?type=used",
-      "https://www.kendallfordvancouver.com/llm/inventory/?_p=2&type=used",
-      "https://www.kendallfordvancouver.com/llm/inventory/?_p=3&type=used"
-    ],
+    // Kendall's pages block servers, but the dealer's own inventory search
+    // service (Cars Commerce) answers with exact per-VIN records. Reading it
+    // avoids guessing specs from search-page text, which mixed up vehicles.
+    searchService: {pageUrl: "https://www.kendallfordvancouver.com/used-vehicles/", typeSlugs: ["Used", "Certified Used"]},
     baseUrl: "https://www.kendallfordvancouver.com",
     detailPatterns: [/\/inventory\/(?:used|certified-used)-.*f-?(?:150|250)/i]
   },
@@ -480,6 +479,90 @@ function discoverLlmInventory(html, source) {
   return [...out.values()];
 }
 
+const SEARCH_PAGE_USER_AGENT="Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Claude-User/1.0; +Claude-User@anthropic.com)";
+
+export function readSearchServiceConfig(html) {
+  const m=String(html||"").match(/var SEARCH_SERVICE\s*=\s*(\{[\s\S]*?\});\s*(?:var|\/\*)/);
+  if(!m) return null;
+  try {
+    const cfg=JSON.parse(m[1]);
+    if(!cfg.search || !cfg.apiKey) return null;
+    // Without the site's field map the index returns only a thin record (no cab style, no specs).
+    const fm=String(html).match(/var SEARCH_SERVICE_FIELD_MAP\s*=\s*(\{[\s\S]*?\});\s*(?:var|\/\*)/);
+    let requestedFields;
+    try { requestedFields=fm?JSON.parse(fm[1]).requestedFields:undefined; } catch { requestedFields=undefined; }
+    return {search:cfg.search,apiKey:cfg.apiKey,statuses:cfg.visibleStatusValues||["publish"],requestedFields};
+  } catch { return null; }
+}
+
+// One exact dealer record per VIN: used, crew cab / SuperCrew, target models, under the mileage cap.
+export function searchServiceListingToHints(listing, source) {
+  const make=String(listing?.make||"");
+  const model=canonicalModel(listing?.model);
+  if(!/^(Chevrolet|GMC|Ford)$/i.test(make) || !/^(?:Silverado|Sierra|F-150|F-250)/i.test(model)) return null;
+  if(/3500|4500|5500/.test(String(listing?.model||"")+" "+model)) return null;
+  if(!/used/i.test(String(listing?.type||""))) return null;
+  const style=String(listing?.styles?.style_name||listing?.styles?.style_description||"");
+  const url=String(listing?.vdp_url||"");
+  // Cab comes from the dealer's style name; the VDP slug (e.g. "-4wd-supercrew-") is the fallback.
+  if(!/super\s*-?crew|crew\s*-?cab/i.test(style ? style+" "+String(listing?.trim||"") : url)) return null;
+  const mileageMi=Number(listing?.mileage);
+  if(!Number.isFinite(mileageMi) || mileageMi<=0 || mileageMi>=MAX_MILES) return null;
+  if(!listing?.vin || !looksLikeUsedListing(url)) return null;
+  const pricing=listing?.pricing||{};
+  const askingPrice=[pricing.our_price,pricing.internet_price,pricing.price].map(Number).find(n=>n>=1000&&n<=250000);
+  const mech=listing?.mechanical||{};
+  const image=(listing?.media?.images||[]).find(u=>typeof u==="string");
+  return {url,hints:{
+    year:Number(listing.year)||null,make,model,trim:safeField(listing.trim||"",""),
+    mileageMi,vin:String(listing.vin).toUpperCase(),condition:"used",
+    ...(mech.engine?{engine:safeField(mech.engine)}:{}),
+    ...(mech.drivetrain?{drivetrain:safeField(mech.drivetrain)}:{}),
+    ...(mech.transmission?{transmission:safeField(mech.transmission)}:{}),
+    ...(mech.fuel_type?{fuel:/diesel/i.test(mech.fuel_type)?"Diesel":/electric/i.test(mech.fuel_type)?"Electric":"Gasoline"}:{}),
+    ...(listing.styles?.exterior_color?{exterior:safeField(listing.styles.exterior_color)}:{}),
+    ...(listing.styles?.interior_color?{interior:safeField(listing.styles.interior_color)}:{}),
+    ...(askingPrice?{askingPrice}:{}),
+    ...(image?{directImage:image}:{}),
+    status:"available",sourceId:source.id,sourceNameInternal:source.name,firstSeenAt:now()
+  }};
+}
+
+export async function querySearchService(source, filters, fetcher, maxPages) {
+  const page=await fetcher(source.searchService.pageUrl,{headers:{"user-agent":SEARCH_PAGE_USER_AGENT},signal:AbortSignal.timeout(20000)});
+  if(!page.ok) return null;
+  const cfg=readSearchServiceConfig(await page.text());
+  if(!cfg) return null;
+  const all=[];
+  for(let n=1;n<=maxPages;n++){
+    const r=await fetcher(cfg.search+"/search",{method:"POST",signal:AbortSignal.timeout(20000),
+      headers:{"content-type":"application/json",accept:"application/json","x-api-key":cfg.apiKey},
+      body:JSON.stringify({page:n,perPage:100,filters:{status:cfg.statuses,...filters},...(cfg.requestedFields?{requestedFields:cfg.requestedFields}:{})})});
+    if(!r.ok) return null;
+    const body=await r.json();
+    const listings=body?.data?.listings||body?.listings||[];
+    all.push(...listings);
+    if(listings.length<100) break;
+  }
+  return all;
+}
+
+export async function discoverSearchService(source, fetcher=fetch) {
+  const listings=await querySearchService(source,{type_slug:source.searchService.typeSlugs},fetcher,10);
+  if(!listings) return {ok:false};
+  const found=[];
+  for(const l of listings){const item=searchServiceListingToHints(l,source);if(item) found.push(item);}
+  return {ok:true,found};
+}
+
+// Live re-check of one VIN against the dealer's own search index (the VDP itself is bot-blocked).
+export async function checkSearchServiceVin(source, vin, fetcher=fetch) {
+  const listings=await querySearchService(source,{vin:[vin]},fetcher,1);
+  if(!listings) return {ok:false};
+  const listing=listings.find(l=>String(l?.vin||"").toUpperCase()===String(vin).toUpperCase());
+  return {ok:true,item:listing?searchServiceListingToHints(listing,source):null};
+}
+
 function discover(html, source, inventoryUrl) {
   if(source.fleetInventory) return discoverFleetInventory(html,source,inventoryUrl);
   if((source.inventoryUrls||[]).some(u=>/\/llm\/inventory\//.test(u))){
@@ -769,13 +852,16 @@ export async function syncVehicleInventory(env) {
       rejectedMileage: 0,
       rejectedMakeModel: 0
     };
-    for (const inventoryUrl of (source.inventoryUrls || [])) {
+    const inventoryFetches=source.searchService
+      ? [{url:source.searchService.pageUrl,load:()=>discoverSearchService(source)}]
+      : (source.inventoryUrls||[]).map(url=>({url,load:async()=>{const r=await fetchHtml(url);return r.ok?{ok:true,found:discover(r.html,source,url)}:{ok:false}}}));
+    for (const {load} of inventoryFetches) {
       try {
-        const r=await fetchHtml(inventoryUrl);
+        const r=await load();
         if (!r.ok) { health.inventoryPagesFailed++; continue; }
         health.inventoryPagesOk++;
         health.lastSuccessAt = now();
-        const found = discover(r.html,source,inventoryUrl);
+        const found = r.found;
         health.discovered += found.length;
         for (const item of found) {
           const url=item.url;
@@ -879,7 +965,11 @@ export async function syncVehicleInventory(env) {
     const prev=metaInfo.previous||{};
     let v={...prev,sourceId:source.id,sourceNameInternal:source.name,sourceUrl:url,lastDiscoveredAt:now()};
 
-    try {
+    if (source.searchService) {
+      // The search-service record is the dealer's own current data for this VIN;
+      // its detail page blocks servers, so there is nothing further to verify.
+      v={...v,status:"available",missCount:0,lastVerifiedAt:now(),firstSeenAt:prev.firstSeenAt||now(),unavailableAt:null,soldAt:null};
+    } else try {
       if (sourceHealth[source.id]) sourceHealth[source.id].detailChecks++;
       const r=await fetchHtml(url);
       if (!r.ok) {
@@ -1239,6 +1329,30 @@ export async function checkVehicleAvailability(env, vehicleId) {
 
   const source=SOURCE_PLUGINS.find(s=>s.id===v.sourceId);
   if(!source || !v.sourceUrl) return {available:false,reason:"source_unavailable"};
+
+  if(source.searchService){
+    try{
+      const r=await checkSearchServiceVin(source,v.vin);
+      if(!r.ok) return {available:false,reason:"dealer_page_unreachable"};
+      v.lastAvailabilityCheckAt=now();
+      if(!r.item){
+        v.status="sold";
+        v.availabilityReason="not_in_dealer_inventory";
+        await saveState(env,state);
+        return {available:false,reason:v.availabilityReason};
+      }
+      const {firstSeenAt,...fresh}=r.item.hints;
+      Object.assign(v,fresh,{status:"available",missCount:0,lastVerifiedAt:now(),availabilityReason:"dealer_verified"});
+      await saveState(env,state);
+      return {
+        available:true,reason:"dealer_verified",vehicleId:v.id,vin:v.vin||null,sourceId:v.sourceId,
+        sourceNameInternal:v.sourceNameInternal||source.name,sourceUrl:v.sourceUrl,
+        askingPrice:Number(v.askingPrice)||null,lastVerifiedAt:v.lastVerifiedAt,reservationMode:source.reservationMode||"manual"
+      };
+    }catch{
+      return {available:false,reason:"verification_error"};
+    }
+  }
 
   try{
     const r=await fetchHtml(v.sourceUrl);

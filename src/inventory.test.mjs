@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {getVehicleInventory,normalizePriorInventory,retainRecentUnseenVehicles,discoverFleetInventory} from './inventory.js';
+import {getVehicleInventory,normalizePriorInventory,retainRecentUnseenVehicles,discoverFleetInventory,searchServiceListingToHints,discoverSearchService,checkSearchServiceVin} from './inventory.js';
 
 function environment(rows){
   const data=new Map([
@@ -87,4 +87,68 @@ test('stale dealer price is not reused when current listing has no valid price',
   assert.equal(result.vehicles.length,1);
   assert.equal(result.vehicles[0].pricing.hasPrice,false);
   assert.equal(result.vehicles[0].pricing.vehiclePrice,null);
+});
+
+const kendall={id:"kendall-ford-vancouver",name:"Kendall Ford of Vancouver",usedOnly:true,
+  searchService:{pageUrl:"https://dealer.test/used-vehicles/",typeSlugs:["Used","Certified Used"]}};
+const usedF150={vin:"1ftfw1e81pfa00001",year:2023,make:"Ford",model:"F-150",trim:"XLT",type:"Used",
+  vdp_url:"https://dealer.test/inventory/used-2023-ford-f-150-xlt-4wd-supercrew-1ftfw1e81pfa00001/",
+  mileage:21450,styles:{style_name:"XLT 4WD SuperCrew 5.5' Box",exterior_color:"Oxford White"},
+  pricing:{our_price:41995},media:{images:["https://img.test/1.jpg"]},
+  mechanical:{engine:"2.7L V6",drivetrain:"4WD",fuel_type:"Gasoline Fuel",transmission:"10-Speed Automatic"}};
+
+test("search service listing maps to exact used crew-cab record", () => {
+  const item=searchServiceListingToHints(usedF150,kendall);
+  assert.equal(item.url,usedF150.vdp_url);
+  assert.equal(item.hints.vin,"1FTFW1E81PFA00001");
+  assert.equal(item.hints.askingPrice,41995);
+  assert.equal(item.hints.mileageMi,21450);
+  assert.equal(item.hints.fuel,"Gasoline");
+  assert.equal(item.hints.condition,"used");
+});
+
+test("search service rejects regular cabs, new trucks, high mileage and other models", () => {
+  assert.equal(searchServiceListingToHints({...usedF150,styles:{style_name:"XL 4WD Reg Cab 8' Box"}},kendall),null);
+  assert.equal(searchServiceListingToHints({...usedF150,type:"New"},kendall),null);
+  assert.equal(searchServiceListingToHints({...usedF150,mileage:48000},kendall),null);
+  assert.equal(searchServiceListingToHints({...usedF150,model:"Explorer"},kendall),null);
+  assert.equal(searchServiceListingToHints({...usedF150,make:"GMC",model:"Sierra 3500HD",styles:{style_name:"4WD Crew Cab 159\" Denali Ultimate"}},kendall),null);
+  assert.ok(searchServiceListingToHints({...usedF150,make:"GMC",model:"Sierra 2500HD",styles:{style_name:"4WD Crew Cab 153.7\" SLE"}},kendall));
+});
+
+function searchFetcher(listings){
+  const calls=[];
+  const fetcher=async (url,init={})=>{
+    calls.push({url,init});
+    if(url===kendall.searchService.pageUrl) return new Response('<script>var SEARCH_SERVICE = {"search":"https://api.test/listings/1","apiKey":"k","visibleStatusValues":["publish"]}; var X=1;</script>');
+    return new Response(JSON.stringify({data:{listings}}),{headers:{"content-type":"application/json"}});
+  };
+  return {fetcher,calls};
+}
+
+test("discoverSearchService queries used types and keeps qualifying trucks", async () => {
+  const {fetcher,calls}=searchFetcher([usedF150,{...usedF150,vin:"X2",type:"New"}]);
+  const r=await discoverSearchService(kendall,fetcher);
+  assert.equal(r.ok,true);
+  assert.equal(r.found.length,1);
+  const body=JSON.parse(calls[1].init.body);
+  assert.deepEqual(body.filters.type_slug,["Used","Certified Used"]);
+  assert.equal(calls[1].init.headers["x-api-key"],"k");
+});
+
+test("checkSearchServiceVin reports sold when VIN left the dealer index", async () => {
+  assert.equal((await checkSearchServiceVin(kendall,"1FTFW1E81PFA00001",searchFetcher([usedF150]).fetcher)).item.hints.askingPrice,41995);
+  assert.equal((await checkSearchServiceVin(kendall,"1FTFW1E81PFA00001",searchFetcher([]).fetcher)).item,null);
+});
+
+test("crew cab can be read from the VDP slug when style is missing; field map is requested", async () => {
+  const thin={...usedF150,styles:{}};
+  assert.ok(searchServiceListingToHints(thin,kendall));
+  assert.equal(searchServiceListingToHints({...thin,vdp_url:"https://dealer.test/inventory/used-2023-ford-f-150-xl-4wd-regular-cab-x/"},kendall),null);
+  const calls=[];
+  const fetcher=async (url,init={})=>{calls.push(init);
+    if(url===kendall.searchService.pageUrl) return new Response('<script>var SEARCH_SERVICE = {"search":"https://api.test/l/1","apiKey":"k"}; var SEARCH_SERVICE_FIELD_MAP = {"requestedFields":["vin","styles"]}; var Y=2;</script>');
+    return new Response(JSON.stringify({data:{listings:[]}}));};
+  await discoverSearchService(kendall,fetcher);
+  assert.deepEqual(JSON.parse(calls[1].body).requestedFields,["vin","styles"]);
 });

@@ -19,3 +19,6 @@ jobs:
       - run: node --test src/inventory.test.mjs scripts/core-inventory-feed.test.mjs
       - run: node build-check.js
       - run: npx wrangler deploy --dry-run
+      - name: Probe live dealer search sources (informational)
+        continue-on-error: true
+        run: node scripts/probe-search-sources.mjs
