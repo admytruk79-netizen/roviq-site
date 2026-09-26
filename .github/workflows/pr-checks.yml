@@ -25,3 +25,6 @@ jobs:
       - name: Probe DealerOn new-inventory structure (informational)
         continue-on-error: true
         run: node scripts/probe-dealeron.mjs
+      - name: Probe in-area new-inventory dealers (informational)
+        continue-on-error: true
+        run: node scripts/probe-new-dealers.mjs
