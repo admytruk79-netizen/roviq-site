@@ -1,35 +1,26 @@
-// Read-only structure probe for a DealerOn new-inventory page (diagnostics only).
-const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
-const urls = [
-  "https://www.beavertongmc.com/searchnew.aspx"
+// Read-only structure probe for in-area new-inventory pages (diagnostics only).
+const UA = "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Claude-User/1.0; +Claude-User@anthropic.com)";
+const PAGES = [
+  ["beaverton-gmc", "https://www.beavertongmc.com/searchnew.aspx"],
+  ["carr-chevrolet", "https://www.carrchevrolet.com/new-inventory/index.htm"],
+  ["northside-ford", "https://www.northsideford.net/inventory/new-vehicles/"],
+  ["courtesy-ford", "https://www.courtesyford.com/new-vehicles/"]
 ];
-for (const url of urls) {
+for (const [id, url] of PAGES) {
   const r = await fetch(url, { headers: { "user-agent": UA, accept: "text/html" } }).catch(e => ({ ok: false, status: String(e) }));
-  console.log(`\n== ${url} -> ${r.status}`);
+  console.log(`\n== ${id} ${url} -> ${r.status}`);
   if (!r.ok) continue;
   const html = await r.text();
-  console.log("length", html.length);
-  const count = re => (html.match(re) || []).length;
-  for (const [k, re] of Object.entries({
-    "data-vin": /data-vin=/gi, "data-dotagging": /data-dotagging/gi, "data-price": /data-price/gi,
-    "vehicle-card": /vehicle-card/gi, "srpVehicle": /srpVehicle/gi, "application/ld+json": /application\/ld\+json/gi,
-    "/new-": /href="[^"]*\/new-[^"]*"/gi, "searchnew.aspx?pt=": /searchnew\.aspx\?[^"']*pt=\d/gi,
-    "totalCount": /totalCount|TotalCount|resultsCount|vehicleCount/g
-  })) console.log(k, count(re));
-  const card = html.search(/srpVehicle/);
-  if (card > 0) {
-    const chunk = html.slice(card - 300, card + 6000);
-    const attrs = [...new Set([...chunk.matchAll(/(data-[\w-]+)="([^"]{0,160})"/g)].map(m => `${m[1]}=${m[2]}`))].slice(0, 90);
-    console.log("--- first srpVehicle attributes ---\n" + attrs.join("\n"));
-    console.log("--- first srpVehicle html ---\n" + chunk.replace(/\s+/g, " ").slice(0, 3000));
+  const names = {};
+  for (const m of html.matchAll(/\b(data-(?:dotagging|vehicle|vin|price|make|model|trim|year|stock|vehicleid)[\w-]*)=/gi)) names[m[1]] = (names[m[1]] || 0) + 1;
+  console.log("attr names:", JSON.stringify(names).slice(0, 1500));
+  const first = html.search(/data-dotagging-item-id=|data-vin=|data-vehicle-vin=/i);
+  if (first > 0) {
+    const tagStart = html.lastIndexOf("<", first);
+    console.log("first tag:", html.slice(tagStart, tagStart + 2500).replace(/\s+/g, " "));
   }
-  console.log("pagination:", [...new Set([...html.matchAll(/searchnew\.aspx\?[^"'<> ]*pt=\d+[^"'<> ]*/g)].map(m => m[0]))].slice(0, 6).join(" | "));
-  const vinIdx = html.search(/data-vin=/i);
-  if (vinIdx > 0) console.log("--- around first data-vin ---\n" + html.slice(Math.max(0, vinIdx - 1500), vinIdx + 2500).replace(/\s+/g, " "));
-  const ld = html.match(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/i);
-  if (ld) console.log("--- first ld+json ---\n" + ld[1].slice(0, 1500));
-  const scripts = [...html.matchAll(/(?:var|window\.)\s*([A-Za-z_$][\w$]*)\s*=\s*[\[{]/g)].map(m => m[1]);
-  console.log("script vars:", [...new Set(scripts)].slice(0, 60).join(","));
-  const api = [...new Set([...html.matchAll(/["'](\/api\/[^"']{3,120})["']/g)].map(m => m[1]))].slice(0, 20);
-  console.log("api paths:", api.join(" | "));
+  for (const k of ["SEARCH_SERVICE", "DDC.dataLayer", "\"vehicles\":[", "ws-inv-data", "getInventory", "algolia", "inventoryApiURL", "Dealer Inspire", "dealerinspire", "dealer.com", "DealerOn", "vinSolutions", "\"vin\":\""]) {
+    const i = html.indexOf(k);
+    console.log(`${k}: ${i < 0 ? "-" : "at " + i + " :: " + html.slice(Math.max(0, i - 80), i + 220).replace(/\s+/g, " ")}`);
+  }
 }
