@@ -6,6 +6,8 @@ const NAV_LINKS = [
   { href: "/station", label: "Station" },
   { href: "/#vehicle-local", label: "Vehicle Local" },
   { href: "/ukraine", label: "Live Inventory" },
+  // Standalone ROVIQ truck app, fed hourly from ROVIQ Core (new crew-cab F-150 / F-250).
+  { href: "https://roviq-core-customer.pages.dev/inventory?condition=new", label: "New Trucks", external: true },
   { href: "/about", label: "About" },
   { href: "/#team", label: "Team" },
   { href: "/contact", label: "Contact" }
@@ -98,7 +100,7 @@ export function renderPage({title,description,activePath,body}) {
   .grid>.card{padding:1.25rem!important}
   .site-header .brand-lockup{gap:.42rem}.site-header .brand-lockup img{width:54px}.site-header .brand-lockup span{font-size:1.72rem}
 }
-</style><script>document.documentElement.classList.add('js');</script></head><body><header class="site-header"><div class="container"><a href="/" class="wordmark" aria-label="ROVIQ home">${brandLockup()}</a><button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">&#9776;</button><nav class="site-nav" id="siteNav">${NAV_LINKS.map((l)=>`<a href="${l.href}" class="${l.href===activePath?"active":""}">${l.label}</a>`).join("\n")}<a href="/contact" class="nav-access">Request Access</a></nav></div></header>${sharedBanner()}<main>${body}</main><footer class="site-footer"><div class="container"><div>&copy; ${new Date().getFullYear()} ROVIQ. Automotive service coordination, physical infrastructure and local discovery.</div><div><a href="/contact">Contact</a> &middot; <a href="/admin">Admin</a></div></div></footer><script>
+</style><script>document.documentElement.classList.add('js');</script></head><body><header class="site-header"><div class="container"><a href="/" class="wordmark" aria-label="ROVIQ home">${brandLockup()}</a><button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">&#9776;</button><nav class="site-nav" id="siteNav">${NAV_LINKS.map((l)=>`<a href="${l.href}" class="${l.href===activePath?"active":""}"${l.external?' target="_blank" rel="noopener"':""}>${l.label}</a>`).join("\n")}<a href="/contact" class="nav-access">Request Access</a></nav></div></header>${sharedBanner()}<main>${body}</main><footer class="site-footer"><div class="container"><div>&copy; ${new Date().getFullYear()} ROVIQ. Automotive service coordination, physical infrastructure and local discovery.</div><div><a href="/contact">Contact</a> &middot; <a href="/admin">Admin</a></div></div></footer><script>
 document.getElementById('navToggle').addEventListener('click',function(){document.getElementById('siteNav').classList.toggle('open');});if(location.hash){window.addEventListener('load',function(){var target=document.getElementById(location.hash.slice(1));if(target)target.scrollIntoView();});}if('IntersectionObserver' in window){var revealObserver=new IntersectionObserver(function(entries){entries.forEach(function(entry){if(entry.isIntersecting){entry.target.classList.add('is-visible');revealObserver.unobserve(entry.target);}});},{threshold:.12,rootMargin:'0px 0px -40px 0px'});document.querySelectorAll('main section:not(.hero)').forEach(function(el){revealObserver.observe(el);});}else{document.querySelectorAll('main section').forEach(function(el){el.classList.add('is-visible');});}</script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));}</script>
 </body></html>`;
 }
