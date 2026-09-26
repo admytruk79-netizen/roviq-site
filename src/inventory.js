@@ -1107,9 +1107,10 @@ export async function getVehicleInventory(env) {
   const costingById=new Map(costingRows.map(r=>[r.vehicleId,r]));
 
   const isVerifiedUsedListing=v=>{
+    const source=SOURCE_PLUGINS.find(s=>s.id===v.sourceId);
     const url=String(v.sourceUrl||"").toLowerCase();
     const condition=String(v.condition||v.vehicleCondition||"").toLowerCase();
-    return condition==="used" || condition==="pre-owned" || condition==="certified used" || condition==="certified pre-owned" || /(?:\/used[-\/]|\/certified-used-|\/used-vehicles|\/used-inventory|searchused\.aspx|[?&]type=used\b|chassis\.condition%3aused)/i.test(url);
+    return source?.usedOnly===true || condition==="used" || condition==="pre-owned" || condition==="certified used" || condition==="certified pre-owned" || /(?:\/used[-\/]|\/certified-used-|\/used-vehicles|\/used-inventory|searchused\.aspx|[?&]type=used\b|chassis\.condition%3aused)/i.test(url);
   };
 
   const publicVehicles=databaseRows
