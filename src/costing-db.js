@@ -19,8 +19,15 @@ export async function syncVehicleCosting(env, vehicles, config){
   for(const v of (vehicles||[])){
     if(!v?.id) continue;
     const prior=byId.get(v.id)||{};
-    const acquisitionPrice=Number(v.askingPrice||prior.acquisitionPrice||prior.dealerPrice||0) || null;
-    if(!acquisitionPrice && !prior.acquisitionPrice && !prior.dealerPrice) continue;
+    const currentPrice=Number(v.askingPrice||0);
+    const acquisitionPrice=Number.isFinite(currentPrice) && currentPrice>=1000 && currentPrice<=250000 ? currentPrice : null;
+    // Never carry a stale dealer price forward when the current dealer row no
+    // longer exposes a valid price. Showing no price is safer than publishing a
+    // mismatched price from an older scrape.
+    if(!acquisitionPrice){
+      byId.delete(v.id);
+      continue;
+    }
 
     const input={...v,askingPrice:acquisitionPrice};
     const calc=calculateVehiclePricing(input,config);
