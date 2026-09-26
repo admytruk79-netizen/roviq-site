@@ -5,9 +5,7 @@ const NAV_LINKS = [
   { href: "/roviq", label: "Platform" },
   { href: "/station", label: "Station" },
   { href: "/#vehicle-local", label: "Vehicle Local" },
-  { href: "/ukraine", label: "Live Inventory" },
-  // Standalone ROVIQ truck app, fed hourly from ROVIQ Core (new crew-cab F-150 / F-250).
-  { href: "https://roviq-core-customer.pages.dev/inventory?condition=new", label: "New Trucks", external: true },
+  { href: "/ukraine", label: "Trucks" },
   { href: "/about", label: "About" },
   { href: "/#team", label: "Team" },
   { href: "/contact", label: "Contact" }
