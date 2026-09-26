@@ -112,6 +112,8 @@ test("search service rejects regular cabs, new trucks, high mileage and other mo
   assert.equal(searchServiceListingToHints({...usedF150,type:"New"},kendall),null);
   assert.equal(searchServiceListingToHints({...usedF150,mileage:48000},kendall),null);
   assert.equal(searchServiceListingToHints({...usedF150,model:"Explorer"},kendall),null);
+  assert.equal(searchServiceListingToHints({...usedF150,make:"GMC",model:"Sierra 3500HD",styles:{style_name:"4WD Crew Cab 159\" Denali Ultimate"}},kendall),null);
+  assert.ok(searchServiceListingToHints({...usedF150,make:"GMC",model:"Sierra 2500HD",styles:{style_name:"4WD Crew Cab 153.7\" SLE"}},kendall));
 });
 
 function searchFetcher(listings){

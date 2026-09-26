@@ -500,6 +500,7 @@ export function searchServiceListingToHints(listing, source) {
   const make=String(listing?.make||"");
   const model=canonicalModel(listing?.model);
   if(!/^(Chevrolet|GMC|Ford)$/i.test(make) || !/^(?:Silverado|Sierra|F-150|F-250)/i.test(model)) return null;
+  if(/3500|4500|5500/.test(String(listing?.model||"")+" "+model)) return null;
   if(!/used/i.test(String(listing?.type||""))) return null;
   const style=String(listing?.styles?.style_name||listing?.styles?.style_description||"");
   const url=String(listing?.vdp_url||"");
