@@ -170,11 +170,11 @@ test("Core new truck maps to a card with the marked-up price only", () => {
 
 test("getNewTrucks pages Core until total and forwards search filters", async () => {
   const urls=[];
-  const rows=n=>Array.from({length:n},(_,i)=>coreRow({vin:`VIN${String(i).padStart(14,'0')}`}));
+  const rows=(n,from)=>Array.from({length:n},(_,i)=>coreRow({vin:`VIN${String(from+i).padStart(14,'0')}`}));
   const fetcher=async url=>{
     urls.push(url);
     const offset=Number(new URL(url).searchParams.get('offset'));
-    return new Response(JSON.stringify({inventory:offset===0?rows(100):rows(16),total:116}));
+    return new Response(JSON.stringify({inventory:offset===0?rows(100,0):rows(16,100),total:116}));
   };
   const r=await getNewTrucks(new URLSearchParams({q:'Sierra',make:'GMC'}),fetcher,null);
   assert.equal(r.vehicles.length,116);
