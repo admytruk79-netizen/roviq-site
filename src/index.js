@@ -5,10 +5,10 @@ import { stationPage } from "./pages/station.js";
 import { connectionPage } from "./pages/connection.js";
 import { aboutPage } from "./pages/about.js";
 import { contactPage } from "./pages/contact.js";
-import { getNewTrucks } from "./new-trucks.js";
+import { getNewTrucks, findNewTruck, checkNewTruckAvailability } from "./new-trucks.js";
 import { ukrainePage } from "./pages/ukraine.js";
 import { getVehicleInventory, searchVehicleInventory, getVehicleImageResponse, getPublicInventoryHealth, syncVehicleInventory } from "./inventory.js";
-import { createBooking, listBookings, updateBooking, bookingsAdminPage } from "./booking.js";
+import { createBooking, createNewTruckBooking, listBookings, updateBooking, bookingsAdminPage } from "./booking.js";
 import { vehicleAdminPage, syncNow } from "./admin-vehicles.js";
 import { pricingAdminPage, savePricing } from "./admin-pricing.js";
 import { costingAdminPage } from "./admin-costing.js";
@@ -104,6 +104,17 @@ export default {
       if (path.startsWith("/uploads/") && method === "GET") return handleUploadedAsset(request, env);
       if (path.startsWith("/ukraine/image/") && method === "GET") return getVehicleImageResponse(request, env);
       if (path === "/ukraine/book" && method === "POST") return createBooking(request, env);
+      if (path === "/ukraine/new/book" && method === "POST") return createNewTruckBooking(request, env);
+      if (path === "/ukraine/new/request" && method === "GET") {
+        const truck=await findNewTruck(url.searchParams.get("vin")).catch(()=>null);
+        const content=await loadAllContent(env);
+        const body=ukrainePage(content,{vehicles:truck?[truck]:[]},null,null,true,new URLSearchParams({type:"new"}));
+        return new Response(renderPage({
+          title:"ROVIQ — Request a New Truck",
+          description:"Request a new crew-cab truck from ROVIQ's Portland, Beaverton and Vancouver, WA dealers.",
+          activePath:"/ukraine",body
+        }),{status:truck?200:404,headers:secureHeaders({"content-type":"text/html;charset=UTF-8","cache-control":"no-store"})});
+      }
       if (path === "/ukraine/request" && method === "GET") {
         const inventory=await getVehicleInventory(env);
         const selected=inventory.vehicles.find(v=>v.id===url.searchParams.get("vehicle"))||(!url.searchParams.has("vehicle")?inventory.vehicles[0]:null);
@@ -155,7 +166,12 @@ export default {
       }
       if (path === "/admin/bookings") {
         if (!(await isAuthed(request, env))) return redirectTo(request, "/admin", 302);
-        if (method === "GET") return new Response(bookingsAdminPage(await listBookings(env)), { headers: { "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" } });
+        if (method === "GET") {
+          const items=await listBookings(env);
+          const vins=[...new Set(items.filter(b=>b.kind==="new_truck"&&b.vin).map(b=>b.vin))].slice(0,40);
+          const availability=Object.fromEntries(await Promise.all(vins.map(async vin=>[vin,await checkNewTruckAvailability(vin)])));
+          return new Response(bookingsAdminPage(items,availability), { headers: { "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" } });
+        }
         return new Response("Method not allowed", { status: 405 });
       }
       if (path === "/admin/bookings/status" && method === "POST") {
