@@ -192,3 +192,10 @@ test("Trucks page New tab renders Core trucks with shipping and no dealer names"
   assert.match(html,/href="\/ukraine\?type=new" aria-current="page"/);
   assert.doesNotMatch(html,/Beaverton GMC|Carr|Kendall/);
 });
+
+test("getNewTrucks shows each VIN once when Core lists it twice", async () => {
+  const fetcher=async()=>new Response(JSON.stringify({inventory:[coreRow(),coreRow({id:'u2'}),coreRow({vin:'1GTUUDED4TG344912'})],total:3}));
+  const r=await getNewTrucks(new URLSearchParams(),fetcher,null);
+  assert.deepEqual(r.vehicles.map(v=>v.vin),['1GTUUDED4TG344911','1GTUUDED4TG344912']);
+  assert.equal(r.total,2);
+});

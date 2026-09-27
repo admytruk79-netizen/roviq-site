@@ -30,6 +30,7 @@ export async function getNewTrucks(filters = new URLSearchParams(), fetcher = fe
   if (q) base.set("q", q);
   if (/^(Chevrolet|GMC|Ford)$/.test(make)) base.set("make", make);
   const out = [];
+  const seen = new Set();
   let total = 0;
   for (let offset = 0; offset < 1000; offset += PAGE_SIZE) {
     const params = new URLSearchParams(base);
@@ -48,8 +49,13 @@ export async function getNewTrucks(filters = new URLSearchParams(), fetcher = fe
     const body = await res.json();
     const rows = Array.isArray(body?.inventory) ? body.inventory : [];
     total = Number(body?.total) || total;
-    out.push(...rows.map(coreNewTruckToCard).filter(v => v.id && v.year && v.make && v.model));
-    if (rows.length < PAGE_SIZE || out.length >= total) break;
+    // One card per VIN: a truck can be listed by more than one Core feed.
+    for (const v of rows.map(coreNewTruckToCard)) {
+      if (!v.id || !v.year || !v.make || !v.model || seen.has(v.id)) continue;
+      seen.add(v.id);
+      out.push(v);
+    }
+    if (rows.length < PAGE_SIZE || offset + rows.length >= total) break;
   }
-  return { vehicles: out, total: total || out.length, syncedAt: new Date().toISOString() };
+  return { vehicles: out, total: out.length, syncedAt: new Date().toISOString() };
 }
