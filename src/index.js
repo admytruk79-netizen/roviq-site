@@ -5,6 +5,7 @@ import { stationPage } from "./pages/station.js";
 import { connectionPage } from "./pages/connection.js";
 import { aboutPage } from "./pages/about.js";
 import { contactPage } from "./pages/contact.js";
+import { getNewTrucks } from "./new-trucks.js";
 import { ukrainePage } from "./pages/ukraine.js";
 import { getVehicleInventory, searchVehicleInventory, getVehicleImageResponse, getPublicInventoryHealth, syncVehicleInventory } from "./inventory.js";
 import { createBooking, listBookings, updateBooking, bookingsAdminPage } from "./booking.js";
@@ -182,7 +183,10 @@ export default {
       const page = PAGES[path];
       if (page && method === "GET") {
         const content = await loadAllContent(env);
-        const inventory = path === "/ukraine" ? searchVehicleInventory(await getVehicleInventory(env),url.searchParams) : null;
+        const wantsNew = path === "/ukraine" && url.searchParams.get("type") === "new";
+        const inventory = path !== "/ukraine" ? null
+          : wantsNew ? await getNewTrucks(url.searchParams).catch(() => ({ vehicles: [], total: 0, error: true }))
+          : searchVehicleInventory(await getVehicleInventory(env),url.searchParams);
         if(path === "/ukraine"){
           // Serve the last verified external-sync snapshot. Do not scrape dealers
           // from the Cloudflare request path; blocked dealer egress can shrink KV.

@@ -152,3 +152,43 @@ test("crew cab can be read from the VDP slug when style is missing; field map is
   await discoverSearchService(kendall,fetcher);
   assert.deepEqual(JSON.parse(calls[1].body).requestedFields,["vin","styles"]);
 });
+
+import { getNewTrucks, coreNewTruckToCard } from './new-trucks.js';
+import { ukrainePage } from './pages/ukraine.js';
+
+const coreRow=(o={})=>({id:'u1',condition:'new',vin:'1GTUUDED4TG344911',year:2026,make:'GMC',model:'Sierra 1500',trim:'SLT Crew Cab',
+  mileage:5,drivetrain:'4WD',fuel_type:'Gasoline Fuel',exterior_color:'Summit White',image_urls:['https://img.test/1.jpg','http://insecure/x.jpg'],
+  public_price_cents:7451780,price_cents:7451780,...o});
+
+test("Core new truck maps to a card with the marked-up price only", () => {
+  const c=coreNewTruckToCard(coreRow());
+  assert.equal(c.price,74518);
+  assert.equal(c.image,'https://img.test/1.jpg');
+  assert.equal(c.fuel,'Gasoline');
+  assert.equal(coreNewTruckToCard(coreRow({public_price_cents:null,price_cents:null})).price,null);
+});
+
+test("getNewTrucks pages Core until total and forwards search filters", async () => {
+  const urls=[];
+  const rows=n=>Array.from({length:n},(_,i)=>coreRow({vin:`VIN${String(i).padStart(14,'0')}`}));
+  const fetcher=async url=>{
+    urls.push(url);
+    const offset=Number(new URL(url).searchParams.get('offset'));
+    return new Response(JSON.stringify({inventory:offset===0?rows(100):rows(16),total:116}));
+  };
+  const r=await getNewTrucks(new URLSearchParams({q:'Sierra',make:'GMC'}),fetcher,null);
+  assert.equal(r.vehicles.length,116);
+  assert.equal(urls.length,2);
+  assert.match(urls[0],/condition=new/);
+  assert.match(urls[0],/q=Sierra/);
+  assert.match(urls[0],/make=GMC/);
+});
+
+test("Trucks page New tab renders Core trucks with shipping and no dealer names", () => {
+  const html=ukrainePage({},{vehicles:[coreNewTruckToCard(coreRow())]},null,null,false,new URLSearchParams({type:'new'}));
+  assert.match(html,/2026 GMC Sierra 1500/);
+  assert.match(html,/&#36;74,518/);
+  assert.match(html,/&#36;5,000–&#36;7,000/);
+  assert.match(html,/href="\/ukraine\?type=new" aria-current="page"/);
+  assert.doesNotMatch(html,/Beaverton GMC|Carr|Kendall/);
+});
