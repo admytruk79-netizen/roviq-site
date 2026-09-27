@@ -22,3 +22,6 @@ jobs:
       - name: Probe live dealer search sources (informational)
         continue-on-error: true
         run: node scripts/probe-search-sources.mjs
+      - name: Probe ROVIQ Core new trucks (informational)
+        continue-on-error: true
+        run: node --input-type=module -e "import('./src/new-trucks.js').then(async m=>{const r=await m.getNewTrucks(new URLSearchParams(),fetch,null);console.log('new trucks from Core:',r.vehicles.length,'of',r.total);for(const v of r.vehicles.slice(0,5))console.log(' ',v.year,v.make,v.model,v.trim,'$'+v.price,v.vin,v.image?'photo':'no photo')})"
