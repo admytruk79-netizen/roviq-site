@@ -263,3 +263,12 @@ test("availability check reports not-listed, found and errors without throwing",
   assert.deepEqual(await checkNewTruckAvailability('1FTEW2LP5TKE63673',async()=>{throw new Error('down');}),{error:true});
   assert.deepEqual(await checkNewTruckAvailability('bad'),{found:false,available:false});
 });
+
+test('used truck card decodes dealer HTML entities and infers diesel fuel from the engine', () => {
+  const html=ukrainePage({},{vehicles:[{id:'RV-1',vinPublic:'••••••259081',year:2025,make:'Chevrolet',model:'Silverado 1500',trim:'LT',
+    mileageMi:1000,engine:'3.0L Duramax &reg; Turbo Diesel engine',drivetrain:'4WD',transmission:'Automatic',fuel:'',
+    exterior:'Summit White',interior:'Jet Black, Cloth Seat Trim',imagePath:'/x.jpg',pricing:{hasPrice:true,vehiclePrice:50000,shippingLow:5000,shippingHigh:7000}}]},null,null,false,new URLSearchParams());
+  assert.match(html,/3\.0L Duramax® Turbo Diesel engine/);
+  assert.doesNotMatch(html,/&amp;reg;/);
+  assert.match(html,/<span>Fuel<\/span><strong>Diesel<\/strong>/);
+});
