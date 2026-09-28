@@ -104,6 +104,9 @@ export default {
       if (path.startsWith("/uploads/") && method === "GET") return handleUploadedAsset(request, env);
       if (path.startsWith("/ukraine/image/") && method === "GET") return getVehicleImageResponse(request, env);
       if (path === "/ukraine/book" && method === "POST") return createBooking(request, env);
+      // New trucks are hidden until the dealer licence arrives (set the SHOW_NEW_TRUCKS var to "true").
+      const showNew = env.SHOW_NEW_TRUCKS === "true";
+      if (!showNew && (path.startsWith("/ukraine/new/") || (path === "/ukraine" && url.searchParams.get("type") === "new"))) return redirectTo(request, "/ukraine", 302);
       if (path === "/ukraine/new/book" && method === "POST") return createNewTruckBooking(request, env);
       if (path === "/ukraine/new/request" && method === "GET") {
         const truck=await findNewTruck(url.searchParams.get("vin")).catch(()=>null);
@@ -212,7 +215,7 @@ export default {
         }
         const bookingId = path === "/ukraine" ? url.searchParams.get("booking") : null;
         const unavailableId = path === "/ukraine" ? url.searchParams.get("unavailable") : null;
-        const body = path === "/ukraine" ? page.render(content, inventory, bookingId, unavailableId,false,url.searchParams) : page.render(content);
+        const body = path === "/ukraine" ? page.render(content, inventory, bookingId, unavailableId,false,url.searchParams,{showNew}) : page.render(content);
         const html = renderPage({
           title: page.title,
           description: page.description,

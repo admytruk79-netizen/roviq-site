@@ -31,11 +31,11 @@ test('vehicles without verified mileage do not appear as zero-mileage listings',
   assert.equal(result.vehicles.length,0);
 });
 
-test('customer inventory contains only trucks below 30,000 miles',async()=>{
-  const rows=[vehicle(29999),{...vehicle(30000),id:'ROVIQ-US-87654321',sourceUrl:'https://dealer.example/used/Ford/456'}];
+test('customer inventory contains only trucks below 40,000 miles',async()=>{
+  const rows=[vehicle(39999),{...vehicle(40000),id:'ROVIQ-US-87654321',sourceUrl:'https://dealer.example/used/Ford/456'}];
   const result=await getVehicleInventory(environment(rows));
   assert.equal(result.vehicles.length,1);
-  assert.equal(result.vehicles[0].mileageMi,29999);
+  assert.equal(result.vehicles[0].mileageMi,39999);
 });
 
 test('legacy inferred zero mileage is discarded during refresh',()=>{
@@ -289,4 +289,11 @@ test('bookings page shows the dealer for a truck request via the Core site key',
   assert.match(bookingsAdminPage([booking],{},{configured:false,dealers:{}}),/set the CORE_DEALER_LOOKUP_KEY secret/);
   assert.match(bookingsAdminPage([booking],{},{configured:true,error:500,dealers:{}}),/lookup failed/);
   assert.equal((await getDealerDetails(['1GTUUEE82TG498073'],'k',async()=>new Response('',{status:503}))).configured,false);
+});
+
+test('new trucks hidden: no New tab, 40,000-mile wording', () => {
+  const html=ukrainePage({},{vehicles:[]},null,null,false,new URLSearchParams(),{showNew:false});
+  assert.doesNotMatch(html,/href="\/ukraine\?type=new"/);
+  assert.match(html,/under 40,000 miles/);
+  assert.match(ukrainePage({},{vehicles:[]},null,null,false,new URLSearchParams()),/href="\/ukraine\?type=new"/);
 });

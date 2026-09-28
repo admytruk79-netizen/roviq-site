@@ -2,7 +2,7 @@ import { getPricingConfig } from "./pricing.js";
 import { syncVehicleCosting, publicCosting } from "./costing-db.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
-const MAX_MILES = 30000;
+const MAX_MILES = 40000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const INVENTORY_SCHEMA_VERSION = 33; // Ukraine feed: used/pre-owned inventory only
 
