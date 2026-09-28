@@ -4,8 +4,20 @@ function km(mi){return Math.round(mi*1.60934).toLocaleString("en-US")}
 function priceLabel(pricing){return pricing?.hasPrice && Number.isFinite(pricing.vehiclePrice) ? "&#36;"+Number(pricing.vehiclePrice).toLocaleString("en-US") : "Request current price"}
 function shippingLabel(pricing){return pricing?.hasPrice && Number.isFinite(pricing.shippingLow) && Number.isFinite(pricing.shippingHigh) ? "&#36;"+pricing.shippingLow.toLocaleString("en-US")+"–&#36;"+pricing.shippingHigh.toLocaleString("en-US") : "Request shipping quote"}
 function esc(value){return String(value||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+// Dealer feeds sometimes carry HTML entities ("Duramax&reg;"); decode before escaping.
+const ENTITIES={amp:"&",reg:"®",trade:"™",copy:"©",nbsp:" ",quot:'"',apos:"'",lt:"<",gt:">"};
+function decodeEntities(value){return String(value??"").replace(/&(?:#(\d+)|#x([0-9a-f]+)|([a-z]+));/gi,(m,d,h,n)=>d?String.fromCodePoint(+d):h?String.fromCodePoint(parseInt(h,16)):ENTITIES[n.toLowerCase()]??m)}
+function fuelFrom(v){
+  if(v.fuel) return v.fuel;
+  const e=decodeEntities(v.engine);
+  if(/\b(?:diesel|duramax|power\s*stroke)\b/i.test(e)) return "Diesel";
+  if(/\b(?:hybrid|powerboost)\b/i.test(e)) return "Hybrid";
+  if(/\b(?:electric|lightning)\b/i.test(e+" "+(v.model||"")+" "+(v.trim||""))) return "Electric";
+  if(/\b(?:v6|v8|ecoboost|gas|gasoline|turbomax|\d\.\dL)\b/i.test(e)) return "Gasoline";
+  return "";
+}
 function spec(value,type){
-  const v=String(value??"").trim();
+  const v=decodeEntities(value).replace(/\s+/g," ").replace(/ ([®™])/g,"$1").trim();
   if(!v||v.length>55) return "Not listed";
   if(/[{}\[\]"=:]/.test(v)) return "Not listed";
   if(/\b(?:null|undefined|options are|available on|replacement|OEM|javascript|class|data-|href|src)\b/i.test(v)) return "Not listed";
@@ -21,7 +33,7 @@ const mileage=Number(v.mileageMi);
 const engine=spec(v.engine,"engine");
 const drivetrain=spec(v.drivetrain,"drivetrain");
 const transmission=spec(v.transmission,"transmission");
-const fuel=spec(v.fuel,"fuel");
+const fuel=spec(fuelFrom(v),"fuel");
 const exterior=spec(v.exterior,"exterior");
 const interior=spec(v.interior,"interior");
 return `
@@ -41,7 +53,7 @@ return `
 <div class="uk-photo">${v.image?`<img src="${esc(v.image)}" alt="${title}" loading="lazy" decoding="async" referrerpolicy="no-referrer">`:""}<div class="uk-badge">NEW • CREW CAB</div></div>
 <div class="uk-info"><div class="uk-id">VIN ${esc(v.vin||v.id)} • ROVIQ NEW TRUCKS</div><h2>${title}</h2><div class="uk-sub">${esc(v.trim)}${v.drivetrain?" • "+spec(v.drivetrain,"text"):""}</div>
 <div class="price-box"><div><span>Vehicle price</span><strong>${v.price?"&#36;"+v.price.toLocaleString("en-US"):"Request current price"}</strong></div><div><span>Shipping to European port</span><strong>${NEW_SHIPPING}</strong></div></div>
-<div class="uk-specs"><div class="uk-spec"><span>Mileage</span><strong>${miles}</strong></div><div class="uk-spec"><span>Drivetrain</span><strong>${spec(v.drivetrain,"text")}</strong></div><div class="uk-spec"><span>Fuel</span><strong>${spec(v.fuel,"fuel")}</strong></div><div class="uk-spec"><span>Exterior</span><strong>${spec(v.exterior,"exterior")}</strong></div></div>
+<div class="uk-specs"><div class="uk-spec"><span>Mileage</span><strong>${miles}</strong></div><div class="uk-spec"><span>Drivetrain</span><strong>${spec(v.drivetrain,"text")}</strong></div><div class="uk-spec"><span>Fuel</span><strong>${spec(fuelFrom(v),"fuel")}</strong></div><div class="uk-spec"><span>Exterior</span><strong>${spec(v.exterior,"exterior")}</strong></div></div>
 ${formPage?newTruckForm(v):`<a class="uk-btn primary" style="margin-top:17px" href="/ukraine/new/request?vin=${encodeURIComponent(v.vin||v.id)}">Request this truck →</a>`}
 </div></article>`}
 
