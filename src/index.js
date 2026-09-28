@@ -5,7 +5,7 @@ import { stationPage } from "./pages/station.js";
 import { connectionPage } from "./pages/connection.js";
 import { aboutPage } from "./pages/about.js";
 import { contactPage } from "./pages/contact.js";
-import { getNewTrucks, findNewTruck, checkNewTruckAvailability } from "./new-trucks.js";
+import { getNewTrucks, findNewTruck, checkNewTruckAvailability, getDealerDetails } from "./new-trucks.js";
 import { ukrainePage } from "./pages/ukraine.js";
 import { getVehicleInventory, searchVehicleInventory, getVehicleImageResponse, getPublicInventoryHealth, syncVehicleInventory } from "./inventory.js";
 import { createBooking, createNewTruckBooking, listBookings, updateBooking, bookingsAdminPage } from "./booking.js";
@@ -169,8 +169,11 @@ export default {
         if (method === "GET") {
           const items=await listBookings(env);
           const vins=[...new Set(items.filter(b=>b.kind==="new_truck"&&b.vin).map(b=>b.vin))].slice(0,40);
-          const availability=Object.fromEntries(await Promise.all(vins.map(async vin=>[vin,await checkNewTruckAvailability(vin)])));
-          return new Response(bookingsAdminPage(items,availability), { headers: { "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" } });
+          const [availability,dealerLookup]=await Promise.all([
+            Promise.all(vins.map(async vin=>[vin,await checkNewTruckAvailability(vin)])).then(Object.fromEntries),
+            getDealerDetails(vins,env.CORE_DEALER_LOOKUP_KEY)
+          ]);
+          return new Response(bookingsAdminPage(items,availability,dealerLookup), { headers: { "content-type": "text/html;charset=UTF-8", "cache-control": "no-store" } });
         }
         return new Response("Method not allowed", { status: 405 });
       }

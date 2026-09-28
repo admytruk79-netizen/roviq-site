@@ -91,3 +91,21 @@ export async function submitNewTruckInquiry(payload, fetcher = fetch) {
     return { ok: true, ...(await res.json()) };
   } catch { return { ok: false, status: 0 }; }
 }
+
+// Dealer behind each requested truck (admin bookings page only). Needs the key shared with
+// Core (site secret CORE_DEALER_LOOKUP_KEY = Core's SITE_DEALER_LOOKUP_KEY); without it the lookup is off.
+export async function getDealerDetails(vins, key, fetcher = fetch) {
+  const list = [...new Set((vins || []).filter(v => VIN_RE.test(String(v))).map(v => String(v).toUpperCase()))].slice(0, 50);
+  if (!key) return { configured: false, dealers: {} };
+  if (!list.length) return { configured: true, dealers: {} };
+  try {
+    const res = await fetcher(`${CORE_API}/api/site/inventory/dealers`, {
+      method: "POST", headers: { "content-type": "application/json", accept: "application/json", "x-roviq-site-key": key },
+      body: JSON.stringify({ vins: list }), signal: AbortSignal.timeout(15000)
+    });
+    if (res.status === 503) return { configured: false, dealers: {} };
+    if (!res.ok) return { configured: true, error: res.status, dealers: {} };
+    const body = await res.json();
+    return { configured: true, dealers: body?.dealers && typeof body.dealers === "object" ? body.dealers : {} };
+  } catch { return { configured: true, error: 0, dealers: {} }; }
+}

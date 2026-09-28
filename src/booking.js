@@ -195,17 +195,28 @@ function availabilityBadge(a){
   const when=a.lastSeenAt?` (dealer last listed it ${esc(new Date(a.lastSeenAt).toLocaleString("en-US",{timeZone:"America/Los_Angeles",dateStyle:"medium",timeStyle:"short"}))} PT)`:"";
   return a.available?`<span style="color:#0a7a3e;font-weight:700">● Available</span>${when}`:`<span style="color:#b42318;font-weight:700">● No longer listed</span>${when}`;
 }
-function newTruckDetails(b,availability){
+function money(cents){const n=Number(cents);return cents!=null&&Number.isFinite(n)&&n>0?"$"+Math.round(n/100).toLocaleString("en-US"):"not listed"}
+function dealerLine(b,lookup){
+  if(!lookup) return "";
+  if(!lookup.configured) return `<div class="muted"><strong>Dealer:</strong> hidden — set the CORE_DEALER_LOOKUP_KEY secret to show it</div>`;
+  if(lookup.error!==undefined) return `<div class="muted"><strong>Dealer:</strong> <span style="color:#8a6d00">lookup failed — retry by reloading</span></div>`;
+  const d=lookup.dealers?.[String(b.vin||"").toUpperCase()];
+  if(!d||!d.dealerName) return `<div class="muted"><strong>Dealer:</strong> not recorded for this VIN</div>`;
+  const link=/^https:\/\//.test(String(d.dealerUrl||""))?` • <a href="${esc(d.dealerUrl)}" target="_blank" rel="noopener noreferrer">Open dealer listing →</a>`:"";
+  return `<div class="muted"><strong>Dealer:</strong> ${esc(d.dealerName)} • <strong>Dealer price</strong> ${esc(money(d.dealerPriceCents))}${link}</div>`;
+}
+function newTruckDetails(b,availability,lookup){
   if(b.kind!=="new_truck") return "";
   const price=Number.isFinite(Number(b.quotedPrice))&&b.quotedPrice?"$"+Number(b.quotedPrice).toLocaleString("en-US"):"not captured";
   return `<div class="muted"><strong>New truck:</strong> ${esc(b.vehicleTitle||"(title not captured)")} • <strong>VIN</strong> ${esc(b.vin)} • <strong>Price quoted</strong> ${esc(price)}</div>
-  <div class="muted"><strong>Now:</strong> ${availabilityBadge(availability)} • at request: ${b.availableAtRequest?"available":"not listed"} • Core request: ${esc(b.coreInquiryId||"not recorded")}</div>`;
+  <div class="muted"><strong>Now:</strong> ${availabilityBadge(availability)} • at request: ${b.availableAtRequest?"available":"not listed"} • Core request: ${esc(b.coreInquiryId||"not recorded")}</div>
+  ${dealerLine(b,lookup)}`;
 }
 
-export function bookingsAdminPage(items,availability={}){
+export function bookingsAdminPage(items,availability={},dealerLookup=null){
   const options=BOOKING_STATUSES.map(s=>`<option value="${s}">${s.replaceAll("_"," ")}</option>`).join("");
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Vehicle bookings — ROVIQ</title>
   <style>body{font-family:Arial;margin:0;background:#f4f7fa;color:#17324a}.wrap{max-width:1180px;margin:auto;padding:28px}.top{display:flex;justify-content:space-between;align-items:center}.card{background:#fff;border:1px solid #dce6ee;border-radius:12px;padding:16px;margin:12px 0}.muted{color:#6b8093;font-size:13px}.status{font-weight:700}select,button{padding:8px 10px}.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}</style></head><body><div class="wrap"><div class="top"><h1>Vehicle bookings</h1><a href="/admin">Admin home</a></div>
-  ${items.length?items.map(b=>`<div class="card"><div class="row"><strong>${esc(b.id)}</strong><span>${esc(b.vehicleId)}</span><span>${esc(b.name)}</span><span>${esc(b.email)}</span><span>${esc(b.phone)}</span></div><p>${esc(b.note||"")}</p>${newTruckDetails(b,availability[b.vin])}<div class="muted">${esc(b.createdAt)} • ${esc(b.destination)} • mode: ${esc(b.reservationMode||"legacy")} • Core: ${esc(b.coreCaseId||b.coreInquiryId||"legacy")}</div>${b.kind==="new_truck"?`<div class="muted"><strong>Dealer:</strong> kept with the Core request (emailed to you once Core email is set up)</div>`:`<div class="muted"><strong>Internal source:</strong> ${esc(b.sourceNameInternal||b.sourceId||"unknown")}${b.sourceUrlInternal?` • <a href="${esc(b.sourceUrlInternal)}" target="_blank" rel="noopener noreferrer">Open source vehicle</a>`:""}</div>`}<p class="status">Status: ${esc((b.status||"").replaceAll("_"," "))}</p><form method="POST" action="/admin/bookings/status" class="row"><input type="hidden" name="bookingId" value="${esc(b.id)}"><select name="status">${options.replace(`value="${b.status}"`,`value="${b.status}" selected`)}</select><button>Update</button></form></div>`).join(""):`<div class="card">No booking requests yet.</div>`}
+  ${items.length?items.map(b=>`<div class="card"><div class="row"><strong>${esc(b.id)}</strong><span>${esc(b.vehicleId)}</span><span>${esc(b.name)}</span><span>${esc(b.email)}</span><span>${esc(b.phone)}</span></div><p>${esc(b.note||"")}</p>${newTruckDetails(b,availability[b.vin],dealerLookup)}<div class="muted">${esc(b.createdAt)} • ${esc(b.destination)} • mode: ${esc(b.reservationMode||"legacy")} • Core: ${esc(b.coreCaseId||b.coreInquiryId||"legacy")}</div>${b.kind==="new_truck"?"":`<div class="muted"><strong>Internal source:</strong> ${esc(b.sourceNameInternal||b.sourceId||"unknown")}${b.sourceUrlInternal?` • <a href="${esc(b.sourceUrlInternal)}" target="_blank" rel="noopener noreferrer">Open source vehicle</a>`:""}</div>`}<p class="status">Status: ${esc((b.status||"").replaceAll("_"," "))}</p><form method="POST" action="/admin/bookings/status" class="row"><input type="hidden" name="bookingId" value="${esc(b.id)}"><select name="status">${options.replace(`value="${b.status}"`,`value="${b.status}" selected`)}</select><button>Update</button></form></div>`).join(""):`<div class="card">No booking requests yet.</div>`}
   </div></body></html>`;
 }

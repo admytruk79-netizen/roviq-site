@@ -272,3 +272,21 @@ test('used truck card decodes dealer HTML entities and infers diesel fuel from t
   assert.doesNotMatch(html,/&amp;reg;/);
   assert.match(html,/<span>Fuel<\/span><strong>Diesel<\/strong>/);
 });
+
+import { getDealerDetails } from './new-trucks.js';
+test('bookings page shows the dealer for a truck request via the Core site key', async () => {
+  const calls=[];
+  const fetcher=async(url,init)=>{calls.push({url,init});return new Response(JSON.stringify({dealers:{'1GTUUEE82TG498073':{dealerName:'Buick GMC of Beaverton',dealerUrl:'https://gmc.example/v',dealerPriceCents:7499500,available:true}}}),{status:200});};
+  assert.deepEqual(await getDealerDetails(['1GTUUEE82TG498073'],'',fetcher),{configured:false,dealers:{}});
+  assert.equal(calls.length,0);
+  const lookup=await getDealerDetails(['1gtuuee82tg498073','bad'],'s'.repeat(32),fetcher);
+  assert.equal(calls[0].url,'https://roviq-core.onrender.com/api/site/inventory/dealers');
+  assert.equal(calls[0].init.headers['x-roviq-site-key'],'s'.repeat(32));
+  assert.deepEqual(JSON.parse(calls[0].init.body),{vins:['1GTUUEE82TG498073']});
+  const booking={id:'RB-2',kind:'new_truck',vehicleId:'1GTUUEE82TG498073',vin:'1GTUUEE82TG498073',vehicleTitle:'2026 GMC Sierra 1500 AT4',quotedPrice:81370,name:'A',email:'a@x.com',status:'dealer_confirmation_pending',createdAt:'2026-09-28T00:00:00Z'};
+  const html=bookingsAdminPage([booking],{},lookup);
+  assert.match(html,/<strong>Dealer:<\/strong> Buick GMC of Beaverton • <strong>Dealer price<\/strong> \$74,995 • <a href="https:\/\/gmc\.example\/v"/);
+  assert.match(bookingsAdminPage([booking],{},{configured:false,dealers:{}}),/set the CORE_DEALER_LOOKUP_KEY secret/);
+  assert.match(bookingsAdminPage([booking],{},{configured:true,error:500,dealers:{}}),/lookup failed/);
+  assert.equal((await getDealerDetails(['1GTUUEE82TG498073'],'k',async()=>new Response('',{status:503}))).configured,false);
+});
