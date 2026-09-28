@@ -59,3 +59,35 @@ export async function getNewTrucks(filters = new URLSearchParams(), fetcher = fe
   }
   return { vehicles: out, total: out.length, syncedAt: new Date().toISOString() };
 }
+
+const VIN_RE = /^[A-HJ-NPR-Z0-9]{17}$/i;
+
+export async function findNewTruck(vin, fetcher = fetch, cache = globalThis.caches?.default) {
+  if (!VIN_RE.test(String(vin || ""))) return null;
+  const { vehicles } = await getNewTrucks(new URLSearchParams(), fetcher, cache);
+  return vehicles.find(v => String(v.vin || "").toUpperCase() === String(vin).toUpperCase()) || null;
+}
+
+// Live availability from Core (dealer re-read hourly). Never includes the dealer.
+export async function checkNewTruckAvailability(vin, fetcher = fetch) {
+  if (!VIN_RE.test(String(vin || ""))) return { found: false, available: false };
+  try {
+    const res = await fetcher(`${CORE_API}/api/inventory/vin/${encodeURIComponent(vin)}`, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(10000) });
+    if (res.status === 404) return { found: false, available: false };
+    if (!res.ok) return { error: true };
+    const b = await res.json();
+    return { found: true, available: Boolean(b.available), lastSeenAt: b.lastSeenAt || null };
+  } catch { return { error: true }; }
+}
+
+// Core stores the request with the dealer and dealer price; we only keep its id.
+export async function submitNewTruckInquiry(payload, fetcher = fetch) {
+  try {
+    const res = await fetcher(`${CORE_API}/api/inventory/inquiries`, {
+      method: "POST", headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify(payload), signal: AbortSignal.timeout(15000)
+    });
+    if (!res.ok) return { ok: false, status: res.status };
+    return { ok: true, ...(await res.json()) };
+  } catch { return { ok: false, status: 0 }; }
+}

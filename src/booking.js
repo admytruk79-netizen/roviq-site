@@ -1,5 +1,6 @@
 import { requestDealerReservation } from "./inventory.js";
 import { createCoreVehicleCase, updateCoreCaseStatus } from "./core.js";
+import { findNewTruck, submitNewTruckInquiry } from "./new-trucks.js";
 
 const BOOKINGS_KEY = "vehicle_bookings:v1";
 const BOOKING_STATUSES = [
@@ -92,6 +93,64 @@ export async function createBooking(request,env){
   return Response.redirect("/ukraine?booking="+encodeURIComponent(booking.id),303);
 }
 
+// A request for one new truck. The booking keeps the VIN, the truck and the price
+// the customer saw; Core keeps the dealer details with its own request record.
+export async function createNewTruckBooking(request,env,deps={findNewTruck,submitNewTruckInquiry}){
+  const form=await request.formData();
+  const vin=String(form.get("vin")||"").trim().toUpperCase();
+  const name=clip(form.get("name"),120);
+  const email=clip(form.get("email"),160);
+  const phone=clip(form.get("phone"),80);
+  const destination=clip(form.get("destination")||"Ukraine",120);
+  const note=clip(form.get("note"),1200);
+  if(!(await rateLimit(request,env))) return new Response("Too many requests. Please try again later.",{status:429});
+  if(!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)||!name||!email) return new Response("Truck, name and email are required.",{status:400});
+  if(!emailOk(email)) return new Response("Please enter a valid email address.",{status:400});
+
+  const truck=await deps.findNewTruck(vin).catch(()=>null);
+  const inquiry=await deps.submitNewTruckInquiry({vin,name,email,phone:phone||null,note:[destination&&`Destination: ${destination}`,note].filter(Boolean).join("\n")||null,clientIp:clientIp(request)});
+
+  const booking={
+    id:id(),
+    kind:"new_truck",
+    vehicleId:vin,
+    vin,
+    vehicleTitle:truck?[truck.year,truck.make,truck.model,truck.trim].filter(Boolean).join(" "):null,
+    quotedPrice:truck?.price??null,
+    availableAtRequest:inquiry.ok?Boolean(inquiry.available):Boolean(truck),
+    coreInquiryId:inquiry.ok?inquiry.id:null,
+    name,email,phone,destination,note,
+    status:"dealer_confirmation_pending",
+    reservationMode:"manual",
+    createdAt:new Date().toISOString()
+  };
+  const items=await read(env);
+  items.unshift(booking);
+  await write(env,items.slice(0,500));
+  if(env.BOOKING_WEBHOOK_URL){
+    try{await fetch(env.BOOKING_WEBHOOK_URL,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(booking)});}catch{}
+  }
+  return Response.redirect(new URL("/ukraine?type=new&booking="+encodeURIComponent(booking.id),request.url).href,303);
+}
+
+export function newTruckForm(v){
+  return `<section class="book-panel" id="request-${esc(v.vin)}">
+  <h3>Request this truck</h3>
+  <p>ROVIQ checks with the dealer that this exact truck (VIN ${esc(v.vin)}) is still available and replies with next steps. A request is not a hold until the dealer confirms it.</p>
+  <form method="POST" action="/ukraine/new/book">
+    <input type="hidden" name="vin" value="${esc(v.vin)}">
+    <div class="book-grid">
+      <input required name="name" placeholder="Your name" autocomplete="name">
+      <input required type="email" name="email" placeholder="Email" autocomplete="email">
+      <input name="phone" placeholder="Phone / WhatsApp" autocomplete="tel">
+      <input name="destination" value="Ukraine" placeholder="Destination">
+    </div>
+    <textarea maxlength="1200" name="note" placeholder="Questions or preferred delivery city"></textarea>
+    <button class="uk-btn primary" type="submit">Send request</button>
+  </form>
+  </section>`;
+}
+
 export async function listBookings(env){return read(env)}
 
 export async function updateBooking(request,env){
@@ -130,10 +189,23 @@ export function bookingForm(vehicle){
   </section>`;
 }
 
-export function bookingsAdminPage(items){
+function availabilityBadge(a){
+  if(!a) return "";
+  if(a.error) return `<span style="color:#8a6d00">Availability check failed — retry by reloading</span>`;
+  const when=a.lastSeenAt?` (dealer last listed it ${esc(new Date(a.lastSeenAt).toLocaleString("en-US",{timeZone:"America/Los_Angeles",dateStyle:"medium",timeStyle:"short"}))} PT)`:"";
+  return a.available?`<span style="color:#0a7a3e;font-weight:700">● Available</span>${when}`:`<span style="color:#b42318;font-weight:700">● No longer listed</span>${when}`;
+}
+function newTruckDetails(b,availability){
+  if(b.kind!=="new_truck") return "";
+  const price=Number.isFinite(Number(b.quotedPrice))&&b.quotedPrice?"$"+Number(b.quotedPrice).toLocaleString("en-US"):"not captured";
+  return `<div class="muted"><strong>New truck:</strong> ${esc(b.vehicleTitle||"(title not captured)")} • <strong>VIN</strong> ${esc(b.vin)} • <strong>Price quoted</strong> ${esc(price)}</div>
+  <div class="muted"><strong>Now:</strong> ${availabilityBadge(availability)} • at request: ${b.availableAtRequest?"available":"not listed"} • Core request: ${esc(b.coreInquiryId||"not recorded")}</div>`;
+}
+
+export function bookingsAdminPage(items,availability={}){
   const options=BOOKING_STATUSES.map(s=>`<option value="${s}">${s.replaceAll("_"," ")}</option>`).join("");
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Vehicle bookings — ROVIQ</title>
   <style>body{font-family:Arial;margin:0;background:#f4f7fa;color:#17324a}.wrap{max-width:1180px;margin:auto;padding:28px}.top{display:flex;justify-content:space-between;align-items:center}.card{background:#fff;border:1px solid #dce6ee;border-radius:12px;padding:16px;margin:12px 0}.muted{color:#6b8093;font-size:13px}.status{font-weight:700}select,button{padding:8px 10px}.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}</style></head><body><div class="wrap"><div class="top"><h1>Vehicle bookings</h1><a href="/admin">Admin home</a></div>
-  ${items.length?items.map(b=>`<div class="card"><div class="row"><strong>${esc(b.id)}</strong><span>${esc(b.vehicleId)}</span><span>${esc(b.name)}</span><span>${esc(b.email)}</span><span>${esc(b.phone)}</span></div><p>${esc(b.note||"")}</p><div class="muted">${esc(b.createdAt)} • ${esc(b.destination)} • mode: ${esc(b.reservationMode||"legacy")} • Core: ${esc(b.coreCaseId||"legacy")}</div><div class="muted"><strong>Internal source:</strong> ${esc(b.sourceNameInternal||b.sourceId||"unknown")}${b.sourceUrlInternal?` • <a href="${esc(b.sourceUrlInternal)}" target="_blank" rel="noopener noreferrer">Open source vehicle</a>`:""}</div><p class="status">Status: ${esc((b.status||"").replaceAll("_"," "))}</p><form method="POST" action="/admin/bookings/status" class="row"><input type="hidden" name="bookingId" value="${esc(b.id)}"><select name="status">${options.replace(`value="${b.status}"`,`value="${b.status}" selected`)}</select><button>Update</button></form></div>`).join(""):`<div class="card">No booking requests yet.</div>`}
+  ${items.length?items.map(b=>`<div class="card"><div class="row"><strong>${esc(b.id)}</strong><span>${esc(b.vehicleId)}</span><span>${esc(b.name)}</span><span>${esc(b.email)}</span><span>${esc(b.phone)}</span></div><p>${esc(b.note||"")}</p>${newTruckDetails(b,availability[b.vin])}<div class="muted">${esc(b.createdAt)} • ${esc(b.destination)} • mode: ${esc(b.reservationMode||"legacy")} • Core: ${esc(b.coreCaseId||b.coreInquiryId||"legacy")}</div>${b.kind==="new_truck"?`<div class="muted"><strong>Dealer:</strong> kept with the Core request (emailed to you once Core email is set up)</div>`:`<div class="muted"><strong>Internal source:</strong> ${esc(b.sourceNameInternal||b.sourceId||"unknown")}${b.sourceUrlInternal?` • <a href="${esc(b.sourceUrlInternal)}" target="_blank" rel="noopener noreferrer">Open source vehicle</a>`:""}</div>`}<p class="status">Status: ${esc((b.status||"").replaceAll("_"," "))}</p><form method="POST" action="/admin/bookings/status" class="row"><input type="hidden" name="bookingId" value="${esc(b.id)}"><select name="status">${options.replace(`value="${b.status}"`,`value="${b.status}" selected`)}</select><button>Update</button></form></div>`).join(""):`<div class="card">No booking requests yet.</div>`}
   </div></body></html>`;
 }

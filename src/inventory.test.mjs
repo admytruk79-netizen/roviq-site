@@ -199,3 +199,67 @@ test("getNewTrucks shows each VIN once when Core lists it twice", async () => {
   assert.deepEqual(r.vehicles.map(v=>v.vin),['1GTUUDED4TG344911','1GTUUDED4TG344912']);
   assert.equal(r.total,2);
 });
+
+import { createNewTruckBooking, bookingsAdminPage } from './booking.js';
+import { checkNewTruckAvailability } from './new-trucks.js';
+
+function kv(){const data=new Map();return {data,CONTENT:{get:async k=>data.get(k)||null,put:async(k,v)=>{data.set(k,v)}}};}
+const newTruck=coreNewTruckToCard(coreRow({vin:'1FTEW2LP5TKE63673',make:'Ford',model:'F-150',trim:'STX SuperCrew',public_price_cents:4894500}));
+const bookRequest=fields=>new Request('https://site.test/ukraine/new/book',{method:'POST',headers:{'cf-connecting-ip':'203.0.113.7'},
+  body:new URLSearchParams({vin:'1FTEW2LP5TKE63673',name:'Olena',email:'olena@example.com',phone:'+380',note:'Kyiv please',...fields})});
+
+test("new-truck request is saved with the exact VIN, truck and quoted price, and sent to Core", async () => {
+  const env=kv();
+  let sent;
+  const res=await createNewTruckBooking(bookRequest({}),env,{findNewTruck:async()=>newTruck,submitNewTruckInquiry:async p=>{sent=p;return {ok:true,id:'core-req-1',available:true};}});
+  assert.equal(res.status,303);
+  assert.match(res.headers.get('location'),/^https:\/\/site\.test\/ukraine\?type=new&booking=RB-/);
+  assert.deepEqual({vin:sent.vin,name:sent.name,clientIp:sent.clientIp},{vin:'1FTEW2LP5TKE63673',name:'Olena',clientIp:'203.0.113.7'});
+  assert.match(sent.note,/Destination: Ukraine/);
+  const [b]=JSON.parse(env.data.get('vehicle_bookings:v1'));
+  assert.equal(b.kind,'new_truck');
+  assert.equal(b.vin,'1FTEW2LP5TKE63673');
+  assert.equal(b.vehicleTitle,'2026 Ford F-150 STX SuperCrew');
+  assert.equal(b.quotedPrice,48945);
+  assert.equal(b.coreInquiryId,'core-req-1');
+  assert.equal(b.availableAtRequest,true);
+});
+
+test("new-truck request is kept even if Core is unreachable; bad VINs are rejected", async () => {
+  const env=kv();
+  const res=await createNewTruckBooking(bookRequest({}),env,{findNewTruck:async()=>newTruck,submitNewTruckInquiry:async()=>({ok:false,status:0})});
+  assert.equal(res.status,303);
+  const [b]=JSON.parse(env.data.get('vehicle_bookings:v1'));
+  assert.equal(b.coreInquiryId,null);
+  assert.equal(b.vin,'1FTEW2LP5TKE63673');
+  const bad=await createNewTruckBooking(bookRequest({vin:'nope'}),kv(),{findNewTruck:async()=>null,submitNewTruckInquiry:async()=>{throw new Error('should not send');}});
+  assert.equal(bad.status,400);
+});
+
+test("bookings page shows the new truck, VIN, price and live availability without dealer names", () => {
+  const html=bookingsAdminPage([{id:'RB-1',kind:'new_truck',vehicleId:'1FTEW2LP5TKE63673',vin:'1FTEW2LP5TKE63673',vehicleTitle:'2026 Ford F-150 STX SuperCrew',
+    quotedPrice:48945,availableAtRequest:true,coreInquiryId:'core-req-1',name:'Olena',email:'o@example.com',status:'dealer_confirmation_pending',createdAt:'2026-09-27T08:00:00Z'}],
+    {'1FTEW2LP5TKE63673':{found:true,available:false,lastSeenAt:'2026-09-27T06:00:00Z'}});
+  assert.match(html,/2026 Ford F-150 STX SuperCrew/);
+  assert.match(html,/VIN<\/strong> 1FTEW2LP5TKE63673/);
+  assert.match(html,/\$48,945/);
+  assert.match(html,/No longer listed/);
+  assert.match(html,/core-req-1/);
+  assert.doesNotMatch(html,/Courtesy/);
+});
+
+test("request page shows the truck with a form bound to its VIN", () => {
+  const html=ukrainePage({},{vehicles:[newTruck]},null,null,true,new URLSearchParams({type:'new'}));
+  assert.match(html,/action="\/ukraine\/new\/book"/);
+  assert.match(html,/name="vin" value="1FTEW2LP5TKE63673"/);
+  assert.match(html,/Back to all new trucks/);
+  const list=ukrainePage({},{vehicles:[newTruck]},null,null,false,new URLSearchParams({type:'new'}));
+  assert.match(list,/href="\/ukraine\/new\/request\?vin=1FTEW2LP5TKE63673"/);
+});
+
+test("availability check reports not-listed, found and errors without throwing", async () => {
+  assert.deepEqual(await checkNewTruckAvailability('1FTEW2LP5TKE63673',async()=>new Response('{}',{status:404})),{found:false,available:false});
+  assert.deepEqual(await checkNewTruckAvailability('1FTEW2LP5TKE63673',async()=>new Response(JSON.stringify({available:true,lastSeenAt:'x'}))),{found:true,available:true,lastSeenAt:'x'});
+  assert.deepEqual(await checkNewTruckAvailability('1FTEW2LP5TKE63673',async()=>{throw new Error('down');}),{error:true});
+  assert.deepEqual(await checkNewTruckAvailability('bad'),{found:false,available:false});
+});
