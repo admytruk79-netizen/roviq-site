@@ -4,7 +4,7 @@ const INVENTORY_KEY = "vehicle_inventory:v1";
 const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
 const MAX_MILES = 40000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const INVENTORY_SCHEMA_VERSION = 33; // Ukraine feed: used/pre-owned inventory only
+const INVENTORY_SCHEMA_VERSION = 34; // Used/pre-owned, crew-cab Ukraine feed; <=40,000 miles
 
 export const SOURCE_PLUGINS = [
   {
@@ -13,7 +13,8 @@ export const SOURCE_PLUGINS = [
       "https://www.carrchevrolet.com/used-inventory/index.htm",
       "https://www.carrchevrolet.com/certified-inventory/index.htm",
       "https://www.carrchevrolet.com/used-trucks.htm",
-      "https://www.carrchevrolet.com/used-trucks.htm?start=16"
+      "https://www.carrchevrolet.com/used-trucks.htm?start=16",
+      "https://www.carrchevrolet.com/used-inventory/index.htm?model=Silverado%202500%20HD"
     ],
     baseUrl: "https://www.carrchevrolet.com",
     detailPatterns: [/\/used\/Chevrolet\/.*Silverado/i,/\/used\/GMC\/.*Sierra/i,/\/used\/Ford\/.*F-?(?:150|250)/i]
@@ -31,6 +32,7 @@ export const SOURCE_PLUGINS = [
     id: "carr-vancouver-gmc", name: "CARR Vancouver Buick GMC", usedOnly: true,
     inventoryUrls: [
       "https://www.carrbuickgmc.com/searchused.aspx?make=GMC&model=Sierra%201500",
+      "https://www.carrbuickgmc.com/searchused.aspx?make=GMC&model=Sierra%202500%20HD",
       "https://www.carrbuickgmc.com/searchused.aspx",
       "https://www.carrbuickgmc.com/searchused.aspx?pt=2",
       "https://www.carrbuickgmc.com/searchused.aspx?pt=3"
@@ -42,6 +44,8 @@ export const SOURCE_PLUGINS = [
     id: "beaverton-gmc", name: "Buick GMC of Beaverton", usedOnly: true,
     inventoryUrls: [
       "https://www.beavertongmc.com/searchused.aspx?make=GMC&model=Sierra%201500",
+      "https://www.beavertongmc.com/searchused.aspx?make=GMC&model=Sierra%202500%20HD",
+      "https://www.beavertongmc.com/searchused.aspx?make=Chevrolet&model=Silverado%202500%20HD",
       "https://www.beavertongmc.com/searchused.aspx?make=GMC&model=Sierra%201500&pt=2",
       "https://www.beavertongmc.com/searchused.aspx?make=Chevrolet&model=Silverado%201500",
       "https://www.beavertongmc.com/searchused.aspx?make=Chevrolet&model=Silverado%20EV",
@@ -151,6 +155,7 @@ export const SOURCE_PLUGINS = [
     id: "power-chevrolet", name: "Power Chevrolet", usedOnly: true,
     inventoryUrls: [
       "https://www.powerchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500",
+      "https://www.powerchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%202500%20HD",
       "https://www.powerchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=2",
       "https://www.powerchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=3",
       "https://www.powerchevrolet.com/searchused.aspx"
@@ -162,6 +167,7 @@ export const SOURCE_PLUGINS = [
     id: "northwest-chevrolet", name: "Northwest Chevrolet", usedOnly: true,
     inventoryUrls: [
       "https://www.northwestchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500",
+      "https://www.northwestchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%202500%20HD",
       "https://www.northwestchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=2",
       "https://www.northwestchevrolet.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=3",
       "https://www.northwestchevrolet.com/searchused.aspx"
@@ -191,6 +197,7 @@ export const SOURCE_PLUGINS = [
     id: "weston-gmc", name: "Weston Buick GMC", usedOnly: true,
     inventoryUrls: [
       "https://www.westonbuickgmc.com/searchused.aspx?make=GMC&model=Sierra%201500",
+      "https://www.westonbuickgmc.com/searchused.aspx?make=GMC&model=Sierra%202500%20HD",
       "https://www.westonbuickgmc.com/searchused.aspx?make=GMC&model=Sierra%201500&pt=2"
     ],
     baseUrl: "https://www.westonbuickgmc.com",
@@ -209,6 +216,7 @@ export const SOURCE_PLUGINS = [
     id: "mcloughlin-chevrolet", name: "McLoughlin Chevrolet", usedOnly: true,
     inventoryUrls: [
       "https://www.mcloughlinchevy.com/searchused.aspx?make=Chevrolet&model=Silverado%201500",
+      "https://www.mcloughlinchevy.com/searchused.aspx?make=Chevrolet&model=Silverado%202500%20HD",
       "https://www.mcloughlinchevy.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=2",
       "https://www.mcloughlinchevy.com/searchused.aspx?make=Chevrolet&model=Silverado%201500&pt=3",
       "https://www.mcloughlinchevy.com/searchused.aspx"
@@ -382,6 +390,16 @@ function looksLikeListing(url) {
 function looksLikeUsedListing(url) {
   return /(?:\/used(?:[-\/]|%2b)|\/certified-used-|\/certified\/|\/preowned|\/pre-owned)/i.test(String(url||""));
 }
+function hasCrewCabEvidence(v={}) {
+  const evidence=[v.cabType,v.style,v.trim,v.name,v.sourceUrl,v.url].filter(Boolean).join(" ");
+  return /super\s*-?crew|crew\s*-?cab|\bcrew\b/i.test(evidence);
+}
+function targetUsedCrewCab(v={}) {
+  const model=canonicalModel(v.model);
+  return /used/i.test(String(v.condition||"used")) &&
+    /^(?:F-150|F-250|Silverado 1500|Silverado 2500 HD|Sierra 1500|Sierra 2500 HD)$/i.test(model) &&
+    hasCrewCabEvidence(v);
+}
 
 function canonicalModel(value) {
   const s=String(value||"").replace(/[-_]/g," ").replace(/\s+/g," ").trim();
@@ -434,7 +452,7 @@ export function discoverFleetInventory(html, source, inventoryUrl) {
     const color=safeField((text.match(/Color\s+([^$|]{2,35}?)(?:\s+Vehicle Trim|\s+See More Details|$)/i)||[])[1]||null);
     const usedMileage=num((postVinText.match(/Mileage\s+([0-9,]+)\b/i)||[])[1]);
     const mileageMi=usedMileage;
-    if(mileageMi==null || mileageMi>=MAX_MILES) continue;
+    if(mileageMi==null || mileageMi>MAX_MILES) continue;
     const price=num((postVinText.match(/(?:Price\*?|Sale Price|Total Price)\s*\|?\s*\$\s*([0-9,]+)/i)||[])[1]) ||
       num((postVinText.match(/MSRP\s*\|?\s*\$\s*([0-9,]+)/i)||[])[1]);
     const directImage=extractImage(raw);
@@ -507,7 +525,7 @@ export function searchServiceListingToHints(listing, source) {
   // Cab comes from the dealer's style name; the VDP slug (e.g. "-4wd-supercrew-") is the fallback.
   if(!/super\s*-?crew|crew\s*-?cab/i.test(style ? style+" "+String(listing?.trim||"") : url)) return null;
   const mileageMi=Number(listing?.mileage);
-  if(!Number.isFinite(mileageMi) || mileageMi<=0 || mileageMi>=MAX_MILES) return null;
+  if(!Number.isFinite(mileageMi) || mileageMi<0 || mileageMi>MAX_MILES) return null;
   if(!listing?.vin || !looksLikeUsedListing(url)) return null;
   const pricing=listing?.pricing||{};
   const askingPrice=[pricing.our_price,pricing.internet_price,pricing.price].map(Number).find(n=>n>=1000&&n<=250000);
@@ -515,7 +533,7 @@ export function searchServiceListingToHints(listing, source) {
   const image=(listing?.media?.images||[]).find(u=>typeof u==="string");
   return {url,hints:{
     year:Number(listing.year)||null,make,model,trim:safeField(listing.trim||"",""),
-    mileageMi,vin:String(listing.vin).toUpperCase(),condition:"used",
+    mileageMi,vin:String(listing.vin).toUpperCase(),condition:"used",cabType:/super\s*-?crew/i.test(style+" "+url)?"SuperCrew":"Crew Cab",style:safeField(style,""),
     ...(mech.engine?{engine:safeField(mech.engine)}:{}),
     ...(mech.drivetrain?{drivetrain:safeField(mech.drivetrain)}:{}),
     ...(mech.transmission?{transmission:safeField(mech.transmission)}:{}),
@@ -753,7 +771,8 @@ function isRenderableVehicle(v) {
     v &&
     v.status==="available" &&
     v.mileageMi!=null &&
-    v.mileageMi<MAX_MILES &&
+    v.mileageMi<=MAX_MILES &&
+    targetUsedCrewCab(v) &&
     v.year &&
     v.make &&
     v.model &&
@@ -1015,18 +1034,25 @@ export async function syncVehicleInventory(env) {
       v.incompleteReason = "missing_core";
       return v;
     }
-    if(v.mileageMi>=MAX_MILES) {
+    if(v.mileageMi>MAX_MILES) {
       if (sourceHealth[source.id]) sourceHealth[source.id].rejectedMileage++;
       v.status = "filtered";
       v.incompleteReason = "mileage";
       return v;
     }
-    if(!/^(Chevrolet|GMC|Ford)$/i.test(v.make) || !/(Silverado|Sierra|F-?(?:150|250))/i.test(v.model)) {
+    if(!/^(Chevrolet|GMC|Ford)$/i.test(v.make) || !/^(?:Silverado (?:1500|2500 HD)|Sierra (?:1500|2500 HD)|F-(?:150|250))$/i.test(canonicalModel(v.model))) {
       if (sourceHealth[source.id]) sourceHealth[source.id].rejectedMakeModel++;
       v.status = "filtered";
       v.incompleteReason = "make_model";
       return v;
     }
+    if(!hasCrewCabEvidence(v)) {
+      v.status = "filtered";
+      v.incompleteReason = "cab_type";
+      return v;
+    }
+    v.condition="used";
+    v.cabType=/super\s*-?crew/i.test([v.cabType,v.style,v.trim,v.sourceUrl].filter(Boolean).join(" "))?"SuperCrew":"Crew Cab";
     return v;
   }
 
