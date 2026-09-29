@@ -2,6 +2,7 @@ import { getPricingConfig } from "./pricing.js";
 import { syncVehicleCosting, publicCosting } from "./costing-db.js";
 const INVENTORY_KEY = "vehicle_inventory:v1";
 const LIVE_DATABASE_KEY = "vehicle_live_database:v1";
+const MIN_MILES = 500;
 const MAX_MILES = 40000;
 const LIVE_VERIFICATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const INVENTORY_SCHEMA_VERSION = 34; // Used/pre-owned, crew-cab Ukraine feed; <=40,000 miles
@@ -452,7 +453,7 @@ export function discoverFleetInventory(html, source, inventoryUrl) {
     const color=safeField((text.match(/Color\s+([^$|]{2,35}?)(?:\s+Vehicle Trim|\s+See More Details|$)/i)||[])[1]||null);
     const usedMileage=num((postVinText.match(/Mileage\s+([0-9,]+)\b/i)||[])[1]);
     const mileageMi=usedMileage;
-    if(mileageMi==null || mileageMi>MAX_MILES) continue;
+    if(mileageMi==null || mileageMi<MIN_MILES || mileageMi>MAX_MILES) continue;
     const price=num((postVinText.match(/(?:Price\*?|Sale Price|Total Price)\s*\|?\s*\$\s*([0-9,]+)/i)||[])[1]) ||
       num((postVinText.match(/MSRP\s*\|?\s*\$\s*([0-9,]+)/i)||[])[1]);
     const directImage=extractImage(raw);
@@ -525,7 +526,7 @@ export function searchServiceListingToHints(listing, source) {
   // Cab comes from the dealer's style name; the VDP slug (e.g. "-4wd-supercrew-") is the fallback.
   if(!/super\s*-?crew|crew\s*-?cab/i.test(style ? style+" "+String(listing?.trim||"") : url)) return null;
   const mileageMi=Number(listing?.mileage);
-  if(!Number.isFinite(mileageMi) || mileageMi<0 || mileageMi>MAX_MILES) return null;
+  if(!Number.isFinite(mileageMi) || mileageMi<MIN_MILES || mileageMi>MAX_MILES) return null;
   if(!listing?.vin || !looksLikeUsedListing(url)) return null;
   const pricing=listing?.pricing||{};
   const askingPrice=[pricing.our_price,pricing.internet_price,pricing.price].map(Number).find(n=>n>=1000&&n<=250000);
@@ -772,6 +773,7 @@ function isRenderableVehicle(v) {
     v &&
     v.status==="available" &&
     v.mileageMi!=null &&
+    v.mileageMi>=MIN_MILES &&
     v.mileageMi<=MAX_MILES &&
     targetUsedCrewCab(v) &&
     v.year &&
@@ -794,6 +796,7 @@ function isPublicReady(v) {
     v.status==="available" &&
     freshDiscovery &&
     v.mileageMi!=null &&
+    v.mileageMi>=MIN_MILES &&
     v.mileageMi<=MAX_MILES &&
     targetUsedCrewCab(v) &&
     v.year &&
@@ -1036,7 +1039,7 @@ export async function syncVehicleInventory(env) {
       v.incompleteReason = "missing_core";
       return v;
     }
-    if(v.mileageMi>MAX_MILES) {
+    if(v.mileageMi<MIN_MILES || v.mileageMi>MAX_MILES) {
       if (sourceHealth[source.id]) sourceHealth[source.id].rejectedMileage++;
       v.status = "filtered";
       v.incompleteReason = "mileage";
@@ -1165,6 +1168,7 @@ export async function syncVehicleInventory(env) {
       discovered.make &&
       discovered.model &&
       discovered.mileageMi!=null &&
+      discovered.mileageMi>=MIN_MILES &&
       discovered.mileageMi<=MAX_MILES &&
       discovered.directImage &&
       hasValidPrice(discovered)
@@ -1405,6 +1409,7 @@ export async function checkVehicleAvailability(env, vehicleId) {
       fresh.make &&
       fresh.model &&
       fresh.mileageMi!=null &&
+      fresh.mileageMi>=MIN_MILES &&
       fresh.mileageMi<=MAX_MILES &&
       safeField(fresh.engine) &&
       safeField(fresh.drivetrain)
