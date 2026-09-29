@@ -794,7 +794,8 @@ function isPublicReady(v) {
     v.status==="available" &&
     freshDiscovery &&
     v.mileageMi!=null &&
-    v.mileageMi<MAX_MILES &&
+    v.mileageMi<=MAX_MILES &&
+    targetUsedCrewCab(v) &&
     v.year &&
     v.make &&
     v.model
@@ -1164,7 +1165,7 @@ export async function syncVehicleInventory(env) {
       discovered.make &&
       discovered.model &&
       discovered.mileageMi!=null &&
-      discovered.mileageMi<MAX_MILES &&
+      discovered.mileageMi<=MAX_MILES &&
       discovered.directImage &&
       hasValidPrice(discovered)
     );
@@ -1404,7 +1405,7 @@ export async function checkVehicleAvailability(env, vehicleId) {
       fresh.make &&
       fresh.model &&
       fresh.mileageMi!=null &&
-      fresh.mileageMi<MAX_MILES &&
+      fresh.mileageMi<=MAX_MILES &&
       safeField(fresh.engine) &&
       safeField(fresh.drivetrain)
     );
@@ -1489,7 +1490,7 @@ export async function getInventoryDiagnostics(env) {
     if(!v.drivetrain) issues.push({severity:"warn",vehicleId:v.id,type:"missing_drivetrain",message:"Drivetrain specification missing"});
     if(!v.lastVerifiedAt) issues.push({severity:"warn",vehicleId:v.id,type:"never_verified",message:"Vehicle has not completed a successful verification"});
     else if(nowMs-Date.parse(v.lastVerifiedAt)>3*60*60*1000) issues.push({severity:"warn",vehicleId:v.id,type:"stale",message:"Vehicle has not been verified in more than 3 hours"});
-    if(v.mileageMi>=MAX_MILES) issues.push({severity:"error",vehicleId:v.id,type:"mileage_filter",message:"Vehicle exceeds public mileage limit"});
+    if(v.mileageMi>MAX_MILES) issues.push({severity:"error",vehicleId:v.id,type:"mileage_filter",message:"Vehicle exceeds public mileage limit"});
   }
 
   const sourceIssues=(state.sources||[]).flatMap(s=>{
