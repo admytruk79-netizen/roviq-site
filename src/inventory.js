@@ -489,7 +489,7 @@ function discoverLlmInventory(html, source) {
     const price=num((item.match(/itemprop=["']price["'][^>]*content=["']([0-9,.]+)/i)||[])[1]);
     const vin=(item.match(/itemprop=["']vehicleIdentificationNumber["'][^>]*content=["']([A-HJ-NPR-Z0-9]{17})/i)||[])[1]||null;
     if(!year || !make || !model || mileage==null) continue;
-    out.set(url,{url,hints:{year,make,model,mileageMi:mileage,
+    out.set(url,{url,hints:{year,make,model,mileageMi:mileage,condition:"used",
       ...(price>=1000&&price<=250000?{askingPrice:price}:{}),...(vin?{vin}:{}),
       sourceId:source.id,sourceNameInternal:source.name,status:"available",firstSeenAt:now()}});
     if(out.size>=180) break;
@@ -628,7 +628,7 @@ function discover(html, source, inventoryUrl) {
           ...(engine?{engine}:{}),
           ...(drivetrain?{drivetrain}:{}),
           ...(typeof vin==="string"&&/^[A-HJ-NPR-Z0-9]{17}$/i.test(vin)?{vin}:{}),
-          status:"available",sourceId:source.id,sourceNameInternal:source.name,
+          condition:"used",status:"available",sourceId:source.id,sourceNameInternal:source.name,
           firstSeenAt:prior.firstSeenAt||now()});
       }
     } catch {}
@@ -679,6 +679,7 @@ function discover(html, source, inventoryUrl) {
       ...(hintMileage!=null?{mileageMi:hintMileage}:{}),
       ...(hintDrivetrain?{drivetrain:hintDrivetrain}:{}),
       ...(hintEngine?{engine:hintEngine}:{}),
+      condition:"used",
       status:"available",
       lastVerifiedAt:now(),
       firstSeenAt:existing.firstSeenAt||now(),
