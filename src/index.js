@@ -102,6 +102,7 @@ export default {
       if (path === "/admin/reset-field" && method === "POST") return handleAdminResetField(request, env);
       if (path === "/admin/upload" && method === "POST") return handleAdminUpload(request, env);
       if (path.startsWith("/uploads/") && method === "GET") return handleUploadedAsset(request, env);
+      if (path === "/ukraine" && method === "GET") return Response.redirect("https://roviq-core-customer.pages.dev/ukraine", 302);
       if (path.startsWith("/ukraine/image/") && method === "GET") return getVehicleImageResponse(request, env);
       if (path === "/ukraine/book" && method === "POST") return createBooking(request, env);
       // New trucks are hidden until the dealer licence arrives (set the SHOW_NEW_TRUCKS var to "true").
