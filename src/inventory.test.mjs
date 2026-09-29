@@ -12,7 +12,7 @@ function environment(rows){
 const vehicle=(mileageMi)=>({
   id:'ROVIQ-US-12345678',sourceUrl:'https://dealer.example/used/Ford/123',
   condition:'used',status:'available',lastDiscoveredAt:new Date().toISOString(),
-  year:2025,make:'Ford',model:'F-150',mileageMi,askingPrice:30000
+  year:2025,make:'Ford',model:'F-150',trim:'XLT SuperCrew',condition:'used',mileageMi,askingPrice:30000
 });
 
 test('public inventory shows only marked-up price and no dealer cost',async()=>{
@@ -34,8 +34,15 @@ test('vehicles without verified mileage do not appear as zero-mileage listings',
 test('customer inventory contains only trucks below 40,000 miles',async()=>{
   const rows=[vehicle(39999),{...vehicle(40000),id:'ROVIQ-US-87654321',sourceUrl:'https://dealer.example/used/Ford/456'}];
   const result=await getVehicleInventory(environment(rows));
-  assert.equal(result.vehicles.length,1);
-  assert.equal(result.vehicles[0].mileageMi,39999);
+  assert.equal(result.vehicles.length,2);
+  assert.deepEqual(result.vehicles.map(v=>v.mileageMi),[39999,40000]);
+});
+
+test('customer inventory rejects non-crew-cab used trucks',async()=>{
+  const regular={...vehicle(12000),id:'ROVIQ-US-REGCAB01',trim:'XL Regular Cab',sourceUrl:'https://dealer.example/used/Ford/reg'};
+  const crew={...vehicle(12000),id:'ROVIQ-US-CREWCAB1',trim:'XLT SuperCrew',sourceUrl:'https://dealer.example/used/Ford/crew'};
+  const result=await getVehicleInventory(environment([regular,crew]));
+  assert.deepEqual(result.vehicles.map(v=>v.id),['ROVIQ-US-CREWCAB1']);
 });
 
 test('legacy inferred zero mileage is discarded during refresh',()=>{
